@@ -23,6 +23,8 @@
 - **VitePress** - Vue 驱动的静态站点生成器
 - **GitBook** - 现代文档平台
 - **ReadTheDocs / Sphinx** - Python 生态文档托管
+- **Mintlify** - 现代 API 文档平台
+- **Anthropic Docs** - Claude 官方文档平台
 
 使用方法：
 1. 打开文档站点首页（确保侧边栏可见）
