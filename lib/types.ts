@@ -13,6 +13,7 @@ export type DocFramework =
   | 'vitepress'
   | 'readthedocs'
   | 'sphinx'
+  | 'mintlify'
   | 'unknown';
 
 // Document page item

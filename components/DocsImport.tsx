@@ -15,6 +15,7 @@ const FRAMEWORK_LABELS: Record<DocFramework, string> = {
   vitepress: 'VitePress',
   readthedocs: 'ReadTheDocs / Sphinx',
   sphinx: 'Sphinx',
+  mintlify: 'Mintlify',
   unknown: '未识别框架',
 };
 

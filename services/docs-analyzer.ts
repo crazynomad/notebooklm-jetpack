@@ -41,6 +41,13 @@ export function detectFramework(doc: Document): DocFramework {
     return 'readthedocs';
   }
 
+  // Mintlify detection
+  const mintlifySidebar = doc.querySelector('.sidebar-group');
+  const mintlifyAssets = doc.querySelector('link[href*="mintlify"], script[src*="mintlify"]');
+  if (mintlifySidebar || mintlifyAssets) {
+    return 'mintlify';
+  }
+
   return 'unknown';
 }
 
@@ -61,6 +68,8 @@ export function extractPages(
       return extractVitePressPages(doc, baseUrl);
     case 'readthedocs':
       return extractReadTheDocsPages(doc, baseUrl);
+    case 'mintlify':
+      return extractMintlifyPages(doc, baseUrl);
     default:
       return extractGenericPages(doc, baseUrl);
   }
@@ -327,6 +336,62 @@ function extractReadTheDocsPages(doc: Document, baseUrl: string): DocPageItem[] 
       });
       break;
     }
+  }
+
+  return deduplicatePages(pages);
+}
+
+// Extract Mintlify sidebar links
+function extractMintlifyPages(doc: Document, baseUrl: string): DocPageItem[] {
+  const pages: DocPageItem[] = [];
+
+  // Mintlify uses sidebar-group for sections
+  const sidebarGroups = doc.querySelectorAll('.sidebar-group');
+
+  sidebarGroups.forEach((group) => {
+    // Get section header
+    const header = group.querySelector('.sidebar-group-header');
+    const section = header?.textContent?.trim();
+
+    // Get all links in this group
+    const links = group.querySelectorAll<HTMLAnchorElement>('a[href]');
+    links.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+      const url = resolveUrl(href, baseUrl);
+      if (!isSameSite(url, baseUrl)) return;
+
+      // Skip if it's an external link or asset
+      if (href.includes('mintlify-assets') || href.includes('http')) return;
+
+      pages.push({
+        url,
+        title: link.textContent?.trim() || url,
+        path: new URL(url).pathname,
+        level: 0,
+        section,
+      });
+    });
+  });
+
+  // If no sidebar-group found, try generic nav/aside selectors
+  if (pages.length === 0) {
+    const links = doc.querySelectorAll<HTMLAnchorElement>('aside a[href^="/"], nav a[href^="/"]');
+    links.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#') || href.includes('mintlify')) return;
+
+      const url = resolveUrl(href, baseUrl);
+      if (!isSameSite(url, baseUrl)) return;
+
+      pages.push({
+        url,
+        title: link.textContent?.trim() || url,
+        path: new URL(url).pathname,
+        level: 0,
+      });
+    });
   }
 
   return deduplicatePages(pages);
