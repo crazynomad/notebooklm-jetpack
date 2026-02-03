@@ -1,6 +1,7 @@
 import { NOTEBOOKLM_CONFIG } from '@/lib/config';
 import { delay } from '@/lib/utils';
 import type { ImportItem, ImportProgress } from '@/lib/types';
+import { addToHistory } from './history';
 
 // Send message to content script to import a URL
 async function sendImportMessage(tabId: number, url: string): Promise<boolean> {
@@ -64,9 +65,16 @@ export async function importUrl(url: string): Promise<boolean> {
     }
 
     await delay(500);
-    return await sendImportMessage(tab.id, url);
+    const success = await sendImportMessage(tab.id, url);
+
+    // Record to history
+    await addToHistory(url, success ? 'success' : 'error', undefined, success ? undefined : 'Import failed');
+
+    return success;
   } catch (error) {
     console.error('Failed to import URL:', error);
+    // Record failure to history
+    await addToHistory(url, 'error', undefined, error instanceof Error ? error.message : 'Unknown error');
     return false;
   }
 }
@@ -115,9 +123,13 @@ export async function importBatch(
       if (!success) {
         item.error = 'Import failed';
       }
+      // Record to history
+      await addToHistory(item.url, item.status, undefined, item.error);
     } catch (error) {
       item.status = 'error';
       item.error = error instanceof Error ? error.message : 'Unknown error';
+      // Record to history
+      await addToHistory(item.url, 'error', undefined, item.error);
     }
 
     progress.completed++;

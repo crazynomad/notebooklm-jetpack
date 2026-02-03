@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { Youtube, Link, List, Rss, BookOpen, Lock } from 'lucide-react';
+import { Youtube, Link, List, Rss, BookOpen, Lock, History } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { SingleImport } from '@/components/SingleImport';
@@ -8,9 +8,15 @@ import { BatchImport } from '@/components/BatchImport';
 import { PlaylistImport } from '@/components/PlaylistImport';
 import { RssImport } from '@/components/RssImport';
 import { DocsImport } from '@/components/DocsImport';
+import { HistoryPanel } from '@/components/HistoryPanel';
 
 export default function App() {
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  if (showHistory) {
+    return <HistoryPanel onClose={() => setShowHistory(false)} />;
+  }
 
   return (
     <div className="min-h-[480px] bg-white">
@@ -22,6 +28,13 @@ export default function App() {
           </div>
           <span className="font-medium text-gray-900">NotebookLM Importer</span>
         </div>
+        <button
+          onClick={() => setShowHistory(true)}
+          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          title="导入历史"
+        >
+          <History className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Progress indicator */}

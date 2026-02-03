@@ -72,8 +72,20 @@ export type MessageType =
   | { type: 'PARSE_RSS'; rssUrl: string }
   | { type: 'GET_CURRENT_TAB' }
   | { type: 'GET_ALL_TABS' }
-  | { type: 'ANALYZE_DOC_SITE'; tabId: number };
+  | { type: 'ANALYZE_DOC_SITE'; tabId: number }
+  | { type: 'GET_HISTORY'; limit?: number }
+  | { type: 'CLEAR_HISTORY' };
 
 export type MessageResponse =
   | { success: true; data: unknown }
   | { success: false; error: string };
+
+// Import history item
+export interface HistoryItem {
+  id: string;
+  url: string;
+  title?: string;
+  importedAt: number;
+  status: 'success' | 'error';
+  error?: string;
+}

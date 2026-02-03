@@ -11,6 +11,7 @@ import {
   getAllTabUrls,
 } from '@/services/notebooklm';
 import { analyzeDocSite } from '@/services/docs-site';
+import { getHistory, clearHistory } from '@/services/history';
 import { extractYouTubePlaylistId } from '@/lib/utils';
 import type { MessageType, MessageResponse } from '@/lib/types';
 
@@ -132,6 +133,12 @@ async function handleMessage(message: MessageType): Promise<unknown> {
 
     case 'ANALYZE_DOC_SITE':
       return await analyzeDocSite(message.tabId);
+
+    case 'GET_HISTORY':
+      return await getHistory(message.limit);
+
+    case 'CLEAR_HISTORY':
+      return await clearHistory();
 
     default:
       throw new Error('Unknown message type');
