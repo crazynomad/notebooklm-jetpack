@@ -1,0 +1,144 @@
+import { useState } from 'react';
+import { Link, Loader2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import type { ImportProgress } from '@/lib/types';
+import { isValidUrl, isYouTubeUrl } from '@/lib/utils';
+
+interface Props {
+  onProgress: (progress: ImportProgress | null) => void;
+}
+
+type ImportState = 'idle' | 'loading' | 'importing' | 'success' | 'error';
+
+export function SingleImport({ onProgress }: Props) {
+  const [url, setUrl] = useState('');
+  const [currentTabUrl, setCurrentTabUrl] = useState<string | null>(null);
+  const [state, setState] = useState<ImportState>('idle');
+  const [error, setError] = useState('');
+
+  // Load current tab URL on mount
+  useState(() => {
+    chrome.runtime.sendMessage({ type: 'GET_CURRENT_TAB' }, (response) => {
+      if (response?.success && response.data) {
+        setCurrentTabUrl(response.data as string);
+      }
+    });
+  });
+
+  const handleImport = async (targetUrl: string) => {
+    if (!isValidUrl(targetUrl)) {
+      setError('请输入有效的 URL');
+      setState('error');
+      return;
+    }
+
+    setState('importing');
+    setError('');
+
+    onProgress({
+      total: 1,
+      completed: 0,
+      items: [{ url: targetUrl, status: 'importing' }],
+    });
+
+    chrome.runtime.sendMessage({ type: 'IMPORT_URL', url: targetUrl }, (response) => {
+      onProgress(null);
+
+      if (response?.success && response.data) {
+        setState('success');
+        setTimeout(() => setState('idle'), 3000);
+      } else {
+        setState('error');
+        setError(response?.error || '导入失败，请确保 NotebookLM 页面已打开');
+      }
+    });
+  };
+
+  const handleImportCurrentTab = () => {
+    if (currentTabUrl) {
+      setUrl(currentTabUrl);
+      handleImport(currentTabUrl);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Current tab quick import */}
+      {currentTabUrl && (
+        <div className="bg-gray-50 rounded-lg p-3">
+          <p className="text-xs text-gray-500 mb-2">当前标签页</p>
+          <div className="flex items-center gap-2">
+            <span className="flex-1 text-sm text-gray-700 truncate">{currentTabUrl}</span>
+            <button
+              onClick={handleImportCurrentTab}
+              disabled={state === 'importing'}
+              className="px-3 py-1.5 bg-notebooklm-blue text-white text-xs rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              {state === 'importing' ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <ExternalLink className="w-3 h-3" />
+              )}
+              导入
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Manual URL input */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">输入 URL</label>
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://example.com/article"
+              className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={() => handleImport(url)}
+            disabled={!url || state === 'importing'}
+            className="px-4 py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {state === 'importing' ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                导入中
+              </>
+            ) : (
+              '导入'
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Status messages */}
+      {state === 'success' && (
+        <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-lg p-3">
+          <CheckCircle className="w-4 h-4" />
+          导入成功！
+        </div>
+      )}
+
+      {state === 'error' && (
+        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3">
+          <AlertCircle className="w-4 h-4" />
+          {error}
+        </div>
+      )}
+
+      {/* Tips */}
+      <div className="text-xs text-gray-400 space-y-1">
+        <p>支持导入：</p>
+        <ul className="list-disc list-inside space-y-0.5 text-gray-400">
+          <li>普通网页文章</li>
+          <li>YouTube 视频（自动提取字幕）</li>
+          <li>PDF 文件链接</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
