@@ -76,7 +76,9 @@ export type MessageType =
   | { type: 'GET_ALL_TABS' }
   | { type: 'ANALYZE_DOC_SITE'; tabId: number }
   | { type: 'GET_HISTORY'; limit?: number }
-  | { type: 'CLEAR_HISTORY' };
+  | { type: 'CLEAR_HISTORY' }
+  | { type: 'EXTRACT_CLAUDE_CONVERSATION'; tabId: number }
+  | { type: 'IMPORT_CLAUDE_CONVERSATION'; conversation: ClaudeConversation; selectedMessageIds: string[] };
 
 export type MessageResponse =
   | { success: true; data: unknown }
@@ -90,4 +92,22 @@ export interface HistoryItem {
   importedAt: number;
   status: 'success' | 'error';
   error?: string;
+}
+
+// Claude conversation types
+export type ClaudeRole = 'human' | 'assistant';
+
+export interface ClaudeMessage {
+  id: string;
+  role: ClaudeRole;
+  content: string;
+  timestamp?: string;
+}
+
+export interface ClaudeConversation {
+  id: string;
+  title: string;
+  url: string;
+  messages: ClaudeMessage[];
+  extractedAt: number;
 }

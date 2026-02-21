@@ -17,6 +17,28 @@ async function sendImportMessage(tabId: number, url: string): Promise<boolean> {
   });
 }
 
+// Send message to content script to import text
+async function sendImportTextMessage(
+  tabId: number,
+  text: string,
+  title?: string
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    chrome.tabs.sendMessage(
+      tabId,
+      { type: 'IMPORT_TEXT', text, title },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Content script error:', chrome.runtime.lastError);
+          resolve(false);
+        } else {
+          resolve(response?.success ?? false);
+        }
+      }
+    );
+  });
+}
+
 // Find or create NotebookLM tab
 async function getNotebookLMTab(): Promise<chrome.tabs.Tab> {
   // Look for existing NotebookLM tab
@@ -143,6 +165,48 @@ export async function importBatch(
 
   progress.current = undefined;
   return progress;
+}
+
+// Import text content to NotebookLM
+export async function importText(text: string, title?: string): Promise<boolean> {
+  try {
+    const tab = await getNotebookLMTab();
+    if (!tab.id) throw new Error('Failed to get NotebookLM tab');
+
+    // Ensure content script is injected
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content-scripts/notebooklm.js'],
+      });
+    } catch {
+      // Script might already be injected
+    }
+
+    await delay(500);
+    const success = await sendImportTextMessage(tab.id, text, title);
+
+    // Record to history
+    const historyTitle = title || 'Imported text';
+    await addToHistory(
+      `text://${historyTitle}`,
+      success ? 'success' : 'error',
+      historyTitle,
+      success ? undefined : 'Import failed'
+    );
+
+    return success;
+  } catch (error) {
+    console.error('Failed to import text:', error);
+    const historyTitle = title || 'Imported text';
+    await addToHistory(
+      `text://${historyTitle}`,
+      'error',
+      historyTitle,
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    return false;
+  }
 }
 
 // Get current tab URL

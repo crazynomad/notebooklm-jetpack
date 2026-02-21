@@ -28,6 +28,7 @@ export default defineConfig({
       'https://notebooklm.google.com/*',
       'https://www.googleapis.com/*',
       'https://www.youtube.com/*',
+      'https://claude.ai/*',
     ],
     oauth2: {
       client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',

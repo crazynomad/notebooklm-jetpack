@@ -7,11 +7,16 @@ import { parseRssFeed } from '@/services/rss-parser';
 import {
   importUrl,
   importBatch,
+  importText,
   getCurrentTabUrl,
   getAllTabUrls,
 } from '@/services/notebooklm';
 import { analyzeDocSite } from '@/services/docs-site';
 import { getHistory, clearHistory } from '@/services/history';
+import {
+  extractClaudeConversation,
+  formatConversationForImport,
+} from '@/services/claude-conversation';
 import { extractYouTubePlaylistId } from '@/lib/utils';
 import type { MessageType, MessageResponse } from '@/lib/types';
 
@@ -139,6 +144,17 @@ async function handleMessage(message: MessageType): Promise<unknown> {
 
     case 'CLEAR_HISTORY':
       return await clearHistory();
+
+    case 'EXTRACT_CLAUDE_CONVERSATION':
+      return await extractClaudeConversation(message.tabId);
+
+    case 'IMPORT_CLAUDE_CONVERSATION': {
+      const formattedText = formatConversationForImport(
+        message.conversation,
+        message.selectedMessageIds
+      );
+      return await importText(formattedText, message.conversation.title);
+    }
 
     default:
       throw new Error('Unknown message type');

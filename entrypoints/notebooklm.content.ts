@@ -17,6 +17,16 @@ export default defineContentScript({
           });
         return true; // Will respond asynchronously
       }
+
+      if (message.type === 'IMPORT_TEXT') {
+        importTextToNotebookLM(message.text, message.title)
+          .then((success) => sendResponse({ success }))
+          .catch((error) => {
+            console.error('Import text error:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+        return true; // Will respond asynchronously
+      }
     });
   },
 });
@@ -147,6 +157,81 @@ function findSubmitButton(): HTMLElement | null {
   }
 
   return null;
+}
+
+async function importTextToNotebookLM(text: string, title?: string): Promise<boolean> {
+  try {
+    // Wait for page to be ready
+    await waitForElement('[data-testid="add-source-button"], button[aria-label*="Add source"]');
+
+    // Step 1: Click "Add source" button
+    const addSourceButton = findAddSourceButton();
+    if (!addSourceButton) {
+      throw new Error('Add source button not found');
+    }
+    addSourceButton.click();
+    await delay(500);
+
+    // Step 2: Find and click "Copied text" or "Text" option
+    const textOption = await waitForElement<HTMLElement>(
+      '[data-testid="source-type-text"], [data-value="TEXT"], button:has-text("Copied text"), button:has-text("Text"), button:has-text("复制的文本"), button:has-text("文本")',
+      3000
+    );
+    if (textOption) {
+      textOption.click();
+      await delay(300);
+    }
+
+    // Step 3: Find title input field and enter title (if available)
+    if (title) {
+      const titleInput = await waitForElement<HTMLInputElement>(
+        'input[placeholder*="title"], input[placeholder*="Title"], input[placeholder*="标题"], input[aria-label*="title"], input[aria-label*="Title"]',
+        2000
+      );
+      if (titleInput) {
+        titleInput.focus();
+        titleInput.value = '';
+        titleInput.value = title;
+        titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+        titleInput.dispatchEvent(new Event('change', { bubbles: true }));
+        await delay(200);
+      }
+    }
+
+    // Step 4: Find text area and enter content
+    const textArea = await waitForElement<HTMLTextAreaElement>(
+      'textarea[placeholder*="Paste"], textarea[placeholder*="paste"], textarea[placeholder*="粘贴"], textarea[aria-label*="content"], textarea[aria-label*="Content"], textarea',
+      3000
+    );
+    if (!textArea) {
+      throw new Error('Text area not found');
+    }
+
+    // Clear and set value
+    textArea.focus();
+    textArea.value = '';
+    textArea.value = text;
+
+    // Dispatch events to trigger React state update
+    textArea.dispatchEvent(new Event('input', { bubbles: true }));
+    textArea.dispatchEvent(new Event('change', { bubbles: true }));
+    await delay(200);
+
+    // Step 5: Click submit/add button
+    const submitButton = findSubmitButton();
+    if (!submitButton) {
+      throw new Error('Submit button not found');
+    }
+    submitButton.click();
+
+    // Wait for import to complete
+    await delay(1000);
+
+    return true;
+  } catch (error) {
+    console.error('Failed to import text:', error);
+    return false;
+  }
 }
 
 function isVisible(element: HTMLElement): boolean {
