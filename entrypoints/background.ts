@@ -123,6 +123,26 @@ async function handleMessage(message: MessageType): Promise<unknown> {
               }
             }
 
+            // Multi-language handling: prefer English docs
+            // Detect if pages have language prefixes (e.g. /docs/en/, /docs/zh/, /docs/ja/)
+            const langPattern = /\/(?:docs|documentation|guide|api)\/([a-z]{2}(?:-[a-z]{2,4})?)\//i;
+            const languages = new Set<string>();
+            for (const p of filteredPages) {
+              const m = p.path.match(langPattern);
+              if (m) languages.add(m[1].toLowerCase());
+            }
+
+            // If multiple languages detected, default to English
+            if (languages.size > 1 && languages.has('en')) {
+              const enPages = filteredPages.filter((p) => {
+                const m = p.path.match(langPattern);
+                return m && m[1].toLowerCase() === 'en';
+              });
+              if (enPages.length > 0) {
+                filteredPages = enPages;
+              }
+            }
+
             if (filteredPages.length > 0) {
               return {
                 baseUrl: urlObj.origin,
