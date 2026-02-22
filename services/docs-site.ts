@@ -4,12 +4,20 @@ import { delay } from '@/lib/utils';
 // Try to fetch and parse sitemap.xml for more reliable page discovery
 export async function fetchSitemap(baseUrl: string): Promise<DocPageItem[]> {
   const pages: DocPageItem[] = [];
-  const origin = new URL(baseUrl).origin;
+  const urlObj = new URL(baseUrl);
+  const origin = urlObj.origin;
+  const pathPrefix = urlObj.pathname.replace(/\/$/, '');
+
+  // Check multiple possible sitemap locations
   const sitemapUrls = [
     `${origin}/sitemap.xml`,
     `${origin}/sitemap-0.xml`,
     `${origin}/sitemap_index.xml`,
   ];
+  // If the URL has a subpath like /docs, also try sitemap at that path
+  if (pathPrefix && pathPrefix !== '/') {
+    sitemapUrls.unshift(`${origin}${pathPrefix}/sitemap.xml`);
+  }
 
   for (const sitemapUrl of sitemapUrls) {
     try {

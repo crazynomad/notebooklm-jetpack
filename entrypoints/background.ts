@@ -108,13 +108,29 @@ async function handleMessage(message: MessageType): Promise<unknown> {
         try {
           const sitemapPages = await fetchSitemap(tabUrl);
           if (sitemapPages.length > 0) {
-            const origin = new URL(tabUrl).origin;
-            return {
-              baseUrl: origin,
-              title: tabInfo.title || new URL(tabUrl).hostname,
-              framework: 'sitemap' as const,
-              pages: sitemapPages,
-            };
+            const urlObj = new URL(tabUrl);
+            const pathPrefix = urlObj.pathname.replace(/\/$/, '');
+
+            // Filter to pages under the current path prefix (e.g. /docs)
+            let filteredPages = sitemapPages;
+            if (pathPrefix && pathPrefix !== '/') {
+              filteredPages = sitemapPages.filter((p) =>
+                p.path.startsWith(pathPrefix)
+              );
+              // If filtering removed too many pages, use all
+              if (filteredPages.length < 3 && sitemapPages.length > 10) {
+                filteredPages = sitemapPages;
+              }
+            }
+
+            if (filteredPages.length > 0) {
+              return {
+                baseUrl: urlObj.origin,
+                title: tabInfo.title || urlObj.hostname,
+                framework: 'sitemap' as const,
+                pages: filteredPages,
+              };
+            }
           }
         } catch {
           // Sitemap not available, fallback to DOM analysis
