@@ -123,6 +123,76 @@ function extractUrlsFromSitemap(
   });
 }
 
+// ─── HarmonyOS Catalog API ─────────────────────────────────────
+// HarmonyOS docs are a pure Angular SPA with no SSR/sitemap.
+// The catalog tree is available via a POST API.
+const HUAWEI_API_BASE = 'https://svc-drcn.developer.huawei.com/community/servlet/consumer';
+
+interface HuaweiCatalogNode {
+  isLeaf: boolean;
+  nodeName: string;
+  relateDocument?: string;
+  children?: HuaweiCatalogNode[];
+}
+
+export async function fetchHuaweiCatalog(url: string): Promise<DocPageItem[]> {
+  // Extract catalogName from URL pattern: /doc/{catalogName}/{objectId}
+  const match = url.match(/\/doc\/([^/]+)\/([^/?#]+)/);
+  if (!match) return [];
+
+  const catalogName = match[1]; // e.g. "harmonyos-guides-V5"
+
+  try {
+    const response = await fetch(`${HUAWEI_API_BASE}/cn/documentPortal/getCatalogTree`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        catalogName,
+        objectId: match[2],
+        showHide: '0',
+        language: 'cn',
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const pages: DocPageItem[] = [];
+    const baseUrl = 'https://developer.huawei.com/consumer/cn/doc';
+
+    function walk(nodes: HuaweiCatalogNode[], section?: string, level = 0) {
+      for (const node of nodes) {
+        if (node.relateDocument) {
+          const docUrl = `${baseUrl}/${catalogName}/${node.relateDocument}`;
+          pages.push({
+            url: docUrl,
+            title: node.nodeName,
+            path: `/${catalogName}/${node.relateDocument}`,
+            level,
+            section: section || node.nodeName,
+          });
+        }
+        if (node.children?.length) {
+          walk(node.children, section || node.nodeName, level + 1);
+        }
+      }
+    }
+
+    // The response is an array of root catalog nodes
+    if (Array.isArray(data)) {
+      walk(data);
+    } else if (data?.children) {
+      walk(data.children);
+    }
+
+    return pages;
+  } catch (error) {
+    console.error('Failed to fetch Huawei catalog:', error);
+    return [];
+  }
+}
+
 // Analyze a document site by injecting content script
 export async function analyzeDocSite(tabId: number): Promise<DocSiteInfo> {
   // Inject the docs content script

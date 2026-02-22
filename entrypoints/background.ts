@@ -6,7 +6,7 @@ import {
   getCurrentTabUrl,
   getAllTabUrls,
 } from '@/services/notebooklm';
-import { analyzeDocSite, fetchSitemap } from '@/services/docs-site';
+import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog } from '@/services/docs-site';
 import { getHistory, clearHistory } from '@/services/history';
 import {
   extractClaudeConversation,
@@ -171,6 +171,23 @@ async function handleMessage(message: MessageType): Promise<unknown> {
           }
         } catch {
           // Sitemap not available, fallback to DOM analysis
+        }
+      }
+
+      // Try Huawei catalog API for HarmonyOS docs (Angular SPA, no sitemap)
+      if (tabUrl.includes('developer.huawei.com')) {
+        try {
+          const huaweiPages = await fetchHuaweiCatalog(tabUrl);
+          if (huaweiPages.length > 0) {
+            return {
+              baseUrl: 'https://developer.huawei.com',
+              title: tabInfo.title || 'HarmonyOS 文档',
+              framework: 'huawei' as const,
+              pages: huaweiPages,
+            };
+          }
+        } catch {
+          // Fall through to DOM analysis
         }
       }
 
