@@ -9,6 +9,7 @@
 
 import pdfMake from 'pdfmake/build/pdfmake';
 import type { TDocumentDefinitions, Content, ContentText, ContentColumns } from 'pdfmake/interfaces';
+import TurndownService from 'turndown';
 import type { DocPageItem, DocSiteInfo } from '@/lib/types';
 
 // Embed standard fonts (Roboto) - pdfmake requires explicit font setup
@@ -155,31 +156,46 @@ export interface PdfVolume {
   sections: string[];
 }
 
-// ─── HTML → Plain Text ─────────────────────────────────────────
+// ─── HTML → Markdown (Turndown) ────────────────────────────────
 
-/** Strip HTML tags and decode entities, return plain text */
-function htmlToPlainText(html: string): string {
-  // Create a temporary element to parse HTML
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent?.trim() || '';
+/** Create a configured Turndown instance */
+function createTurndown(): TurndownService {
+  const td = new TurndownService({
+    headingStyle: 'atx',
+    codeBlockStyle: 'fenced',
+    bulletListMarker: '-',
+    emDelimiter: '*',
+  });
+
+  // Keep code block language hints
+  td.addRule('fencedCodeBlock', {
+    filter: (node) => node.nodeName === 'PRE' && !!node.querySelector('code'),
+    replacement: (_content, node) => {
+      const code = (node as HTMLElement).querySelector('code');
+      const lang = code?.className?.match(/language-(\w+)/)?.[1] || '';
+      const text = code?.textContent || '';
+      return `\n\`\`\`${lang}\n${text}\n\`\`\`\n`;
+    },
+  });
+
+  // Remove image tags (not useful in PDF text)
+  td.addRule('removeImages', {
+    filter: 'img',
+    replacement: () => '',
+  });
+
+  return td;
 }
 
-/** Extract readable content from an HTML page */
-function extractContent(html: string, url: string): { title: string; text: string } {
+/** Extract readable content from HTML, preserving structure as Markdown */
+function extractContent(html: string, url: string): { title: string; markdown: string } {
   const doc = new DOMParser().parseFromString(html, 'text/html');
 
-  // Try common main content selectors
+  // Find main content area
   const selectors = [
-    'article',
-    'main',
-    '[role="main"]',
-    '.markdown-body',
-    '.content',
-    '.documentation',
-    '#content',
-    '.prose',
-    '.article-content',
-    '.page-content',
+    'article', 'main', '[role="main"]', '.markdown-body',
+    '#content', '.content', '.prose', '.documentation',
+    '.article-content', '.page-content',
   ];
 
   let contentEl: Element | null = null;
@@ -187,56 +203,20 @@ function extractContent(html: string, url: string): { title: string; text: strin
     contentEl = doc.querySelector(sel);
     if (contentEl) break;
   }
+  if (!contentEl) contentEl = doc.body;
 
-  if (!contentEl) {
-    contentEl = doc.body;
-  }
-
-  // Remove scripts, styles, navs, footers
-  const removals = contentEl.querySelectorAll(
-    'script, style, nav, footer, header, .sidebar, .nav, .toc, .breadcrumb, .pagination'
-  );
-  removals.forEach((el) => el.remove());
+  // Remove noise elements
+  contentEl.querySelectorAll(
+    'script, style, nav, footer, header, .sidebar, .nav, .toc, .breadcrumb, .pagination, .edit-page, .prev-next, [aria-hidden="true"]'
+  ).forEach((el) => el.remove());
 
   const title = doc.querySelector('h1')?.textContent?.trim() || doc.title || url;
 
-  // Convert to structured text preserving headings
-  const lines: string[] = [];
-  const walker = doc.createTreeWalker(contentEl, NodeFilter.SHOW_ELEMENT);
+  // Convert to Markdown using Turndown
+  const td = createTurndown();
+  const markdown = td.turndown(contentEl.innerHTML);
 
-  let node: Node | null = walker.currentNode;
-  while (node) {
-    if (node instanceof HTMLElement) {
-      const tag = node.tagName.toLowerCase();
-      if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)) {
-        const text = node.textContent?.trim();
-        if (text) {
-          const level = parseInt(tag[1]);
-          lines.push('\n' + '#'.repeat(level) + ' ' + text + '\n');
-        }
-      } else if (['p', 'li', 'td', 'th', 'dd', 'dt', 'blockquote'].includes(tag)) {
-        const text = node.textContent?.trim();
-        if (text) {
-          const prefix = tag === 'li' ? '• ' : tag === 'blockquote' ? '> ' : '';
-          lines.push(prefix + text);
-        }
-      } else if (tag === 'pre' || tag === 'code') {
-        const text = node.textContent?.trim();
-        if (text && tag === 'pre') {
-          lines.push('\n```\n' + text + '\n```\n');
-        }
-      }
-    }
-    node = walker.nextNode();
-  }
-
-  // Fallback to plain text if structured extraction yields little
-  let text = lines.join('\n');
-  if (text.length < 100) {
-    text = contentEl.textContent?.trim() || '';
-  }
-
-  return { title, text };
+  return { title, markdown };
 }
 
 // ─── Fetch Pages ───────────────────────────────────────────────
@@ -244,7 +224,7 @@ function extractContent(html: string, url: string): { title: string; text: strin
 interface PageContent {
   url: string;
   title: string;
-  text: string;
+  markdown: string;
   section?: string;
   wordCount: number;
 }
@@ -257,14 +237,14 @@ async function fetchPage(page: DocPageItem): Promise<PageContent | null> {
     if (!response.ok) return null;
 
     const html = await response.text();
-    const { title, text } = extractContent(html, page.url);
+    const { title, markdown } = extractContent(html, page.url);
 
     return {
       url: page.url,
       title: title || page.title,
-      text,
+      markdown,
       section: page.section,
-      wordCount: text.split(/\s+/).length,
+      wordCount: markdown.split(/\s+/).length,
     };
   } catch {
     return null;
@@ -285,7 +265,7 @@ async function fetchAllPages(
     const batchResults = await Promise.all(batch.map(fetchPage));
 
     for (const result of batchResults) {
-      if (result && result.text.length > 50) {
+      if (result && result.markdown.length > 50) {
         results.push(result);
       }
       completed++;
@@ -302,6 +282,200 @@ async function fetchAllPages(
 }
 
 // ─── Build PDF Document ────────────────────────────────────────
+
+// ─── Markdown → pdfmake Content ────────────────────────────────
+
+/** Convert markdown text to pdfmake Content nodes with proper formatting */
+function markdownToPdfContent(markdown: string): Content[] {
+  const content: Content[] = [];
+  const lines = markdown.split('\n');
+  let inCodeBlock = false;
+  let codeLines: string[] = [];
+  let codeLang = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Code block toggle
+    if (line.startsWith('```')) {
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeLang = line.slice(3).trim();
+        codeLines = [];
+        continue;
+      } else {
+        // End code block — emit as a single styled block
+        const codeText = codeLines.join('\n');
+        if (codeText.trim()) {
+          content.push({
+            table: {
+              widths: ['*'],
+              body: [[{
+                text: (codeLang ? `[${codeLang}]\n` : '') + codeText,
+                fontSize: 8,
+                font: 'Courier',
+                color: '#1a1a1a',
+                margin: [6, 6, 6, 6],
+              }]],
+            },
+            layout: {
+              fillColor: () => '#f5f5f5',
+              hLineWidth: () => 0.5,
+              vLineWidth: () => 0.5,
+              hLineColor: () => '#e0e0e0',
+              vLineColor: () => '#e0e0e0',
+              paddingLeft: () => 8,
+              paddingRight: () => 8,
+              paddingTop: () => 6,
+              paddingBottom: () => 6,
+            },
+            margin: [0, 4, 0, 8],
+          } as Content);
+        }
+        inCodeBlock = false;
+        codeLines = [];
+        codeLang = '';
+        continue;
+      }
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      continue;
+    }
+
+    // Skip empty lines
+    if (!line.trim()) continue;
+
+    // Headings
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      const text = headingMatch[2].replace(/\*\*/g, ''); // strip bold in headings
+      const styleMap: Record<number, { fontSize: number; margin: number[] }> = {
+        1: { fontSize: 18, margin: [0, 14, 0, 6] },
+        2: { fontSize: 15, margin: [0, 12, 0, 5] },
+        3: { fontSize: 13, margin: [0, 10, 0, 4] },
+        4: { fontSize: 11, margin: [0, 8, 0, 3] },
+        5: { fontSize: 10, margin: [0, 6, 0, 2] },
+        6: { fontSize: 10, margin: [0, 6, 0, 2] },
+      };
+      const style = styleMap[level] || styleMap[4];
+      content.push({
+        text,
+        bold: true,
+        fontSize: style.fontSize,
+        margin: style.margin,
+        color: '#1a1a1a',
+      } as ContentText);
+      continue;
+    }
+
+    // Blockquote
+    if (line.startsWith('> ')) {
+      content.push({
+        table: {
+          widths: [2, '*'],
+          body: [[
+            { text: '', fillColor: '#3b82f6' },
+            { text: parseInlineMarkdown(line.slice(2)), fontSize: 10, italics: true, color: '#4b5563', margin: [4, 3, 0, 3] },
+          ]],
+        },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 0, paddingBottom: () => 0 },
+        margin: [10, 2, 10, 4],
+      } as Content);
+      continue;
+    }
+
+    // Unordered list item
+    if (line.match(/^[-*+]\s/)) {
+      content.push({
+        columns: [
+          { text: '•', width: 12, fontSize: 10, color: '#6b7280', alignment: 'center' },
+          { text: parseInlineMarkdown(line.replace(/^[-*+]\s/, '')), fontSize: 10, lineHeight: 1.4 },
+        ],
+        margin: [10, 1, 0, 1],
+      } as ContentColumns);
+      continue;
+    }
+
+    // Ordered list item
+    const olMatch = line.match(/^(\d+)\.\s(.+)/);
+    if (olMatch) {
+      content.push({
+        columns: [
+          { text: `${olMatch[1]}.`, width: 18, fontSize: 10, color: '#6b7280', alignment: 'right' },
+          { text: parseInlineMarkdown(olMatch[2]), fontSize: 10, lineHeight: 1.4 },
+        ],
+        margin: [10, 1, 0, 1],
+      } as ContentColumns);
+      continue;
+    }
+
+    // Horizontal rule
+    if (line.match(/^[-*_]{3,}\s*$/)) {
+      content.push({
+        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: '#d1d5db' }],
+        margin: [0, 8, 0, 8],
+      });
+      continue;
+    }
+
+    // Regular paragraph — parse inline markdown (bold, italic, code)
+    content.push({
+      text: parseInlineMarkdown(line),
+      fontSize: 10,
+      lineHeight: 1.5,
+      margin: [0, 2, 0, 4],
+      color: '#333333',
+    } as ContentText);
+  }
+
+  return content;
+}
+
+/** Parse inline markdown (bold, italic, inline code) into pdfmake text array */
+function parseInlineMarkdown(text: string): Content {
+  // Split on inline patterns: **bold**, *italic*, `code`
+  const parts: Array<{ text: string; bold?: boolean; italics?: boolean; font?: string; color?: string; background?: string; fontSize?: number }> = [];
+  let remaining = text;
+
+  // Process inline patterns
+  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(remaining)) !== null) {
+    // Text before match
+    if (match.index > lastIndex) {
+      parts.push({ text: remaining.slice(lastIndex, match.index) });
+    }
+
+    if (match[2]) {
+      // **bold**
+      parts.push({ text: match[2], bold: true });
+    } else if (match[3]) {
+      // *italic*
+      parts.push({ text: match[3], italics: true });
+    } else if (match[4]) {
+      // `inline code`
+      parts.push({ text: match[4], font: 'Courier', fontSize: 9, color: '#c7254e', background: '#f9f2f4' });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Remaining text
+  if (lastIndex < remaining.length) {
+    parts.push({ text: remaining.slice(lastIndex) });
+  }
+
+  // If no inline formatting found, return plain string
+  if (parts.length === 0) return text;
+  if (parts.length === 1 && !parts[0].bold && !parts[0].italics && !parts[0].font) return text;
+
+  return parts;
+}
 
 function buildPdfContent(
   siteInfo: DocSiteInfo,
@@ -401,44 +575,8 @@ function buildPdfContent(
         fontSize: 8,
       } as ContentText);
 
-      // Page content - split by lines for proper formatting
-      const lines = page.text.split('\n');
-      for (const line of lines) {
-        if (!line.trim()) continue;
-
-        if (line.startsWith('# ')) {
-          content.push({ text: line.slice(2), style: 'h2', margin: [0, 10, 0, 5] } as ContentText);
-        } else if (line.startsWith('## ')) {
-          content.push({ text: line.slice(3), style: 'h3', margin: [0, 8, 0, 4] } as ContentText);
-        } else if (line.startsWith('### ')) {
-          content.push({ text: line.slice(4), style: 'h4', margin: [0, 6, 0, 3] } as ContentText);
-        } else if (line.startsWith('```')) {
-          // Code block - handled as preformatted
-          content.push({
-            text: line,
-            style: 'code',
-            margin: [10, 2, 10, 2],
-          } as ContentText);
-        } else if (line.startsWith('• ')) {
-          content.push({
-            text: line,
-            style: 'listItem',
-            margin: [15, 1, 0, 1],
-          } as ContentText);
-        } else if (line.startsWith('> ')) {
-          content.push({
-            text: line.slice(2),
-            style: 'blockquote',
-            margin: [20, 2, 20, 2],
-          } as ContentText);
-        } else {
-          content.push({
-            text: line,
-            style: 'body',
-            margin: [0, 2, 0, 2],
-          } as ContentText);
-        }
-      }
+      // Render Markdown to pdfmake content nodes
+      content.push(...markdownToPdfContent(page.markdown));
 
       // Separator between pages
       content.push({
@@ -560,7 +698,7 @@ export async function generateDocsPdf(
   }
 
   // Detect CJK in content and load Chinese fonts if needed
-  const needsCJK = mightHaveCJK || contents.some(c => hasCJK(c.text) || hasCJK(c.title));
+  const needsCJK = mightHaveCJK || contents.some(c => hasCJK(c.markdown) || hasCJK(c.title));
   if (needsCJK) {
     const chineseFonts = await loadChineseFonts();
     if (chineseFonts) {
