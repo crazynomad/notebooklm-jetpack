@@ -201,27 +201,16 @@ export function buildDocsHtml(siteInfo: DocSiteInfo, pages: PageContent[]): stri
 </html>`;
 }
 
-// ── Open HTML in new tab for print-to-PDF ──
+// ── Silent PDF export via chrome.debugger (CDP Page.printToPDF) ──
 
-export function openForPrint(html: string): void {
+// Create blob URL in popup context (has DOM) and send to background for CDP PDF export
+export function saveAsPdf(html: string, title: string): void {
   const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  chrome.tabs.create({ url }, (tab) => {
-    // Auto-trigger print dialog after page loads
-    if (tab?.id) {
-      chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-        if (tabId === tab.id && info.status === 'complete') {
-          chrome.tabs.onUpdated.removeListener(listener);
-          // Small delay to ensure rendering is done
-          setTimeout(() => {
-            chrome.scripting.executeScript({
-              target: { tabId: tabId },
-              func: () => window.print(),
-            });
-          }, 500);
-        }
-      });
-    }
+  const blobUrl = URL.createObjectURL(blob);
+  chrome.runtime.sendMessage({
+    type: 'EXPORT_PDF',
+    blobUrl,
+    title,
   });
 }
 
@@ -263,7 +252,7 @@ export async function generateDocsPdf(
           if (contents.length > 0) {
             options.onProgress?.({ phase: 'rendering', current: 1, total: 1 });
             const html = buildDocsHtml(siteInfo, contents);
-            openForPrint(html);
+            saveAsPdf(html, siteInfo.title);
             options.onProgress?.({ phase: 'done', current: 1, total: 1 });
             return;
           }
@@ -273,7 +262,7 @@ export async function generateDocsPdf(
   }
 
   // Standard path: fetch pages individually
-  const maxPages = options.maxPages || 300;
+  const maxPages = options.maxPages || 1000;
   const pagesToFetch = siteInfo.pages.slice(0, maxPages);
 
   contents = await fetchAllPages(pagesToFetch, options);
@@ -282,7 +271,7 @@ export async function generateDocsPdf(
   options.onProgress?.({ phase: 'rendering', current: 1, total: 1 });
 
   const html = buildDocsHtml(siteInfo, contents);
-  openForPrint(html);
+  saveAsPdf(html, siteInfo.title);
 
   options.onProgress?.({ phase: 'done', current: 1, total: 1 });
 }

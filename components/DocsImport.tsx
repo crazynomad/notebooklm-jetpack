@@ -236,7 +236,7 @@ export function DocsImport({ onProgress }: Props) {
             </div>
           </div>
 
-          <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg">
+          <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg">
             {groupedPages &&
               Object.entries(groupedPages).map(([section, pages]) => (
                 <div key={section}>

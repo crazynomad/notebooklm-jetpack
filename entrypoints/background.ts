@@ -225,6 +225,79 @@ async function handleMessage(message: MessageType): Promise<unknown> {
       return await importText(formattedText, message.conversation.title);
     }
 
+    case 'EXPORT_PDF': {
+      console.log('[EXPORT_PDF] Received, title:', message.title, 'blobUrl:', message.blobUrl?.slice(0, 50));
+      const { blobUrl, title } = message;
+      const filename = `${(title || 'docs').replace(/[^a-zA-Z0-9\u4e00-\u9fff-_ ]/g, '').trim().slice(0, 60)}.pdf`;
+
+      // Open hidden tab with blob URL created by popup
+      const tab = await chrome.tabs.create({ url: blobUrl, active: false });
+      if (!tab?.id) return;
+      const tabId = tab.id;
+
+      console.log('[EXPORT_PDF] Tab created:', tabId);
+      // Wait for page load
+      await new Promise<void>((resolve) => {
+        chrome.tabs.onUpdated.addListener(function listener(id, info) {
+          if (id === tabId && info.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
+            resolve();
+          }
+        });
+      });
+
+      try {
+        // Attach debugger
+        await new Promise<void>((resolve, reject) => {
+          chrome.debugger.attach({ tabId }, '1.3', () => {
+            if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+            else resolve();
+          });
+        });
+
+        console.log('[EXPORT_PDF] Debugger attached');
+        // Wait for render
+        await new Promise(r => setTimeout(r, 800));
+
+        // Print to PDF
+        const result = await new Promise<{ data: string }>((resolve, reject) => {
+          chrome.debugger.sendCommand({ tabId }, 'Page.printToPDF', {
+            printBackground: true,
+            preferCSSPageSize: true,
+            marginTop: 0.4,
+            marginBottom: 0.4,
+            marginLeft: 0.4,
+            marginRight: 0.4,
+          }, (res) => {
+            if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+            else resolve(res as { data: string });
+          });
+        });
+
+        // Cleanup temp tab
+        chrome.debugger.detach({ tabId });
+        chrome.tabs.remove(tabId);
+
+        // Convert base64 → data URL for download (no DOM needed)
+        const pdfDataUrl = 'data:application/pdf;base64,' + result.data;
+
+        console.log('[EXPORT_PDF] PDF generated, downloading as:', filename);
+        chrome.downloads.download({ url: pdfDataUrl, filename, saveAs: true });
+
+        return { success: true };
+      } catch (err) {
+        console.error('[EXPORT_PDF] Error:', err);
+        // Fallback: activate tab and trigger print dialog
+        try { chrome.debugger.detach({ tabId }); } catch { /* ignore */ }
+        chrome.tabs.update(tabId, { active: true });
+        chrome.scripting.executeScript({
+          target: { tabId },
+          func: () => setTimeout(() => window.print(), 500),
+        });
+        return { success: true, fallback: true };
+      }
+    }
+
     default:
       throw new Error('Unknown message type');
   }

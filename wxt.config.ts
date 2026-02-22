@@ -21,6 +21,8 @@ export default defineConfig({
       'tabs',
       'scripting',
       'contextMenus',
+      'downloads',
+      'debugger',
     ],
     host_permissions: [
       'https://notebooklm.google.com/*',
