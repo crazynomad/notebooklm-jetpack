@@ -1,4 +1,6 @@
 // Content script for NotebookLM page automation
+// Updated: 2026-02-22 — adapted to new NotebookLM UI
+
 export default defineContentScript({
   matches: ['https://notebooklm.google.com/*'],
   runAt: 'document_idle',
@@ -6,7 +8,6 @@ export default defineContentScript({
   main() {
     console.log('NotebookLM Importer content script loaded');
 
-    // Listen for import messages from background script
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message.type === 'IMPORT_URL') {
         importUrlToNotebookLM(message.url)
@@ -15,7 +16,7 @@ export default defineContentScript({
             console.error('Import error:', error);
             sendResponse({ success: false, error: error.message });
           });
-        return true; // Will respond asynchronously
+        return true;
       }
 
       if (message.type === 'IMPORT_TEXT') {
@@ -25,64 +26,47 @@ export default defineContentScript({
             console.error('Import text error:', error);
             sendResponse({ success: false, error: error.message });
           });
-        return true; // Will respond asynchronously
+        return true;
       }
     });
   },
 });
 
+// ─── URL Import ─────────────────────────────────────────────
+
 async function importUrlToNotebookLM(url: string): Promise<boolean> {
   try {
-    // Wait for page to be ready
-    await waitForElement('[data-testid="add-source-button"], button[aria-label*="Add source"]');
+    // Step 1: Open the add source dialog
+    await openAddSourceDialog();
 
-    // Step 1: Click "Add source" button
-    const addSourceButton = findAddSourceButton();
-    if (!addSourceButton) {
-      throw new Error('Add source button not found');
+    // Step 2: Click "网站" (Website) button in the dialog
+    const websiteButton = await findButtonByText(['网站', 'Website', 'Link'], 3000);
+    if (!websiteButton) {
+      throw new Error('Website button not found in dialog');
     }
-    addSourceButton.click();
+    websiteButton.click();
     await delay(500);
 
-    // Step 2: Find and click "Website" or "Link" option
-    const linkOption = await waitForElement<HTMLElement>(
-      '[data-testid="source-type-link"], [data-value="WEBSITE"], button:has-text("Website"), button:has-text("Link")',
+    // Step 3: Find the URL textarea (placeholder="粘贴任何链接" or "Paste")
+    const urlTextarea = await findTextareaByPlaceholder(
+      ['粘贴任何链接', '粘贴', 'Paste any link', 'Paste'],
       3000
     );
-    if (linkOption) {
-      linkOption.click();
-      await delay(300);
+    if (!urlTextarea) {
+      throw new Error('URL input textarea not found');
     }
 
-    // Step 3: Find URL input field and enter URL
-    const urlInput = await waitForElement<HTMLInputElement>(
-      'input[type="url"], input[placeholder*="URL"], input[placeholder*="url"], input[aria-label*="URL"]',
-      3000
-    );
-    if (!urlInput) {
-      throw new Error('URL input field not found');
+    // Fill the URL
+    await fillInput(urlTextarea, url);
+
+    // Step 4: Click "插入" (Insert) button
+    const insertButton = await findButtonByText(['插入', 'Insert'], 3000);
+    if (!insertButton) {
+      throw new Error('Insert button not found');
     }
+    insertButton.click();
 
-    // Clear and set value
-    urlInput.focus();
-    urlInput.value = '';
-    urlInput.value = url;
-
-    // Dispatch events to trigger React state update
-    urlInput.dispatchEvent(new Event('input', { bubbles: true }));
-    urlInput.dispatchEvent(new Event('change', { bubbles: true }));
-    await delay(200);
-
-    // Step 4: Click submit/add button
-    const submitButton = findSubmitButton();
-    if (!submitButton) {
-      throw new Error('Submit button not found');
-    }
-    submitButton.click();
-
-    // Wait for import to complete
-    await delay(1000);
-
+    await delay(1500);
     return true;
   } catch (error) {
     console.error('Failed to import URL:', error);
@@ -90,143 +74,59 @@ async function importUrlToNotebookLM(url: string): Promise<boolean> {
   }
 }
 
-function findAddSourceButton(): HTMLElement | null {
-  // Try various selectors for the Add Source button
-  const selectors = [
-    '[data-testid="add-source-button"]',
-    'button[aria-label*="Add source"]',
-    'button[aria-label*="添加来源"]',
-    'button:has(svg[data-icon="add"])',
-  ];
-
-  for (const selector of selectors) {
-    try {
-      const element = document.querySelector<HTMLElement>(selector);
-      if (element) return element;
-    } catch {
-      // Selector might be invalid, continue
-    }
-  }
-
-  // Fallback: find button with "Add" or "+" text
-  const buttons = document.querySelectorAll('button');
-  for (const button of buttons) {
-    const text = button.textContent?.toLowerCase() || '';
-    if (text.includes('add source') || text.includes('添加来源')) {
-      return button;
-    }
-  }
-
-  return null;
-}
-
-function findSubmitButton(): HTMLElement | null {
-  const selectors = [
-    '[data-testid="submit-source-button"]',
-    'button[type="submit"]',
-    'button[aria-label*="Insert"]',
-    'button[aria-label*="Add"]',
-    'button[aria-label*="Submit"]',
-  ];
-
-  for (const selector of selectors) {
-    try {
-      const element = document.querySelector<HTMLElement>(selector);
-      if (element && isVisible(element)) return element;
-    } catch {
-      // Selector might be invalid, continue
-    }
-  }
-
-  // Fallback: find primary/submit button in dialog
-  const dialog = document.querySelector('[role="dialog"], [data-testid="dialog"]');
-  if (dialog) {
-    const buttons = dialog.querySelectorAll('button');
-    for (const button of buttons) {
-      const text = button.textContent?.toLowerCase() || '';
-      if (
-        text.includes('insert') ||
-        text.includes('add') ||
-        text.includes('submit') ||
-        text.includes('插入') ||
-        text.includes('添加')
-      ) {
-        return button;
-      }
-    }
-  }
-
-  return null;
-}
+// ─── Text Import ────────────────────────────────────────────
 
 async function importTextToNotebookLM(text: string, title?: string): Promise<boolean> {
   try {
-    // Wait for page to be ready
-    await waitForElement('[data-testid="add-source-button"], button[aria-label*="Add source"]');
+    // Step 1: Open the add source dialog
+    await openAddSourceDialog();
 
-    // Step 1: Click "Add source" button
-    const addSourceButton = findAddSourceButton();
-    if (!addSourceButton) {
-      throw new Error('Add source button not found');
-    }
-    addSourceButton.click();
-    await delay(500);
-
-    // Step 2: Find and click "Copied text" or "Text" option
-    const textOption = await waitForElement<HTMLElement>(
-      '[data-testid="source-type-text"], [data-value="TEXT"], button:has-text("Copied text"), button:has-text("Text"), button:has-text("复制的文本"), button:has-text("文本")',
+    // Step 2: Click "复制的文字" (Copied text) button
+    const textButton = await findButtonByText(
+      ['复制的文字', '复制的文本', 'Copied text', 'Text'],
       3000
     );
-    if (textOption) {
-      textOption.click();
-      await delay(300);
+    if (!textButton) {
+      throw new Error('Copied text button not found in dialog');
     }
+    textButton.click();
+    await delay(500);
 
-    // Step 3: Find title input field and enter title (if available)
+    // Step 3: Fill title if available
     if (title) {
-      const titleInput = await waitForElement<HTMLInputElement>(
-        'input[placeholder*="title"], input[placeholder*="Title"], input[placeholder*="标题"], input[aria-label*="title"], input[aria-label*="Title"]',
+      const titleInput = await findInputByPlaceholder(
+        ['来源名称', '标题', 'Source name', 'Title', 'title'],
         2000
       );
       if (titleInput) {
-        titleInput.focus();
-        titleInput.value = '';
-        titleInput.value = title;
-        titleInput.dispatchEvent(new Event('input', { bubbles: true }));
-        titleInput.dispatchEvent(new Event('change', { bubbles: true }));
-        await delay(200);
+        await fillInput(titleInput, title);
       }
     }
 
-    // Step 4: Find text area and enter content
-    const textArea = await waitForElement<HTMLTextAreaElement>(
-      'textarea[placeholder*="Paste"], textarea[placeholder*="paste"], textarea[placeholder*="粘贴"], textarea[aria-label*="content"], textarea[aria-label*="Content"], textarea',
+    // Step 4: Fill text content
+    const textArea = await findTextareaByPlaceholder(
+      ['粘贴', 'Paste', '输入', '内容', 'content'],
       3000
     );
     if (!textArea) {
-      throw new Error('Text area not found');
+      // Fallback: find any large textarea in the dialog
+      const dialogTextareas = getDialogTextareas();
+      if (dialogTextareas.length === 0) {
+        throw new Error('Text area not found');
+      }
+      await fillInput(dialogTextareas[dialogTextareas.length - 1], text);
+    } else {
+      await fillInput(textArea, text);
     }
 
-    // Clear and set value
-    textArea.focus();
-    textArea.value = '';
-    textArea.value = text;
-
-    // Dispatch events to trigger React state update
-    textArea.dispatchEvent(new Event('input', { bubbles: true }));
-    textArea.dispatchEvent(new Event('change', { bubbles: true }));
-    await delay(200);
-
-    // Step 5: Click submit/add button
-    const submitButton = findSubmitButton();
-    if (!submitButton) {
-      throw new Error('Submit button not found');
+    // Step 5: Click "插入" (Insert) button
+    const insertButton = await findButtonByText(['插入', 'Insert'], 3000);
+    if (!insertButton) {
+      throw new Error('Insert button not found');
     }
-    submitButton.click();
+    insertButton.click();
 
-    // Wait for import to complete
-    await delay(1000);
-
+    await delay(1500);
     return true;
   } catch (error) {
     console.error('Failed to import text:', error);
@@ -234,14 +134,157 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
   }
 }
 
-function isVisible(element: HTMLElement): boolean {
-  const style = window.getComputedStyle(element);
-  return (
-    style.display !== 'none' &&
-    style.visibility !== 'hidden' &&
-    style.opacity !== '0' &&
-    element.offsetParent !== null
-  );
+// ─── Helpers ────────────────────────────────────────────────
+
+async function openAddSourceDialog(): Promise<void> {
+  // Check if dialog is already open
+  const existingDialog = document.querySelector('[role="dialog"]');
+  if (existingDialog) {
+    return; // Dialog already open
+  }
+
+  // Find and click "添加来源" / "Add source" button
+  const addButton = findAddSourceButton();
+  if (!addButton) {
+    throw new Error('Add source button not found');
+  }
+  addButton.click();
+  await delay(500);
+
+  // Wait for dialog to appear
+  const dialog = await waitForElement('[role="dialog"]', 3000);
+  if (!dialog) {
+    throw new Error('Add source dialog did not open');
+  }
+}
+
+function findAddSourceButton(): HTMLElement | null {
+  // Try aria-label selectors (works for both EN and CN)
+  const ariaSelectors = [
+    'button[aria-label*="Add source"]',
+    'button[aria-label*="添加来源"]',
+  ];
+
+  for (const selector of ariaSelectors) {
+    const el = document.querySelector<HTMLElement>(selector);
+    if (el) return el;
+  }
+
+  // Fallback: find by text content
+  const buttons = document.querySelectorAll('button');
+  for (const button of buttons) {
+    const text = button.textContent?.trim() || '';
+    if (text.includes('添加来源') || text.includes('Add source')) {
+      return button;
+    }
+  }
+
+  return null;
+}
+
+async function findButtonByText(
+  texts: string[],
+  timeout: number = 3000
+): Promise<HTMLElement | null> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    // Search in dialog first, then entire document
+    const containers = [
+      document.querySelector('[role="dialog"]'),
+      document,
+    ].filter(Boolean) as (Element | Document)[];
+
+    for (const container of containers) {
+      const buttons = container.querySelectorAll('button');
+      for (const button of buttons) {
+        const btnText = button.textContent?.trim() || '';
+        for (const text of texts) {
+          if (btnText.includes(text)) {
+            return button;
+          }
+        }
+      }
+    }
+
+    await delay(100);
+  }
+
+  return null;
+}
+
+async function findTextareaByPlaceholder(
+  placeholders: string[],
+  timeout: number = 3000
+): Promise<HTMLTextAreaElement | null> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    const textareas = document.querySelectorAll<HTMLTextAreaElement>('textarea');
+    for (const textarea of textareas) {
+      const ph = textarea.placeholder?.toLowerCase() || '';
+      for (const placeholder of placeholders) {
+        if (ph.includes(placeholder.toLowerCase())) {
+          return textarea;
+        }
+      }
+    }
+    await delay(100);
+  }
+
+  return null;
+}
+
+async function findInputByPlaceholder(
+  placeholders: string[],
+  timeout: number = 3000
+): Promise<HTMLInputElement | null> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    const inputs = document.querySelectorAll<HTMLInputElement>('input[type="text"], input:not([type])');
+    for (const input of inputs) {
+      const ph = input.placeholder?.toLowerCase() || '';
+      for (const placeholder of placeholders) {
+        if (ph.includes(placeholder.toLowerCase())) {
+          return input;
+        }
+      }
+    }
+    await delay(100);
+  }
+
+  return null;
+}
+
+function getDialogTextareas(): HTMLTextAreaElement[] {
+  const dialog = document.querySelector('[role="dialog"]');
+  if (!dialog) return [];
+  return Array.from(dialog.querySelectorAll<HTMLTextAreaElement>('textarea'));
+}
+
+async function fillInput(
+  element: HTMLInputElement | HTMLTextAreaElement,
+  value: string
+): Promise<void> {
+  element.focus();
+  element.value = '';
+  element.value = value;
+
+  // Dispatch events to trigger React/Angular state updates
+  element.dispatchEvent(new Event('input', { bubbles: true }));
+  element.dispatchEvent(new Event('change', { bubbles: true }));
+
+  // Also try native input event for frameworks that listen to it
+  const nativeInputEvent = new InputEvent('input', {
+    bubbles: true,
+    cancelable: true,
+    inputType: 'insertText',
+    data: value,
+  });
+  element.dispatchEvent(nativeInputEvent);
+
+  await delay(200);
 }
 
 function delay(ms: number): Promise<void> {
@@ -255,27 +298,12 @@ async function waitForElement<T extends Element = Element>(
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
-    // Handle multiple selectors separated by comma
     const selectors = selector.split(',').map((s) => s.trim());
 
     for (const sel of selectors) {
       try {
-        // Handle :has-text pseudo selector (not standard CSS)
-        if (sel.includes(':has-text(')) {
-          const match = sel.match(/^(.+?):has-text\("(.+?)"\)$/);
-          if (match) {
-            const [, baseSelector, text] = match;
-            const elements = document.querySelectorAll<HTMLElement>(baseSelector);
-            for (const el of elements) {
-              if (el.textContent?.includes(text)) {
-                return el as unknown as T;
-              }
-            }
-          }
-        } else {
-          const element = document.querySelector<T>(sel);
-          if (element) return element;
-        }
+        const element = document.querySelector<T>(sel);
+        if (element) return element;
       } catch {
         // Invalid selector, continue
       }
