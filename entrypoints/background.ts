@@ -6,7 +6,7 @@ import {
   getCurrentTabUrl,
   getAllTabUrls,
 } from '@/services/notebooklm';
-import { analyzeDocSite } from '@/services/docs-site';
+import { analyzeDocSite, fetchSitemap } from '@/services/docs-site';
 import { getHistory, clearHistory } from '@/services/history';
 import {
   extractClaudeConversation,
@@ -53,17 +53,10 @@ export default defineBackground(() => {
       return;
     }
 
-    showNotification('正在导入...', url.slice(0, 50) + (url.length > 50 ? '...' : ''));
-
     try {
-      const success = await importUrl(url);
-      if (success) {
-        showNotification('导入成功', '页面已添加到 NotebookLM');
-      } else {
-        showNotification('导入失败', '请确保 NotebookLM 已打开并选择了笔记本');
-      }
+      await importUrl(url);
     } catch (error) {
-      showNotification('导入失败', error instanceof Error ? error.message : '未知错误');
+      console.error('Context menu import failed:', error);
     }
   });
 
@@ -89,16 +82,6 @@ export default defineBackground(() => {
   );
 });
 
-// Show a notification
-function showNotification(title: string, message: string) {
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
-    title,
-    message,
-  });
-}
-
 async function handleMessage(message: MessageType): Promise<unknown> {
   switch (message.type) {
     case 'IMPORT_URL':
@@ -116,8 +99,30 @@ async function handleMessage(message: MessageType): Promise<unknown> {
     case 'GET_ALL_TABS':
       return await getAllTabUrls();
 
-    case 'ANALYZE_DOC_SITE':
+    case 'ANALYZE_DOC_SITE': {
+      // Try sitemap first (more reliable), fallback to DOM analysis
+      const tabInfo = await chrome.tabs.get(message.tabId);
+      const tabUrl = tabInfo.url || '';
+
+      if (tabUrl.startsWith('http')) {
+        try {
+          const sitemapPages = await fetchSitemap(tabUrl);
+          if (sitemapPages.length > 0) {
+            const origin = new URL(tabUrl).origin;
+            return {
+              baseUrl: origin,
+              title: tabInfo.title || new URL(tabUrl).hostname,
+              framework: 'sitemap' as const,
+              pages: sitemapPages,
+            };
+          }
+        } catch {
+          // Sitemap not available, fallback to DOM analysis
+        }
+      }
+
       return await analyzeDocSite(message.tabId);
+    }
 
     case 'GET_HISTORY':
       return await getHistory(message.limit);

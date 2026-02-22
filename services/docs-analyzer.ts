@@ -42,9 +42,10 @@ export function detectFramework(doc: Document): DocFramework {
   }
 
   // Mintlify detection
+  const mintlifyGenerator = doc.querySelector('meta[name="generator"][content*="Mintlify"]');
   const mintlifySidebar = doc.querySelector('.sidebar-group');
   const mintlifyAssets = doc.querySelector('link[href*="mintlify"], script[src*="mintlify"]');
-  if (mintlifySidebar || mintlifyAssets) {
+  if (mintlifyGenerator || mintlifySidebar || mintlifyAssets) {
     return 'mintlify';
   }
 
@@ -354,53 +355,87 @@ function extractReadTheDocsPages(doc: Document, baseUrl: string): DocPageItem[] 
 function extractMintlifyPages(doc: Document, baseUrl: string): DocPageItem[] {
   const pages: DocPageItem[] = [];
 
-  // Mintlify uses sidebar-group for sections
+  // Strategy 1: sidebar-group sections (older Mintlify)
   const sidebarGroups = doc.querySelectorAll('.sidebar-group');
 
-  sidebarGroups.forEach((group) => {
-    // Get section header
-    const header = group.querySelector('.sidebar-group-header');
-    const section = header?.textContent?.trim();
+  if (sidebarGroups.length > 0) {
+    sidebarGroups.forEach((group) => {
+      const header = group.querySelector('.sidebar-group-header');
+      const section = header?.textContent?.trim();
 
-    // Get all links in this group
-    const links = group.querySelectorAll<HTMLAnchorElement>('a[href]');
-    links.forEach((link) => {
-      const href = link.getAttribute('href');
-      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+      const links = group.querySelectorAll<HTMLAnchorElement>('a[href]');
+      links.forEach((link) => {
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
 
-      const url = resolveUrl(href, baseUrl);
-      if (!isSameSite(url, baseUrl)) return;
+        const url = resolveUrl(href, baseUrl);
+        if (!isSameSite(url, baseUrl)) return;
+        if (href.includes('mintlify-assets') || href.startsWith('http')) return;
 
-      // Skip if it's an external link or asset
-      if (href.includes('mintlify-assets') || href.includes('http')) return;
-
-      pages.push({
-        url,
-        title: link.textContent?.trim() || url,
-        path: new URL(url).pathname,
-        level: 0,
-        section,
+        pages.push({
+          url,
+          title: link.textContent?.trim() || url,
+          path: new URL(url).pathname,
+          level: 0,
+          section,
+        });
       });
     });
-  });
+  }
 
-  // If no sidebar-group found, try generic nav/aside selectors
+  // Strategy 2: scroll-m-4 sidebar items (newer Mintlify, e.g. OpenClaw docs)
   if (pages.length === 0) {
-    const links = doc.querySelectorAll<HTMLAnchorElement>('aside a[href^="/"], nav a[href^="/"]');
-    links.forEach((link) => {
-      const href = link.getAttribute('href');
-      if (!href || href.startsWith('#') || href.includes('mintlify')) return;
+    // Find all internal links in the left sidebar area
+    // Mintlify sidebar links are in divs with class "relative scroll-m-4"
+    const sidebarItems = doc.querySelectorAll('[class*="scroll-m-4"] > a[href^="/"]');
 
-      const url = resolveUrl(href, baseUrl);
-      if (!isSameSite(url, baseUrl)) return;
+    if (sidebarItems.length > 0) {
+      let currentSection = '';
+      sidebarItems.forEach((link) => {
+        const href = link.getAttribute('href');
+        if (!href || href === '/') return;
 
-      pages.push({
-        url,
-        title: link.textContent?.trim() || url,
-        path: new URL(url).pathname,
-        level: 0,
+        const url = resolveUrl(href, baseUrl);
+        const title = link.textContent?.trim() || url;
+
+        pages.push({
+          url,
+          title,
+          path: new URL(url).pathname,
+          level: 0,
+          section: currentSection || undefined,
+        });
       });
-    });
+    }
+
+    // Also try finding section headers + their links
+    if (pages.length === 0) {
+      // Mintlify uses font-semibold for section headers in the sidebar
+      const allSidebarLinks = doc.querySelectorAll<HTMLAnchorElement>('a[href^="/"]');
+      let currentSection = '';
+
+      allSidebarLinks.forEach((link) => {
+        const href = link.getAttribute('href');
+        if (!href || href === '/' || href.startsWith('#')) return;
+
+        // Skip top nav tabs
+        const parentClass = link.parentElement?.className || '';
+        if (parentClass.includes('nav-tabs')) return;
+        // Skip card links (they have long text with descriptions)
+        if ((link.textContent?.trim() || '').length > 60) return;
+
+        const url = resolveUrl(href, baseUrl);
+        if (!isSameSite(url, baseUrl)) return;
+
+        pages.push({
+          url,
+          title: link.textContent?.trim() || url,
+          path: new URL(url).pathname,
+          level: 0,
+          section: currentSection || undefined,
+        });
+      });
+    }
   }
 
   return deduplicatePages(pages);

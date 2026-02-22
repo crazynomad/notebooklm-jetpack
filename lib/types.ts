@@ -8,6 +8,7 @@ export type DocFramework =
   | 'sphinx'
   | 'mintlify'
   | 'anthropic'
+  | 'sitemap'
   | 'unknown';
 
 // Document page item
