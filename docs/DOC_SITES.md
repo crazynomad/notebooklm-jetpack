@@ -45,11 +45,12 @@
 | 8 | **Kubernetes Docs** | kubernetes.io/docs | Hugo | Sitemap (XML) | ~1,000+ | sitemap 在根域名 |
 | 9 | **Next.js Docs** | nextjs.org/docs | 自研 | Sitemap (XML) | 700+ | sitemap 在根域名，需路径过滤 |
 
+| 10 | **Anthropic Docs** | platform.claude.com/docs/en/ | Next.js | Sitemap (XML) | 725 (EN) / 2,905 (全语言) | 已从 docs.anthropic.com 迁移 |
+
 ### ⚠️ 需改进
 
 | # | 站点 | URL | 框架 | 问题 | 优先级 |
 |---|------|-----|------|------|--------|
-| 10 | **Anthropic Docs** | platform.claude.com/docs | Next.js SPA | 已从 docs.anthropic.com 迁移，无 sitemap，需 content script 在渲染后提取 | 🔴 高 |
 | 11 | **鸿蒙开发文档** | developer.huawei.com/consumer/cn/doc/harmonyos-guides-V5/ | Angular SPA | 初始 HTML 为空，sidebar 由 JS 渲染 | 🟡 中 |
 
 ### 📋 待测试
