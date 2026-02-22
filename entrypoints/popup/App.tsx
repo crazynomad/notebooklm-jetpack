@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { Youtube, Link, List, Rss, BookOpen, Lock, History, MessageCircle } from 'lucide-react';
+import { Link, List, Rss, BookOpen, History, MessageCircle } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { SingleImport } from '@/components/SingleImport';
 import { BatchImport } from '@/components/BatchImport';
-import { PlaylistImport } from '@/components/PlaylistImport';
 import { RssImport } from '@/components/RssImport';
 import { DocsImport } from '@/components/DocsImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
@@ -68,7 +67,6 @@ export default function App() {
           {[
             { value: 'single', icon: Link, label: '单个导入', locked: false },
             { value: 'batch', icon: List, label: '批量导入', locked: false },
-            { value: 'playlist', icon: Youtube, label: '播放列表', locked: true },
             { value: 'rss', icon: Rss, label: 'RSS', locked: false },
             { value: 'docs', icon: BookOpen, label: '文档站点', locked: false },
             { value: 'claude', icon: MessageCircle, label: 'Claude', locked: false },
@@ -101,10 +99,6 @@ export default function App() {
 
         <Tabs.Content value="batch" className="p-4">
           <BatchImport onProgress={setImportProgress} />
-        </Tabs.Content>
-
-        <Tabs.Content value="playlist" className="p-4">
-          <PlaylistImport onProgress={setImportProgress} />
         </Tabs.Content>
 
         <Tabs.Content value="rss" className="p-4">

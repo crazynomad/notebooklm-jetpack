@@ -19,23 +19,14 @@ export default defineConfig({
       'storage',
       'activeTab',
       'tabs',
-      'identity',
       'scripting',
       'contextMenus',
       'notifications',
     ],
     host_permissions: [
       'https://notebooklm.google.com/*',
-      'https://www.googleapis.com/*',
-      'https://www.youtube.com/*',
       'https://claude.ai/*',
     ],
-    oauth2: {
-      client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
-      scopes: [
-        'https://www.googleapis.com/auth/youtube.readonly',
-      ],
-    },
     action: {
       default_title: 'NotebookLM Importer',
       default_popup: 'popup.html',

@@ -1,10 +1,3 @@
-// Subscription status
-export interface SubscriptionStatus {
-  isSubscribed: boolean;
-  checkedAt: number;
-  channelTitle?: string;
-}
-
 // Document site framework types
 export type DocFramework =
   | 'docusaurus'
@@ -50,13 +43,6 @@ export interface ImportProgress {
   items: ImportItem[];
 }
 
-// YouTube Playlist Item
-export interface PlaylistItem {
-  videoId: string;
-  title: string;
-  thumbnail?: string;
-}
-
 // RSS Feed Item
 export interface RssFeedItem {
   url: string;
@@ -66,11 +52,8 @@ export interface RssFeedItem {
 
 // Message types for communication between popup and background
 export type MessageType =
-  | { type: 'CHECK_SUBSCRIPTION' }
-  | { type: 'GET_CACHED_SUBSCRIPTION' }
   | { type: 'IMPORT_URL'; url: string }
   | { type: 'IMPORT_BATCH'; urls: string[] }
-  | { type: 'GET_PLAYLIST_VIDEOS'; playlistUrl: string }
   | { type: 'PARSE_RSS'; rssUrl: string }
   | { type: 'GET_CURRENT_TAB' }
   | { type: 'GET_ALL_TABS' }

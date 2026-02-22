@@ -1,8 +1,3 @@
-import {
-  checkSubscription,
-  getCachedSubscription,
-  getPlaylistVideos,
-} from '@/services/youtube-api';
 import { parseRssFeed } from '@/services/rss-parser';
 import {
   importUrl,
@@ -17,7 +12,6 @@ import {
   extractClaudeConversation,
   formatConversationForImport,
 } from '@/services/claude-conversation';
-import { extractYouTubePlaylistId } from '@/lib/utils';
 import type { MessageType, MessageResponse } from '@/lib/types';
 
 // Context menu IDs
@@ -107,25 +101,11 @@ function showNotification(title: string, message: string) {
 
 async function handleMessage(message: MessageType): Promise<unknown> {
   switch (message.type) {
-    case 'CHECK_SUBSCRIPTION':
-      return await checkSubscription();
-
-    case 'GET_CACHED_SUBSCRIPTION':
-      return await getCachedSubscription();
-
     case 'IMPORT_URL':
       return await importUrl(message.url);
 
     case 'IMPORT_BATCH':
       return await importBatch(message.urls);
-
-    case 'GET_PLAYLIST_VIDEOS': {
-      const playlistId = extractYouTubePlaylistId(message.playlistUrl);
-      if (!playlistId) {
-        throw new Error('Invalid playlist URL');
-      }
-      return await getPlaylistVideos(playlistId);
-    }
 
     case 'PARSE_RSS':
       return await parseRssFeed(message.rssUrl);
