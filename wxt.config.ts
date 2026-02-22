@@ -12,8 +12,8 @@ export default defineConfig({
   },
 
   manifest: {
-    name: 'NotebookLM Importer - 社群版',
-    description: '一键导入网页、YouTube视频、播放列表、RSS到NotebookLM（需订阅「绿皮火车」频道解锁）',
+    name: 'NotebookLM Importer',
+    description: '一键导入网页、RSS、文档站点、Claude 对话到 NotebookLM，支持批量导入，完全免费无需登录',
     version: '1.0.0',
     permissions: [
       'storage',
@@ -21,7 +21,6 @@ export default defineConfig({
       'tabs',
       'scripting',
       'contextMenus',
-      'notifications',
     ],
     host_permissions: [
       'https://notebooklm.google.com/*',
