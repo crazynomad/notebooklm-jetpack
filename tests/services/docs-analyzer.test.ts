@@ -48,8 +48,18 @@ describe('detectFramework', () => {
     expect(detectFramework(doc)).toBe('readthedocs');
   });
 
-  it('detects Mintlify via sidebar-group', () => {
-    const doc = createDoc('<html><body><div class="sidebar-group"></div></body></html>');
+  it('detects Mintlify via mintcdn.com CDN + sidebar-group (multi-signal)', () => {
+    const doc = createDoc('<html><body><div class="sidebar-group"></div><img src="https://mintcdn.com/example/logo.png" /></body></html>');
+    expect(detectFramework(doc)).toBe('mintlify');
+  });
+
+  it('detects Mintlify via __NEXT_DATA__ with theme:mint', () => {
+    const doc = createDoc('<html><body><script id="__NEXT_DATA__" type="application/json">{"props":{"docsConfig":{"theme":"mint","$schema":"https://mintlify.com/docs.json"}}}</script></body></html>');
+    expect(detectFramework(doc)).toBe('mintlify');
+  });
+
+  it('detects Mintlify via meta generator tag alone', () => {
+    const doc = createDoc('<html><head><meta name="generator" content="Mintlify"></head><body></body></html>');
     expect(detectFramework(doc)).toBe('mintlify');
   });
 

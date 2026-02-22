@@ -80,8 +80,8 @@ async function main() {
     }
   }
 
-  // Fetch 15 pages
-  const pages = allPages.slice(0, 15);
+  // Fetch ALL pages
+  const pages = allPages;
   const contents = [];
   for (const p of pages) {
     process.stdout.write(`  ${p.slug}...`);

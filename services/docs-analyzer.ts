@@ -62,11 +62,38 @@ export function detectFramework(doc: Document): DocFramework {
     return 'huawei';
   }
 
-  // Mintlify detection
+  // Mintlify detection — AI-native multi-signal approach
+  // Signal 1: meta generator tag
   const mintlifyGenerator = doc.querySelector('meta[name="generator"][content*="Mintlify"]');
+  // Signal 2: old-style sidebar class
   const mintlifySidebar = doc.querySelector('.sidebar-group');
+  // Signal 3: mintlify in asset URLs
   const mintlifyAssets = doc.querySelector('link[href*="mintlify"], script[src*="mintlify"]');
-  if (mintlifyGenerator || mintlifySidebar || mintlifyAssets) {
+  // Signal 4: mintcdn.com CDN (Mintlify's image/asset CDN)
+  const mintlifyCdn = doc.querySelector('img[src*="mintcdn.com"], link[href*="mintcdn.com"], img[srcset*="mintcdn.com"]');
+  // Signal 5: __NEXT_DATA__ containing Mintlify markers (theme:"mint", $schema with mintlify.com)
+  let mintlifyNextData = false;
+  try {
+    const nextDataScript = doc.getElementById('__NEXT_DATA__');
+    if (nextDataScript) {
+      const text = nextDataScript.textContent || '';
+      // Check for Mintlify-specific config markers in the JSON
+      mintlifyNextData = text.includes('"theme":"mint"') ||
+        text.includes('"$schema":"https://mintlify.com') ||
+        text.includes('mintlify.com/docs.json');
+    }
+  } catch { /* ignore parsing errors */ }
+  // Signal 6: mintlify class names in DOM
+  const mintlifyClasses = doc.querySelector('[class*="mintlify"], [data-mintlify]');
+
+  // Score-based detection: 1 strong signal or 2+ weak signals = Mintlify
+  const mintlifyScore = (mintlifyGenerator ? 2 : 0) +
+    (mintlifyNextData ? 2 : 0) +
+    (mintlifyCdn ? 2 : 0) +
+    (mintlifyAssets ? 1 : 0) +
+    (mintlifySidebar ? 1 : 0) +
+    (mintlifyClasses ? 1 : 0);
+  if (mintlifyScore >= 2) {
     return 'mintlify';
   }
 
