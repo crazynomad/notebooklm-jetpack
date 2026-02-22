@@ -2,8 +2,9 @@ import type { DocSiteInfo, DocPageItem } from '@/lib/types';
 import { delay } from '@/lib/utils';
 
 // ─── llms.txt (AI-native page index) ──────────────────────────
-// Many Mintlify sites expose /llms.txt with a structured page list.
+// Standard adopted by 66%+ of doc sites (Mintlify, React, Svelte, Next.js, Angular, etc.)
 // Format: "- [Title](https://domain/path.md)" or "- [Title](https://domain/path.md): Description"
+// Some sites (e.g. Supabase) use llms.txt as an index pointing to sub-files (llms/guides.txt)
 export async function fetchLlmsTxt(baseUrl: string): Promise<DocPageItem[]> {
   const pages: DocPageItem[] = [];
   const origin = new URL(baseUrl).origin;
@@ -40,6 +41,21 @@ export async function fetchLlmsTxt(baseUrl: string): Promise<DocPageItem[]> {
   } catch { /* llms.txt not available */ }
 
   return pages;
+}
+
+// ─── llms-full.txt (full site content in one request) ─────────
+// Returns the complete text content — ideal for PDF export (no per-page fetching needed)
+// Supported by ~28% of doc sites: OpenClaw, Svelte, Vue, Nuxt, Bun, VitePress, Angular, Cal.com
+export async function fetchLlmsFullTxt(baseUrl: string): Promise<string | null> {
+  const origin = new URL(baseUrl).origin;
+  try {
+    const response = await fetch(`${origin}/llms-full.txt`, { signal: AbortSignal.timeout(15000) });
+    if (!response.ok) return null;
+    const text = await response.text();
+    // Validate: should be substantial content (>1KB) and not HTML
+    if (text.length < 1000 || text.startsWith('<!DOCTYPE') || text.startsWith('<html')) return null;
+    return text;
+  } catch { return null; }
 }
 
 // Fetch page content via Mintlify .md suffix (URL + .md → markdown)

@@ -60,7 +60,22 @@ interface PageContent {
   wordCount: number;
 }
 
-async function fetchPageHtml(page: DocPageItem): Promise<PageContent | null> {
+async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> {
+  // Strategy 1: Try .md suffix (returns clean markdown — works on Mintlify, VitePress, Bun, Clerk, etc.)
+  try {
+    const mdUrl = page.url.replace(/\/$/, '') + '.md';
+    const r = await fetch(mdUrl, { signal: AbortSignal.timeout(8000) });
+    if (r.ok) {
+      const text = await r.text();
+      if (!text.startsWith('<!DOCTYPE') && !text.startsWith('<html') && text.length > 50) {
+        const cleaned = cleanComponentMd(text);
+        const title = cleaned.match(/^#\s+(.+)/m)?.[1] || page.title;
+        return { url: page.url, title, markdown: cleaned, section: page.section, wordCount: cleaned.split(/\s+/).length };
+      }
+    }
+  } catch { /* fall through */ }
+
+  // Strategy 2: Fetch HTML and extract content
   try {
     const r = await fetch(page.url, { signal: AbortSignal.timeout(10000) });
     if (!r.ok) return null;
@@ -83,7 +98,7 @@ export async function fetchAllPages(pages: DocPageItem[], options: PdfGeneratorO
   let completed = 0;
   for (let i = 0; i < pages.length; i += concurrency) {
     const batch = pages.slice(i, i + concurrency);
-    const batchResults = await Promise.all(batch.map(fetchPageHtml));
+    const batchResults = await Promise.all(batch.map(fetchPageContent));
     for (const result of batchResults) {
       if (result && result.markdown.length > 50) results.push(result);
       completed++;
@@ -216,10 +231,52 @@ export async function generateDocsPdf(
   siteInfo: DocSiteInfo,
   options: PdfGeneratorOptions = {}
 ): Promise<void> {
+  let contents: PageContent[];
+
+  // Fast path: if site has llms-full.txt, use it (one request for all content)
+  if (siteInfo.hasLlmsFullTxt) {
+    options.onProgress?.({ phase: 'fetching', current: 0, total: 1, currentPage: 'llms-full.txt' });
+    try {
+      const origin = new URL(siteInfo.baseUrl).origin;
+      const r = await fetch(`${origin}/llms-full.txt`, { signal: AbortSignal.timeout(30000) });
+      if (r.ok) {
+        const fullText = await r.text();
+        if (fullText.length > 1000) {
+          // Split into pages by h1 headers
+          const sections = fullText.split(/(?=^# )/m).filter(s => s.trim().length > 50);
+          contents = sections.map((section, i) => {
+            const titleMatch = section.match(/^#\s+(.+)/m);
+            const title = titleMatch?.[1] || `Section ${i + 1}`;
+            const cleaned = cleanComponentMd(section);
+            // Infer section from first h2 or directory-like structure
+            const h2Match = cleaned.match(/^##\s+(.+)/m);
+            return {
+              url: `${origin}/#section-${i}`,
+              title,
+              markdown: cleaned,
+              section: h2Match?.[1]?.slice(0, 30) || undefined,
+              wordCount: cleaned.split(/\s+/).length,
+            };
+          });
+          options.onProgress?.({ phase: 'fetching', current: 1, total: 1 });
+
+          if (contents.length > 0) {
+            options.onProgress?.({ phase: 'rendering', current: 1, total: 1 });
+            const html = buildDocsHtml(siteInfo, contents);
+            openForPrint(html);
+            options.onProgress?.({ phase: 'done', current: 1, total: 1 });
+            return;
+          }
+        }
+      }
+    } catch { /* fall through to per-page fetching */ }
+  }
+
+  // Standard path: fetch pages individually
   const maxPages = options.maxPages || 300;
   const pagesToFetch = siteInfo.pages.slice(0, maxPages);
 
-  const contents = await fetchAllPages(pagesToFetch, options);
+  contents = await fetchAllPages(pagesToFetch, options);
   if (contents.length === 0) throw new Error('No page content could be fetched');
 
   options.onProgress?.({ phase: 'rendering', current: 1, total: 1 });

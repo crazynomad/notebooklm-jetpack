@@ -29,6 +29,7 @@ export interface DocSiteInfo {
   title: string;
   framework: DocFramework;
   pages: DocPageItem[];
+  hasLlmsFullTxt?: boolean; // Site supports /llms-full.txt for bulk content export
 }
 
 // Import item

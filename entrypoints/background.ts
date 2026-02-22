@@ -6,7 +6,7 @@ import {
   getCurrentTabUrl,
   getAllTabUrls,
 } from '@/services/notebooklm';
-import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog, fetchLlmsTxt } from '@/services/docs-site';
+import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog, fetchLlmsTxt, fetchLlmsFullTxt } from '@/services/docs-site';
 import { getHistory, clearHistory } from '@/services/history';
 import {
   extractClaudeConversation,
@@ -100,10 +100,32 @@ async function handleMessage(message: MessageType): Promise<unknown> {
       return await getAllTabUrls();
 
     case 'ANALYZE_DOC_SITE': {
-      // Try sitemap first (more reliable), fallback to DOM analysis
+      // AI-native fallback chain: llms.txt → sitemap → Huawei API → DOM
       const tabInfo = await chrome.tabs.get(message.tabId);
       const tabUrl = tabInfo.url || '';
 
+      // 1. Try llms.txt first (AI-native, covers 66% of doc sites including React/Svelte with no sitemap)
+      if (tabUrl.startsWith('http')) {
+        try {
+          const llmsPages = await fetchLlmsTxt(tabUrl);
+          if (llmsPages.length >= 5) {
+            const urlObj = new URL(tabUrl);
+            // Check if llms-full.txt is also available (for PDF export optimization)
+            const hasFullTxt = await fetchLlmsFullTxt(tabUrl).then(t => t !== null).catch(() => false);
+            return {
+              baseUrl: urlObj.origin,
+              title: tabInfo.title || urlObj.hostname,
+              framework: 'sitemap' as const,
+              pages: llmsPages,
+              hasLlmsFullTxt: hasFullTxt,
+            };
+          }
+        } catch {
+          // llms.txt not available, fall through
+        }
+      }
+
+      // 2. Try sitemap.xml (covers 55% of sites)
       if (tabUrl.startsWith('http')) {
         try {
           const sitemapPages = await fetchSitemap(tabUrl);
@@ -112,15 +134,12 @@ async function handleMessage(message: MessageType): Promise<unknown> {
             const pathPrefix = urlObj.pathname.replace(/\/$/, '');
 
             // Filter to pages under the current path prefix (e.g. /docs)
-            // Smart truncation: remove last segment if it looks like a page name
             let filterPrefix = pathPrefix;
             if (filterPrefix) {
               const segments = filterPrefix.split('/').filter(Boolean);
               if (segments.length > 1) {
-                // Check if last segment is a page (not a directory-like path)
                 const last = segments[segments.length - 1];
                 if (last.includes('.') || !sitemapPages.some((p) => p.path.startsWith(filterPrefix + '/'))) {
-                  // Last segment is likely a page name, use parent as prefix
                   segments.pop();
                   filterPrefix = '/' + segments.join('/');
                 }
@@ -132,14 +151,12 @@ async function handleMessage(message: MessageType): Promise<unknown> {
               filteredPages = sitemapPages.filter((p) =>
                 p.path.startsWith(filterPrefix)
               );
-              // If filtering removed too many pages, use all
               if (filteredPages.length < 3 && sitemapPages.length > 10) {
                 filteredPages = sitemapPages;
               }
             }
 
             // Multi-language handling: prefer English docs
-            // Detect if pages have language prefixes (e.g. /docs/en/, /docs/zh/, /docs/ja/)
             const langPattern = /\/(?:docs|documentation|guide|api)\/([a-z]{2}(?:-[a-z]{2,4})?)\//i;
             const languages = new Set<string>();
             for (const p of filteredPages) {
@@ -147,7 +164,6 @@ async function handleMessage(message: MessageType): Promise<unknown> {
               if (m) languages.add(m[1].toLowerCase());
             }
 
-            // If multiple languages detected, default to English
             if (languages.size > 1 && languages.has('en')) {
               const enPages = filteredPages.filter((p) => {
                 const m = p.path.match(langPattern);
@@ -158,7 +174,6 @@ async function handleMessage(message: MessageType): Promise<unknown> {
               }
             }
 
-            // Only use sitemap if we got a meaningful number of pages
             if (filteredPages.length >= 5) {
               return {
                 baseUrl: urlObj.origin,
@@ -167,32 +182,13 @@ async function handleMessage(message: MessageType): Promise<unknown> {
                 pages: filteredPages,
               };
             }
-            // Otherwise fall through to DOM analysis
           }
         } catch {
-          // Sitemap not available, fallback to DOM analysis
+          // Sitemap not available, fallback
         }
       }
 
-      // Try llms.txt (AI-native page index, common on Mintlify sites)
-      if (tabUrl.startsWith('http')) {
-        try {
-          const llmsPages = await fetchLlmsTxt(tabUrl);
-          if (llmsPages.length >= 5) {
-            const urlObj = new URL(tabUrl);
-            return {
-              baseUrl: urlObj.origin,
-              title: tabInfo.title || urlObj.hostname,
-              framework: 'mintlify' as const,
-              pages: llmsPages,
-            };
-          }
-        } catch {
-          // llms.txt not available, fall through
-        }
-      }
-
-      // Try Huawei catalog API for HarmonyOS docs (Angular SPA, no sitemap)
+      // 3. Try Huawei catalog API for HarmonyOS docs (Angular SPA, no sitemap)
       if (tabUrl.includes('developer.huawei.com')) {
         try {
           const huaweiPages = await fetchHuaweiCatalog(tabUrl);
