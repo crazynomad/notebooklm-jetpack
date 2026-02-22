@@ -25,6 +25,7 @@ export default defineConfig({
     host_permissions: [
       'https://notebooklm.google.com/*',
       'https://claude.ai/*',
+      'https://platform.claude.com/*',
     ],
     action: {
       default_title: 'NotebookLM Importer',
