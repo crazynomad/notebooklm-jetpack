@@ -49,7 +49,7 @@ export default defineBackground(() => {
     }
 
     if (!url || !url.startsWith('http')) {
-      showNotification('导入失败', '无效的 URL');
+      console.warn('Context menu import: invalid URL');
       return;
     }
 

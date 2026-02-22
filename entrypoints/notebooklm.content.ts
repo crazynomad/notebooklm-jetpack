@@ -268,14 +268,27 @@ async function fillInput(
   value: string
 ): Promise<void> {
   element.focus();
-  element.value = '';
-  element.value = value;
+
+  // Use native setter to bypass React's synthetic event system
+  const nativeInputValueSetter =
+    Object.getOwnPropertyDescriptor(
+      element instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype,
+      'value'
+    )?.set;
+
+  if (nativeInputValueSetter) {
+    nativeInputValueSetter.call(element, value);
+  } else {
+    element.value = value;
+  }
 
   // Dispatch events to trigger React/Angular state updates
   element.dispatchEvent(new Event('input', { bubbles: true }));
   element.dispatchEvent(new Event('change', { bubbles: true }));
 
-  // Also try native input event for frameworks that listen to it
+  // Also try InputEvent for frameworks that listen to it
   const nativeInputEvent = new InputEvent('input', {
     bubbles: true,
     cancelable: true,

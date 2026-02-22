@@ -90,9 +90,7 @@ export function BatchImport({ onProgress }: Props) {
         setState(hasErrors ? 'error' : 'success');
 
         // Show notification
-        const successCount = result.items.filter((i) => i.status === 'success').length;
-        const failedCount = result.items.filter((i) => i.status === 'error').length;
-        showNotification(successCount, failedCount);
+        // Results shown in UI below
       } else {
         setState('error');
         setError(response?.error || '批量导入失败');
@@ -100,16 +98,8 @@ export function BatchImport({ onProgress }: Props) {
     });
   };
 
-  const showNotification = (success: number, failed: number) => {
-    if (success > 0 || failed > 0) {
-      const message = failed > 0 ? `成功 ${success} 个，失败 ${failed} 个` : `成功导入 ${success} 个`;
-      chrome.notifications?.create({
-        type: 'basic',
-        iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
-        title: '批量导入完成',
-        message,
-      });
-    }
+  const _showResultSummary = (_success: number, _failed: number) => {
+    // Results are shown in the UI below — no notification needed
   };
 
   const handleRetryFailed = () => {

@@ -65,12 +65,12 @@ export default function App() {
       <Tabs.Root defaultValue="single" className="flex flex-col">
         <Tabs.List className="flex border-b border-gray-100">
           {[
-            { value: 'single', icon: Link, label: '单个导入', locked: false },
-            { value: 'batch', icon: List, label: '批量导入', locked: false },
-            { value: 'rss', icon: Rss, label: 'RSS', locked: false },
-            { value: 'docs', icon: BookOpen, label: '文档站点', locked: false },
-            { value: 'claude', icon: MessageCircle, label: 'Claude', locked: false },
-          ].map(({ value, icon: Icon, label, locked }) => (
+            { value: 'single', icon: Link, label: '单个导入' },
+            { value: 'batch', icon: List, label: '批量导入' },
+            { value: 'rss', icon: Rss, label: 'RSS' },
+            { value: 'docs', icon: BookOpen, label: '文档站点' },
+            { value: 'claude', icon: MessageCircle, label: 'Claude' },
+          ].map(({ value, icon: Icon, label }) => (
             <Tabs.Trigger
               key={value}
               value={value}
@@ -82,12 +82,7 @@ export default function App() {
                 'data-[state=active]:text-notebooklm-blue data-[state=active]:border-notebooklm-blue'
               )}
             >
-              <div className="relative">
-                <Icon className="w-4 h-4" />
-                {locked && (
-                  <Lock className="w-2.5 h-2.5 absolute -top-1 -right-2 text-yellow-500" />
-                )}
-              </div>
+              <Icon className="w-4 h-4" />
               {label}
             </Tabs.Trigger>
           ))}

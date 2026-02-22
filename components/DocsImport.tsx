@@ -17,6 +17,10 @@ const FRAMEWORK_LABELS: Record<DocFramework, string> = {
   sphinx: 'Sphinx',
   mintlify: 'Mintlify',
   anthropic: 'Anthropic Docs',
+  sitemap: 'Sitemap',
+  yuque: '语雀',
+  wechat: '微信文档',
+  huawei: '鸿蒙文档',
   unknown: '未识别框架',
 };
 
@@ -286,11 +290,10 @@ export function DocsImport({ onProgress }: Props) {
           </ol>
           <p className="mt-2">支持的框架：</p>
           <ul className="list-disc list-inside space-y-0.5">
-            <li>Docusaurus</li>
-            <li>MkDocs / Material for MkDocs</li>
-            <li>VitePress</li>
-            <li>GitBook</li>
-            <li>ReadTheDocs / Sphinx</li>
+            <li>Docusaurus、VitePress、MkDocs</li>
+            <li>GitBook、Mintlify、Sphinx</li>
+            <li>语雀、微信开发文档</li>
+            <li>任何有 sitemap.xml 的站点</li>
           </ul>
         </div>
       )}
