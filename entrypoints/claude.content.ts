@@ -1,4 +1,5 @@
 // Content script for extracting Claude conversations
+// Updated: 2026-02-22 — adapted to current Claude UI
 import type { ClaudeConversation, ClaudeMessage } from '@/lib/types';
 
 export default defineContentScript({
@@ -19,17 +20,14 @@ export default defineContentScript({
               error: error instanceof Error ? error.message : '提取失败',
             });
           });
-        return true; // Will respond asynchronously
+        return true;
       }
     });
   },
 });
 
 async function extractConversation(): Promise<ClaudeConversation> {
-  // Extract conversation title
   const title = extractTitle();
-
-  // Extract messages
   const messages = extractMessages();
 
   if (messages.length === 0) {
@@ -46,262 +44,212 @@ async function extractConversation(): Promise<ClaudeConversation> {
 }
 
 function extractConversationId(): string {
-  // Try to get conversation ID from URL
   const match = window.location.pathname.match(/\/chat\/([a-f0-9-]+)/);
-  if (match) {
-    return match[1];
-  }
-  // Fallback to timestamp-based ID
-  return `claude-${Date.now()}`;
+  return match ? match[1] : `claude-${Date.now()}`;
 }
 
 function extractTitle(): string {
-  // Try multiple selectors for the conversation title
-  const titleSelectors = [
-    // Title in header/sidebar
-    '[data-testid="conversation-title"]',
-    'h1[data-testid="chat-title"]',
-    // Breadcrumb or header text
-    'header h1',
-    'nav [aria-current="page"]',
-    // Fallback: first message truncated
-    '.conversation-title',
-  ];
-
-  for (const selector of titleSelectors) {
-    const el = document.querySelector(selector);
-    if (el?.textContent?.trim()) {
-      return el.textContent.trim();
-    }
+  // Claude page title format: "Title - Claude"
+  const pageTitle = document.title;
+  if (pageTitle && pageTitle.includes(' - Claude')) {
+    return pageTitle.replace(/ - Claude$/, '');
   }
-
-  // Fallback: use page title or generic name
-  if (document.title && !document.title.includes('Claude')) {
-    return document.title;
+  if (pageTitle && !pageTitle.includes('Claude')) {
+    return pageTitle;
   }
-
   return 'Claude 对话';
 }
 
 function extractMessages(): ClaudeMessage[] {
   const messages: ClaudeMessage[] = [];
 
-  // Try multiple selector strategies for message containers
-  const messageContainers = findMessageContainers();
+  // Strategy 1: Find the main conversation container
+  // Claude uses a max-w-3xl flex column container for messages
+  const container = findMessageContainer();
+  if (!container) {
+    console.warn('Message container not found, trying fallback');
+    return extractMessagesFallback();
+  }
 
-  for (let i = 0; i < messageContainers.length; i++) {
-    const container = messageContainers[i];
-    const message = parseMessageContainer(container, i);
-    if (message) {
-      messages.push(message);
+  const children = Array.from(container.children);
+  let msgIndex = 0;
+
+  for (const child of children) {
+    const isUser = !!child.querySelector('[data-testid="user-message"]');
+    const isClaude = !!child.querySelector('[class*="font-claude-response"]');
+
+    if (!isUser && !isClaude) continue;
+
+    const content = extractContentFromElement(child, isUser ? 'human' : 'assistant');
+    if (!content) continue;
+
+    const timestamp = extractTimestampFromElement(child);
+
+    messages.push({
+      id: `msg-${msgIndex}`,
+      role: isUser ? 'human' : 'assistant',
+      content,
+      timestamp,
+    });
+    msgIndex++;
+  }
+
+  return messages;
+}
+
+function findMessageContainer(): Element | null {
+  // Look for the main content column that holds message turns
+  // Claude uses: .flex-1.flex.flex-col.px-4.max-w-3xl.mx-auto.w-full
+  const selectors = [
+    '.max-w-3xl.mx-auto.w-full',
+    '.flex-1.flex.flex-col.max-w-3xl',
+    '[class*="max-w-3xl"][class*="mx-auto"]',
+  ];
+
+  for (const selector of selectors) {
+    try {
+      const el = document.querySelector(selector);
+      if (el && el.children.length >= 2) {
+        // Verify it contains message elements
+        const hasUser = !!el.querySelector('[data-testid="user-message"]');
+        const hasClaude = !!el.querySelector('[class*="font-claude-response"]');
+        if (hasUser || hasClaude) return el;
+      }
+    } catch {
+      // Invalid selector
+    }
+  }
+
+  return null;
+}
+
+function extractContentFromElement(
+  container: Element,
+  role: 'human' | 'assistant'
+): string | null {
+  if (role === 'human') {
+    // User messages: find data-testid="user-message" or class containing font-user-message
+    const userEl =
+      container.querySelector('[data-testid="user-message"]') ||
+      container.querySelector('[class*="font-user-message"]');
+    if (userEl) {
+      return cleanText(userEl);
+    }
+  } else {
+    // Claude responses: find the element with font-claude-response class
+    // Get the parent container that holds all response paragraphs
+    const responseEls = container.querySelectorAll('[class*="font-claude-response"]');
+    if (responseEls.length > 0) {
+      // If there's a single container with this class, use it
+      if (responseEls.length === 1) {
+        return cleanText(responseEls[0]);
+      }
+      // Multiple elements — they might be individual paragraphs
+      // Find their common parent
+      const firstEl = responseEls[0];
+      const parent = firstEl.closest('[class*="group"]') || firstEl.parentElement;
+      if (parent) {
+        return cleanText(parent);
+      }
+      // Fallback: concatenate all
+      return Array.from(responseEls)
+        .map((el) => el.textContent?.trim())
+        .filter(Boolean)
+        .join('\n\n');
+    }
+  }
+
+  // Final fallback
+  const text = container.textContent?.trim();
+  return text && text.length > 0 ? text : null;
+}
+
+function extractTimestampFromElement(container: Element): string | undefined {
+  // Look for time elements
+  const timeEl = container.querySelector('time, [datetime]');
+  if (timeEl) {
+    return (
+      timeEl.getAttribute('datetime') || timeEl.textContent?.trim() || undefined
+    );
+  }
+
+  // Look for timestamp-like text (e.g., "9:43 AM")
+  const text = container.textContent || '';
+  const timeMatch = text.match(/\d{1,2}:\d{2}\s*(?:AM|PM)/i);
+  if (timeMatch) {
+    return timeMatch[0];
+  }
+
+  return undefined;
+}
+
+function extractMessagesFallback(): ClaudeMessage[] {
+  const messages: ClaudeMessage[] = [];
+
+  // Fallback: find all user messages and claude responses independently
+  const userEls = document.querySelectorAll(
+    '[data-testid="user-message"], [class*="font-user-message"]'
+  );
+  const claudeEls = document.querySelectorAll('[class*="font-claude-response"]');
+
+  // Collect unique claude response containers
+  const claudeContainers: Element[] = [];
+  const seen = new Set<Element>();
+  for (const el of claudeEls) {
+    // Find the top-level response container to avoid duplicates
+    const container =
+      el.closest('[class*="group relative"]') || el.parentElement;
+    if (container && !seen.has(container)) {
+      seen.add(container);
+      claudeContainers.push(container);
+    }
+  }
+
+  // Interleave: assume alternating user/assistant
+  const maxLen = Math.max(userEls.length, claudeContainers.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (i < userEls.length) {
+      const text = userEls[i].textContent?.trim();
+      if (text) {
+        messages.push({
+          id: `msg-${messages.length}`,
+          role: 'human',
+          content: text,
+        });
+      }
+    }
+    if (i < claudeContainers.length) {
+      const text = cleanText(claudeContainers[i]);
+      if (text) {
+        messages.push({
+          id: `msg-${messages.length}`,
+          role: 'assistant',
+          content: text,
+        });
+      }
     }
   }
 
   return messages;
 }
 
-function findMessageContainers(): Element[] {
-  // Strategy 1: data-testid based selectors
-  const testIdSelectors = [
-    '[data-testid="user-message"]',
-    '[data-testid="assistant-message"]',
-    '[data-testid="human-turn"]',
-    '[data-testid="assistant-turn"]',
-  ];
-
-  for (const selector of testIdSelectors) {
-    const elements = document.querySelectorAll(selector);
-    if (elements.length > 0) {
-      return Array.from(elements);
-    }
-  }
-
-  // Strategy 2: Role-based selectors (common pattern)
-  const roleSelectors = [
-    '[data-message-role]',
-    '[data-role]',
-    '[class*="message"][class*="human"], [class*="message"][class*="assistant"]',
-  ];
-
-  for (const selector of roleSelectors) {
-    try {
-      const elements = document.querySelectorAll(selector);
-      if (elements.length > 0) {
-        return Array.from(elements);
-      }
-    } catch {
-      // Invalid selector, continue
-    }
-  }
-
-  // Strategy 3: Conversation turn containers
-  const conversationSelectors = [
-    '[class*="ConversationTurn"]',
-    '[class*="turn-container"]',
-    '[class*="chat-message"]',
-    '.prose', // Claude often uses prose class for messages
-  ];
-
-  for (const selector of conversationSelectors) {
-    try {
-      const elements = document.querySelectorAll(selector);
-      if (elements.length >= 2) {
-        // At least human + assistant
-        return Array.from(elements);
-      }
-    } catch {
-      // Continue
-    }
-  }
-
-  // Strategy 4: Find alternating message pattern in main content
-  const mainContent = document.querySelector('main') || document.body;
-  const candidates = mainContent.querySelectorAll(
-    '[class*="message"], [class*="Message"], article, [role="article"]'
-  );
-  if (candidates.length >= 2) {
-    return Array.from(candidates);
-  }
-
-  return [];
-}
-
-function parseMessageContainer(
-  container: Element,
-  index: number
-): ClaudeMessage | null {
-  // Determine role
-  const role = determineRole(container, index);
-  if (!role) return null;
-
-  // Extract content
-  const content = extractContent(container);
-  if (!content) return null;
-
-  // Extract timestamp if available
-  const timestamp = extractTimestamp(container);
-
-  return {
-    id: `msg-${index}`,
-    role,
-    content,
-    timestamp,
-  };
-}
-
-function determineRole(
-  container: Element,
-  index: number
-): 'human' | 'assistant' | null {
-  // Check data attributes
-  const roleAttr =
-    container.getAttribute('data-message-role') ||
-    container.getAttribute('data-role') ||
-    container.getAttribute('data-testid');
-
-  if (roleAttr) {
-    const lowerRole = roleAttr.toLowerCase();
-    if (
-      lowerRole.includes('human') ||
-      lowerRole.includes('user') ||
-      lowerRole === 'user-message'
-    ) {
-      return 'human';
-    }
-    if (
-      lowerRole.includes('assistant') ||
-      lowerRole.includes('claude') ||
-      lowerRole === 'assistant-message'
-    ) {
-      return 'assistant';
-    }
-  }
-
-  // Check class names
-  const className = container.className.toLowerCase();
-  if (className.includes('human') || className.includes('user')) {
-    return 'human';
-  }
-  if (className.includes('assistant') || className.includes('claude')) {
-    return 'assistant';
-  }
-
-  // Check for visual indicators (avatar, icon)
-  const hasUserAvatar = container.querySelector(
-    '[class*="user-avatar"], [class*="UserAvatar"], [alt*="User"]'
-  );
-  const hasClaudeAvatar = container.querySelector(
-    '[class*="claude"], [class*="Claude"], [alt*="Claude"]'
-  );
-
-  if (hasUserAvatar) return 'human';
-  if (hasClaudeAvatar) return 'assistant';
-
-  // Fallback: alternate based on index (conversations typically start with human)
-  return index % 2 === 0 ? 'human' : 'assistant';
-}
-
-function extractContent(container: Element): string | null {
-  // Try to find the actual message content area
-  const contentSelectors = [
-    '[class*="message-content"]',
-    '[class*="MessageContent"]',
-    '.prose',
-    '[class*="markdown"]',
-    '[class*="Markdown"]',
-    'p',
-  ];
-
-  for (const selector of contentSelectors) {
-    const contentEl = container.querySelector(selector);
-    if (contentEl?.textContent?.trim()) {
-      return cleanContent(contentEl);
-    }
-  }
-
-  // Fallback: use container text directly
-  const text = container.textContent?.trim();
-  if (text && text.length > 0) {
-    return text;
-  }
-
-  return null;
-}
-
-function cleanContent(element: Element): string {
-  // Clone to avoid modifying the DOM
+function cleanText(element: Element): string {
   const clone = element.cloneNode(true) as Element;
 
-  // Remove button/action elements
-  clone.querySelectorAll('button, [role="button"]').forEach((el) => el.remove());
+  // Remove action buttons, icons, etc.
+  clone
+    .querySelectorAll('button, [role="button"], svg, [class*="sr-only"]')
+    .forEach((el) => el.remove());
 
-  // Get text content, preserving some structure
-  let text = '';
+  // Get text preserving paragraph breaks
+  const blocks: string[] = [];
   const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
 
   let node: Node | null;
   while ((node = walker.nextNode())) {
-    const nodeText = node.textContent || '';
-    text += nodeText;
+    const text = node.textContent?.trim();
+    if (text) blocks.push(text);
   }
 
-  return text.trim();
-}
-
-function extractTimestamp(container: Element): string | undefined {
-  // Look for timestamp elements
-  const timeSelectors = ['time', '[datetime]', '[class*="timestamp"]', '[class*="time"]'];
-
-  for (const selector of timeSelectors) {
-    const timeEl = container.querySelector(selector);
-    if (timeEl) {
-      const datetime =
-        timeEl.getAttribute('datetime') || timeEl.textContent?.trim();
-      if (datetime) {
-        return datetime;
-      }
-    }
-  }
-
-  return undefined;
+  return blocks.join(' ').trim();
 }
