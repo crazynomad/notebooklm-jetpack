@@ -55,6 +55,21 @@ export async function fetchMintlifyMarkdown(pageUrl: string): Promise<string | n
   } catch { return null; }
 }
 
+// Probe if a site supports the .md suffix convention (URL.md → markdown content)
+// Returns true if the site returns valid markdown when .md is appended to a page URL
+export async function probeMdSuffix(pageUrl: string): Promise<boolean> {
+  try {
+    const mdUrl = pageUrl.replace(/\/$/, '') + '.md';
+    const response = await fetch(mdUrl, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return false;
+    const text = await response.text();
+    // Must look like markdown, not HTML
+    if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) return false;
+    // Should have some markdown indicators
+    return text.includes('#') || text.includes('```') || text.includes('- ') || text.startsWith('---');
+  } catch { return false; }
+}
+
 // Try to fetch and parse sitemap.xml for more reliable page discovery
 export async function fetchSitemap(baseUrl: string): Promise<DocPageItem[]> {
   const pages: DocPageItem[] = [];
