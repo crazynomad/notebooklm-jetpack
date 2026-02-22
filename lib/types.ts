@@ -9,6 +9,9 @@ export type DocFramework =
   | 'mintlify'
   | 'anthropic'
   | 'sitemap'
+  | 'yuque'
+  | 'wechat'
+  | 'huawei'
   | 'unknown';
 
 // Document page item

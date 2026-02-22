@@ -25,7 +25,34 @@ export async function fetchSitemap(baseUrl: string): Promise<DocPageItem[]> {
       if (!response.ok) continue;
 
       const text = await response.text();
-      if (!text.includes('<urlset') && !text.includes('<sitemapindex')) continue;
+
+      // Handle plain text sitemap (one URL per line, e.g. WeChat docs)
+      if (!text.includes('<urlset') && !text.includes('<sitemapindex')) {
+        const lines = text.trim().split('\n').filter((line) => {
+          const trimmed = line.trim();
+          return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+        });
+        if (lines.length > 10) {
+          for (const line of lines) {
+            const url = line.trim();
+            try {
+              const urlObj = new URL(url);
+              if (urlObj.origin !== origin) continue;
+              const path = urlObj.pathname;
+              const title = path
+                .split('/')
+                .filter(Boolean)
+                .pop()
+                ?.replace(/[-_]/g, ' ')
+                ?.replace(/\.html?$/, '')
+                ?.replace(/^\w/, (c) => c.toUpperCase()) || path;
+              pages.push({ url, title, path, level: Math.max(0, path.split('/').filter(Boolean).length - 1), section: path.split('/').filter(Boolean)[0] || undefined });
+            } catch { /* invalid URL */ }
+          }
+          if (pages.length > 0) break;
+        }
+        continue;
+      }
 
       const parser = new DOMParser();
       const doc = parser.parseFromString(text, 'text/xml');

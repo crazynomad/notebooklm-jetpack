@@ -41,6 +41,27 @@ export function detectFramework(doc: Document): DocFramework {
     return 'readthedocs';
   }
 
+  // Yuque detection
+  const yuqueData = doc.querySelector('[data-kumuhana], [data-yuque]');
+  const isYuque = doc.documentElement.getAttribute('data-kumuhana') !== null
+    || doc.querySelector('meta[content*="yuque"]') !== null
+    || (doc.querySelector('script')?.textContent || '').includes('yuque');
+  if (yuqueData || isYuque || doc.location?.hostname?.includes('yuque.com')) {
+    return 'yuque';
+  }
+
+  // WeChat developer docs detection
+  if (doc.location?.hostname?.includes('developers.weixin.qq.com') ||
+      doc.querySelector('.sidebar__wrp') !== null) {
+    return 'wechat';
+  }
+
+  // HarmonyOS docs detection
+  if (doc.location?.hostname?.includes('developer.huawei.com') ||
+      doc.querySelector('[class*="harmonyos"]') !== null) {
+    return 'huawei';
+  }
+
   // Mintlify detection
   const mintlifyGenerator = doc.querySelector('meta[name="generator"][content*="Mintlify"]');
   const mintlifySidebar = doc.querySelector('.sidebar-group');
@@ -80,6 +101,12 @@ export function extractPages(
       return extractMintlifyPages(doc, baseUrl);
     case 'anthropic':
       return extractAnthropicPages(doc, baseUrl);
+    case 'yuque':
+      return extractYuquePages(doc, baseUrl);
+    case 'wechat':
+      return extractWechatPages(doc, baseUrl);
+    case 'huawei':
+      return extractHuaweiPages(doc, baseUrl);
     default:
       return extractGenericPages(doc, baseUrl);
   }
@@ -492,6 +519,176 @@ function extractAnthropicPages(doc: Document, baseUrl: string): DocPageItem[] {
       const url = resolveUrl(href, baseUrl);
       if (!isSameSite(url, baseUrl)) return;
 
+      pages.push({
+        url,
+        title: link.textContent?.trim() || url,
+        path: new URL(url).pathname,
+        level: 0,
+      });
+    });
+  }
+
+  return deduplicatePages(pages);
+}
+
+// ─── Yuque (语雀) ────────────────────────────────────────────
+
+function extractYuquePages(doc: Document, baseUrl: string): DocPageItem[] {
+  const pages: DocPageItem[] = [];
+
+  // Yuque embeds TOC data in __INITIAL_STATE__ inside a script tag
+  const scripts = doc.querySelectorAll('script');
+  for (const script of scripts) {
+    const content = script.textContent || '';
+
+    // Find decodeURIComponent("...") pattern
+    const match = content.match(/decodeURIComponent\("(.+?)"\)/);
+    if (!match) continue;
+
+    try {
+      const decoded = decodeURIComponent(match[1]);
+      const data = JSON.parse(decoded);
+
+      // Extract TOC from book data
+      const toc = data?.book?.toc || data?.bookDetail?.toc || [];
+      if (!Array.isArray(toc) || toc.length === 0) continue;
+
+      // Parse Yuque URL: /user/book/slug
+      const urlParts = new URL(baseUrl).pathname.split('/').filter(Boolean);
+      const bookBase = urlParts.length >= 2
+        ? `${new URL(baseUrl).origin}/${urlParts[0]}/${urlParts[1]}`
+        : baseUrl.replace(/\/$/, '');
+
+      for (const item of toc) {
+        const slug = item.url || item.slug;
+        if (!slug || slug.startsWith('http')) continue;
+        // Skip section headers without content
+        if (item.type === 'TITLE' || item.child_uuid) continue;
+
+        const title = item.title || slug;
+        const url = `${bookBase}/${slug}`;
+
+        pages.push({
+          url,
+          title,
+          path: new URL(url).pathname,
+          level: item.depth || 0,
+          section: item.parent_uuid ? undefined : title,
+        });
+      }
+      break;
+    } catch {
+      continue;
+    }
+  }
+
+  // Fallback: find links in the sidebar
+  if (pages.length === 0) {
+    const sidebarLinks = doc.querySelectorAll<HTMLAnchorElement>(
+      '.ant-tree a[href], [class*="catalog"] a[href], [class*="toc"] a[href]'
+    );
+    sidebarLinks.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+      const url = resolveUrl(href, baseUrl);
+      if (!isSameSite(url, baseUrl)) return;
+
+      pages.push({
+        url,
+        title: link.textContent?.trim() || url,
+        path: new URL(url).pathname,
+        level: 0,
+      });
+    });
+  }
+
+  return deduplicatePages(pages);
+}
+
+// ─── WeChat Developer Docs (微信开发文档) ──────────────────────
+
+function extractWechatPages(doc: Document, baseUrl: string): DocPageItem[] {
+  const pages: DocPageItem[] = [];
+
+  // WeChat docs have a sidebar with class "sidebar__wrp" or "sidebar"
+  const sidebarSelectors = [
+    '.sidebar__wrp a[href]',
+    '.sidebar a[href]',
+    '.book-nav a[href]',
+  ];
+
+  for (const selector of sidebarSelectors) {
+    const links = doc.querySelectorAll<HTMLAnchorElement>(selector);
+    if (links.length < 3) continue;
+
+    links.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+      const url = resolveUrl(href, baseUrl);
+      if (!isSameSite(url, baseUrl)) return;
+
+      // Skip anchors within same page
+      if (href.includes('#') && !href.startsWith('/')) return;
+
+      pages.push({
+        url,
+        title: link.textContent?.trim() || url,
+        path: new URL(url).pathname,
+        level: 0,
+      });
+    });
+    break;
+  }
+
+  return deduplicatePages(pages);
+}
+
+// ─── HarmonyOS Docs (鸿蒙开发文档) ─────────────────────────────
+
+function extractHuaweiPages(doc: Document, baseUrl: string): DocPageItem[] {
+  const pages: DocPageItem[] = [];
+
+  // HarmonyOS docs are SPA (Angular), sidebar is JS-rendered
+  // Try to find the catalog/tree links after rendering
+  const sidebarSelectors = [
+    '.catalog-tree a[href]',
+    '.tree-node a[href]',
+    '.el-tree a[href]',
+    '.ant-tree a[href]',
+    '[class*="catalog"] a[href]',
+    '[class*="tree-node"] a[href]',
+    '[class*="nav-tree"] a[href]',
+    '.sidebar a[href]',
+  ];
+
+  for (const selector of sidebarSelectors) {
+    const links = doc.querySelectorAll<HTMLAnchorElement>(selector);
+    if (links.length < 3) continue;
+
+    links.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+      const url = resolveUrl(href, baseUrl);
+      pages.push({
+        url,
+        title: link.textContent?.trim() || url,
+        path: new URL(url).pathname,
+        level: 0,
+      });
+    });
+    break;
+  }
+
+  // Fallback: HarmonyOS uses Angular routing, links might be relative
+  if (pages.length === 0) {
+    const allLinks = doc.querySelectorAll<HTMLAnchorElement>('a[href*="harmonyos"]');
+    allLinks.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (!href) return;
+      const url = resolveUrl(href, baseUrl);
       pages.push({
         url,
         title: link.textContent?.trim() || url,
