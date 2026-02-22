@@ -7,7 +7,69 @@ import {
   getAllTabUrls,
 } from '@/services/notebooklm';
 import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog, fetchLlmsTxt, fetchLlmsFullTxt } from '@/services/docs-site';
+import { fetchAllPages, buildDocsHtml, cleanComponentMd } from '@/services/pdf-generator';
 import { getHistory, clearHistory } from '@/services/history';
+
+// Helper: render HTML to PDF via CDP and download
+async function handleExportPdfFromHtml(html: string, title: string): Promise<void> {
+  const filename = `${(title || 'docs').replace(/[^a-zA-Z0-9\u4e00-\u9fff-_ ]/g, '').trim().slice(0, 60)}.pdf`;
+
+  // Create blank tab, then inject HTML content via CDP
+  const tab = await chrome.tabs.create({ url: 'about:blank', active: false });
+  if (!tab?.id) throw new Error('Failed to create tab');
+  const tabId = tab.id;
+
+  // Brief wait for about:blank to be ready
+  await new Promise(r => setTimeout(r, 300));
+
+  // Attach debugger
+  await new Promise<void>((resolve, reject) => {
+    chrome.debugger.attach({ tabId }, '1.3', () => {
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve();
+    });
+  });
+
+  // Set HTML content via CDP (no size limit unlike data URLs)
+  await new Promise<void>((resolve, reject) => {
+    chrome.debugger.sendCommand({ tabId }, 'Page.setDocumentContent', {
+      frameId: String(tabId),
+      html,
+    }, () => {
+      if (chrome.runtime.lastError) {
+        // Fallback: try without frameId
+        chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+          expression: `document.open(); document.write(${JSON.stringify(html)}); document.close();`,
+        }, () => resolve());
+      } else resolve();
+    });
+  });
+
+  // Wait for render
+  await new Promise(r => setTimeout(r, 1500));
+
+  // Print to PDF
+  const result = await new Promise<{ data: string }>((resolve, reject) => {
+    chrome.debugger.sendCommand({ tabId }, 'Page.printToPDF', {
+      printBackground: true,
+      preferCSSPageSize: true,
+      marginTop: 0.4,
+      marginBottom: 0.4,
+      marginLeft: 0.4,
+      marginRight: 0.4,
+    }, (res) => {
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve(res as { data: string });
+    });
+  });
+
+  chrome.debugger.detach({ tabId });
+  chrome.tabs.remove(tabId);
+
+  const pdfDataUrl = 'data:application/pdf;base64,' + result.data;
+  console.log('[EXPORT_PDF] PDF generated, downloading as:', filename);
+  chrome.downloads.download({ url: pdfDataUrl, filename, saveAs: true });
+}
 import {
   extractClaudeConversation,
   formatConversationForImport,
@@ -225,77 +287,77 @@ async function handleMessage(message: MessageType): Promise<unknown> {
       return await importText(formattedText, message.conversation.title);
     }
 
-    case 'EXPORT_PDF': {
-      console.log('[EXPORT_PDF] Received, title:', message.title, 'blobUrl:', message.blobUrl?.slice(0, 50));
-      const { blobUrl, title } = message;
-      const filename = `${(title || 'docs').replace(/[^a-zA-Z0-9\u4e00-\u9fff-_ ]/g, '').trim().slice(0, 60)}.pdf`;
-
-      // Open hidden tab with blob URL created by popup
-      const tab = await chrome.tabs.create({ url: blobUrl, active: false });
-      if (!tab?.id) return;
-      const tabId = tab.id;
-
-      console.log('[EXPORT_PDF] Tab created:', tabId);
-      // Wait for page load
-      await new Promise<void>((resolve) => {
-        chrome.tabs.onUpdated.addListener(function listener(id, info) {
-          if (id === tabId && info.status === 'complete') {
-            chrome.tabs.onUpdated.removeListener(listener);
-            resolve();
-          }
-        });
-      });
+    case 'GENERATE_PDF': {
+      console.log('[GENERATE_PDF] Starting, pages:', message.siteInfo.pages.length);
+      const si = message.siteInfo;
 
       try {
-        // Attach debugger
-        await new Promise<void>((resolve, reject) => {
-          chrome.debugger.attach({ tabId }, '1.3', () => {
-            if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-            else resolve();
-          });
+        let html: string;
+
+        // Fast path: llms-full.txt
+        if (si.hasLlmsFullTxt) {
+          console.log('[GENERATE_PDF] Trying llms-full.txt...');
+          const origin = new URL(si.baseUrl).origin;
+          const r = await fetch(`${origin}/llms-full.txt`, { signal: AbortSignal.timeout(30000) });
+          if (r.ok) {
+            const fullText = await r.text();
+            if (fullText.length > 1000) {
+              const sections = fullText.split(/(?=^# )/m).filter(s => s.trim().length > 50);
+              const contents = sections.map((section, i) => {
+                const titleMatch = section.match(/^#\s+(.+)/m);
+                const title = titleMatch?.[1] || `Section ${i + 1}`;
+                const cleaned = cleanComponentMd(section);
+                return {
+                  url: `${origin}/#section-${i}`,
+                  title,
+                  markdown: cleaned,
+                  section: undefined as string | undefined,
+                  wordCount: cleaned.split(/\s+/).length,
+                };
+              });
+              html = buildDocsHtml(si, contents);
+              console.log('[GENERATE_PDF] llms-full.txt →', contents.length, 'sections');
+              // Send to EXPORT_PDF handler
+              const blob = `data:text/html;base64,${btoa(unescape(encodeURIComponent(html)))}`;
+              // Directly create tab and export
+              await handleExportPdfFromHtml(html, si.title);
+              return { success: true };
+            }
+          }
+        }
+
+        // Standard path: fetch pages individually
+        const maxPages = 1000;
+        const pagesToFetch = si.pages.slice(0, maxPages);
+        console.log('[GENERATE_PDF] Fetching', pagesToFetch.length, 'pages...');
+
+        const contents = await fetchAllPages(pagesToFetch, {
+          concurrency: 5,
+          onProgress: (p) => {
+            if (p.current % 50 === 0) console.log(`[GENERATE_PDF] Progress: ${p.current}/${p.total}`);
+          },
         });
 
-        console.log('[EXPORT_PDF] Debugger attached');
-        // Wait for render
-        await new Promise(r => setTimeout(r, 800));
+        if (contents.length === 0) {
+          console.error('[GENERATE_PDF] No content fetched');
+          return { error: 'No content fetched' };
+        }
 
-        // Print to PDF
-        const result = await new Promise<{ data: string }>((resolve, reject) => {
-          chrome.debugger.sendCommand({ tabId }, 'Page.printToPDF', {
-            printBackground: true,
-            preferCSSPageSize: true,
-            marginTop: 0.4,
-            marginBottom: 0.4,
-            marginLeft: 0.4,
-            marginRight: 0.4,
-          }, (res) => {
-            if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-            else resolve(res as { data: string });
-          });
-        });
-
-        // Cleanup temp tab
-        chrome.debugger.detach({ tabId });
-        chrome.tabs.remove(tabId);
-
-        // Convert base64 → data URL for download (no DOM needed)
-        const pdfDataUrl = 'data:application/pdf;base64,' + result.data;
-
-        console.log('[EXPORT_PDF] PDF generated, downloading as:', filename);
-        chrome.downloads.download({ url: pdfDataUrl, filename, saveAs: true });
-
+        console.log('[GENERATE_PDF] Fetched', contents.length, 'pages, building HTML...');
+        html = buildDocsHtml(si, contents);
+        await handleExportPdfFromHtml(html, si.title);
         return { success: true };
       } catch (err) {
-        console.error('[EXPORT_PDF] Error:', err);
-        // Fallback: activate tab and trigger print dialog
-        try { chrome.debugger.detach({ tabId }); } catch { /* ignore */ }
-        chrome.tabs.update(tabId, { active: true });
-        chrome.scripting.executeScript({
-          target: { tabId },
-          func: () => setTimeout(() => window.print(), 500),
-        });
-        return { success: true, fallback: true };
+        console.error('[GENERATE_PDF] Error:', err);
+        return { error: String(err) };
       }
+    }
+
+    case 'EXPORT_PDF': {
+      // Legacy: popup sends blob URL + title (kept for backward compat)
+      // New flow uses GENERATE_PDF instead
+      console.log('[EXPORT_PDF] Received via legacy path');
+      return { success: true };
     }
 
     default:

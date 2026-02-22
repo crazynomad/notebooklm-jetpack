@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BookOpen, Loader2, CheckCircle, AlertCircle, Search, ChevronRight, FileDown } from 'lucide-react';
 import type { ImportProgress, DocSiteInfo, DocPageItem, DocFramework } from '@/lib/types';
-import { generateDocsPdf, type PdfProgress } from '@/services/pdf-generator';
+import type { PdfProgress } from '@/services/pdf-generator';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -152,15 +152,11 @@ export function DocsImport({ onProgress }: Props) {
 
     try {
       const filteredSiteInfo = { ...siteInfo, pages };
-      await generateDocsPdf(filteredSiteInfo, {
-        concurrency: 5,
-        maxPages: 300,
-        onProgress: (progress) => {
-          setPdfProgress(progress);
-          setPdfState(progress.phase === 'done' ? 'done' : progress.phase === 'rendering' ? 'generating' : progress.phase);
-        },
+      // Send to background — runs even if popup closes
+      chrome.runtime.sendMessage({
+        type: 'GENERATE_PDF',
+        siteInfo: filteredSiteInfo,
       });
-
       setPdfState('done');
     } catch (err) {
       setState('error');
