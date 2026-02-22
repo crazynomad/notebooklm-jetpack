@@ -60,6 +60,9 @@ importers:
       jsdom:
         specifier: ^28.1.0
         version: 28.1.0
+      pdfkit:
+        specifier: ^0.17.2
+        version: 0.17.2
       postcss:
         specifier: ^8.4.35
         version: 8.5.6

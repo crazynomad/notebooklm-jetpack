@@ -12,8 +12,120 @@ import type { TDocumentDefinitions, Content, ContentText, ContentColumns } from 
 import type { DocPageItem, DocSiteInfo } from '@/lib/types';
 
 // Embed standard fonts (Roboto) - pdfmake requires explicit font setup
-// In browser extension context, we use the bundled vfs_fonts
 import 'pdfmake/build/vfs_fonts';
+
+// ─── Chinese Font Support (CDN + Cache) ────────────────────────
+// Noto Sans SC from Google Fonts - loaded on demand, cached in IndexedDB
+const CHINESE_FONT_URLS = {
+  regular: 'https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYw.ttf',
+  bold: 'https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGzjCnYw.ttf',
+};
+const FONT_CACHE_KEY = 'noto-sans-sc-fonts-v1';
+
+/** Check if text contains CJK characters */
+function hasCJK(text: string): boolean {
+  return /[\u4e00-\u9fff\u3400-\u4dbf\u{20000}-\u{2a6df}\u{2a700}-\u{2b73f}\u3000-\u303f\uff00-\uffef]/u.test(text);
+}
+
+/** Load Chinese font from cache or CDN */
+async function loadChineseFonts(): Promise<{ regular: ArrayBuffer; bold: ArrayBuffer } | null> {
+  try {
+    // Try IndexedDB cache first
+    const cached = await getCachedFonts();
+    if (cached) return cached;
+
+    // Fetch from CDN
+    const [regular, bold] = await Promise.all([
+      fetch(CHINESE_FONT_URLS.regular, { signal: AbortSignal.timeout(30000) }).then(r => r.arrayBuffer()),
+      fetch(CHINESE_FONT_URLS.bold, { signal: AbortSignal.timeout(30000) }).then(r => r.arrayBuffer()),
+    ]);
+
+    // Cache for next time
+    await cacheFonts({ regular, bold });
+
+    return { regular, bold };
+  } catch (error) {
+    console.warn('Failed to load Chinese fonts:', error);
+    return null;
+  }
+}
+
+/** Get fonts from IndexedDB */
+function getCachedFonts(): Promise<{ regular: ArrayBuffer; bold: ArrayBuffer } | null> {
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open('nlm-importer-fonts', 1);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore('fonts');
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction('fonts', 'readonly');
+        const store = tx.objectStore('fonts');
+        const get = store.get(FONT_CACHE_KEY);
+        get.onsuccess = () => resolve(get.result || null);
+        get.onerror = () => resolve(null);
+      };
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/** Cache fonts to IndexedDB */
+function cacheFonts(fonts: { regular: ArrayBuffer; bold: ArrayBuffer }): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open('nlm-importer-fonts', 1);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore('fonts');
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction('fonts', 'readwrite');
+        tx.objectStore('fonts').put(fonts, FONT_CACHE_KEY);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      };
+      request.onerror = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}
+
+/** Register Chinese fonts with pdfmake */
+function registerChineseFonts(fonts: { regular: ArrayBuffer; bold: ArrayBuffer }): void {
+  // Convert ArrayBuffer to base64 for pdfmake vfs
+  const toBase64 = (buf: ArrayBuffer) => {
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  };
+
+  const vfs = (pdfMake as unknown as { vfs: Record<string, string> }).vfs;
+  vfs['NotoSansSC-Regular.ttf'] = toBase64(fonts.regular);
+  vfs['NotoSansSC-Bold.ttf'] = toBase64(fonts.bold);
+
+  (pdfMake as unknown as { fonts: Record<string, Record<string, string>> }).fonts = {
+    Roboto: {
+      normal: 'Roboto-Regular.ttf',
+      bold: 'Roboto-Medium.ttf',
+      italics: 'Roboto-Italic.ttf',
+      bolditalics: 'Roboto-MediumItalic.ttf',
+    },
+    NotoSansSC: {
+      normal: 'NotoSansSC-Regular.ttf',
+      bold: 'NotoSansSC-Bold.ttf',
+      italics: 'NotoSansSC-Regular.ttf',
+      bolditalics: 'NotoSansSC-Bold.ttf',
+    },
+  };
+}
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -195,8 +307,10 @@ function buildPdfContent(
   siteInfo: DocSiteInfo,
   pages: PageContent[],
   volumeIndex?: number,
-  totalVolumes?: number
+  totalVolumes?: number,
+  useCJKFont?: boolean,
 ): TDocumentDefinitions {
+  const fontFamily = useCJKFont ? 'NotoSansSC' : 'Roboto';
   const content: Content[] = [];
 
   // Title page
@@ -358,7 +472,7 @@ function buildPdfContent(
       sourceUrl: { fontSize: 8 },
     },
     defaultStyle: {
-      font: 'Roboto',
+      font: fontFamily,
       fontSize: 10,
     },
     pageSize: 'A4',
@@ -428,11 +542,30 @@ export async function generateDocsPdf(
   // Limit pages
   const pagesToFetch = siteInfo.pages.slice(0, maxPages);
 
+  // Pre-check: if site title or URLs suggest CJK, preload fonts
+  const mightHaveCJK = hasCJK(siteInfo.title) ||
+    siteInfo.framework === 'wechat' ||
+    siteInfo.framework === 'huawei' ||
+    siteInfo.framework === 'yuque' ||
+    siteInfo.baseUrl.includes('.cn') ||
+    siteInfo.baseUrl.includes('weixin') ||
+    siteInfo.baseUrl.includes('huawei') ||
+    siteInfo.baseUrl.includes('yuque');
+
   // Fetch all page contents
   const contents = await fetchAllPages(pagesToFetch, options);
 
   if (contents.length === 0) {
     throw new Error('No page content could be fetched');
+  }
+
+  // Detect CJK in content and load Chinese fonts if needed
+  const needsCJK = mightHaveCJK || contents.some(c => hasCJK(c.text) || hasCJK(c.title));
+  if (needsCJK) {
+    const chineseFonts = await loadChineseFonts();
+    if (chineseFonts) {
+      registerChineseFonts(chineseFonts);
+    }
   }
 
   // Split into volumes if needed
@@ -448,7 +581,7 @@ export async function generateDocsPdf(
       total: volumePages.length,
     });
 
-    const docDef = buildPdfContent(siteInfo, pages, i, volumePages.length);
+    const docDef = buildPdfContent(siteInfo, pages, i, volumePages.length, needsCJK);
 
     // Generate PDF blob
     const blob = await new Promise<Blob>((resolve) => {

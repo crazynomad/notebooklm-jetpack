@@ -37,6 +37,7 @@
     "autoprefixer": "^10.4.17",
     "eslint": "^8.56.0",
     "jsdom": "^28.1.0",
+    "pdfkit": "^0.17.2",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
