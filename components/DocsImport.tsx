@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { BookOpen, Loader2, CheckCircle, AlertCircle, Search, ChevronRight } from 'lucide-react';
+import { BookOpen, Loader2, CheckCircle, AlertCircle, Search, ChevronRight, FileDown } from 'lucide-react';
 import type { ImportProgress, DocSiteInfo, DocPageItem, DocFramework } from '@/lib/types';
+import { generateDocsPdf, downloadPdfVolume, type PdfProgress } from '@/services/pdf-generator';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -30,6 +31,8 @@ export function DocsImport({ onProgress }: Props) {
   const [state, setState] = useState<State>('idle');
   const [error, setError] = useState('');
   const [results, setResults] = useState<{ success: number; failed: number } | null>(null);
+  const [pdfState, setPdfState] = useState<'idle' | 'fetching' | 'generating' | 'done'>('idle');
+  const [pdfProgress, setPdfProgress] = useState<PdfProgress | null>(null);
 
   const handleAnalyze = async () => {
     setState('analyzing');
@@ -133,6 +136,44 @@ export function DocsImport({ onProgress }: Props) {
     });
   };
 
+  const handleExportPdf = async () => {
+    if (!siteInfo) return;
+
+    const pages = siteInfo.pages.filter((p) => selectedPages.has(p.url));
+    if (pages.length === 0) {
+      setError('请至少选择一个页面');
+      setState('error');
+      return;
+    }
+
+    setPdfState('fetching');
+    setPdfProgress(null);
+    setError('');
+
+    try {
+      const filteredSiteInfo = { ...siteInfo, pages };
+      const volumes = await generateDocsPdf(filteredSiteInfo, {
+        concurrency: 5,
+        maxPages: 500,
+        onProgress: (progress) => {
+          setPdfProgress(progress);
+          setPdfState(progress.phase === 'done' ? 'done' : progress.phase);
+        },
+      });
+
+      // Download all volumes
+      for (const volume of volumes) {
+        downloadPdfVolume(volume);
+      }
+
+      setPdfState('done');
+    } catch (err) {
+      setState('error');
+      setError(err instanceof Error ? err.message : 'PDF 生成失败');
+      setPdfState('idle');
+    }
+  };
+
   // Group pages by section for better display
   const groupedPages = siteInfo?.pages.reduce(
     (acc, page) => {
@@ -234,25 +275,60 @@ export function DocsImport({ onProgress }: Props) {
         </div>
       )}
 
-      {/* Import button */}
+      {/* Action buttons */}
       {siteInfo && siteInfo.pages.length > 0 && (
-        <button
-          onClick={handleImport}
-          disabled={selectedPages.size === 0 || state === 'importing'}
-          className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {state === 'importing' ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              正在导入...
-            </>
-          ) : (
-            <>
-              <BookOpen className="w-4 h-4" />
-              导入选中页面 ({selectedPages.size})
-            </>
+        <div className="space-y-2">
+          {/* URL Import */}
+          <button
+            onClick={handleImport}
+            disabled={selectedPages.size === 0 || state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
+            className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {state === 'importing' ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                正在导入...
+              </>
+            ) : (
+              <>
+                <BookOpen className="w-4 h-4" />
+                逐个 URL 导入 ({selectedPages.size})
+              </>
+            )}
+          </button>
+
+          {/* PDF Export */}
+          <button
+            onClick={handleExportPdf}
+            disabled={selectedPages.size === 0 || state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
+            className="w-full py-2.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {pdfState === 'fetching' || pdfState === 'generating' ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {pdfState === 'fetching'
+                  ? `抓取页面 ${pdfProgress?.current || 0}/${pdfProgress?.total || selectedPages.size}...`
+                  : `生成 PDF ${pdfProgress?.current || 0}/${pdfProgress?.total || 1}...`}
+              </>
+            ) : pdfState === 'done' ? (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                PDF 已下载
+              </>
+            ) : (
+              <>
+                <FileDown className="w-4 h-4" />
+                导出为 PDF ({selectedPages.size} 页)
+              </>
+            )}
+          </button>
+
+          {pdfState === 'done' && (
+            <p className="text-xs text-emerald-600 text-center">
+              PDF 已保存，可在 NotebookLM 中上传为来源
+            </p>
           )}
-        </button>
+        </div>
       )}
 
       {/* Results */}
