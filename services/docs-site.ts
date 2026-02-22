@@ -1,6 +1,60 @@
 import type { DocSiteInfo, DocPageItem } from '@/lib/types';
 import { delay } from '@/lib/utils';
 
+// ─── llms.txt (AI-native page index) ──────────────────────────
+// Many Mintlify sites expose /llms.txt with a structured page list.
+// Format: "- [Title](https://domain/path.md)" or "- [Title](https://domain/path.md): Description"
+export async function fetchLlmsTxt(baseUrl: string): Promise<DocPageItem[]> {
+  const pages: DocPageItem[] = [];
+  const origin = new URL(baseUrl).origin;
+
+  try {
+    const response = await fetch(`${origin}/llms.txt`, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return pages;
+
+    const text = await response.text();
+    // Must contain markdown-style links to be valid llms.txt
+    if (!text.includes('](')) return pages;
+
+    const linkPattern = /^-\s*\[([^\]]+)\]\(([^)]+)\)/gm;
+    let match;
+    while ((match = linkPattern.exec(text)) !== null) {
+      const title = match[1].trim();
+      const rawUrl = match[2].trim();
+      try {
+        const urlObj = new URL(rawUrl, origin);
+        if (urlObj.origin !== origin) continue;
+        // Strip .md suffix for the page path
+        const path = urlObj.pathname.replace(/\.md$/, '');
+        const url = `${origin}${path}`;
+        const segments = path.split('/').filter(Boolean);
+        pages.push({
+          url,
+          title,
+          path,
+          level: Math.max(0, segments.length - 1),
+          section: segments[0] || undefined,
+        });
+      } catch { /* invalid URL */ }
+    }
+  } catch { /* llms.txt not available */ }
+
+  return pages;
+}
+
+// Fetch page content via Mintlify .md suffix (URL + .md → markdown)
+export async function fetchMintlifyMarkdown(pageUrl: string): Promise<string | null> {
+  try {
+    const mdUrl = pageUrl.replace(/\/$/, '') + '.md';
+    const response = await fetch(mdUrl, { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) return null;
+    const text = await response.text();
+    // Validate: should look like markdown, not HTML
+    if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) return null;
+    return text;
+  } catch { return null; }
+}
+
 // Try to fetch and parse sitemap.xml for more reliable page discovery
 export async function fetchSitemap(baseUrl: string): Promise<DocPageItem[]> {
   const pages: DocPageItem[] = [];

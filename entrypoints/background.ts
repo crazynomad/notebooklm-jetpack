@@ -6,7 +6,7 @@ import {
   getCurrentTabUrl,
   getAllTabUrls,
 } from '@/services/notebooklm';
-import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog } from '@/services/docs-site';
+import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog, fetchLlmsTxt } from '@/services/docs-site';
 import { getHistory, clearHistory } from '@/services/history';
 import {
   extractClaudeConversation,
@@ -171,6 +171,24 @@ async function handleMessage(message: MessageType): Promise<unknown> {
           }
         } catch {
           // Sitemap not available, fallback to DOM analysis
+        }
+      }
+
+      // Try llms.txt (AI-native page index, common on Mintlify sites)
+      if (tabUrl.startsWith('http')) {
+        try {
+          const llmsPages = await fetchLlmsTxt(tabUrl);
+          if (llmsPages.length >= 5) {
+            const urlObj = new URL(tabUrl);
+            return {
+              baseUrl: urlObj.origin,
+              title: tabInfo.title || urlObj.hostname,
+              framework: 'mintlify' as const,
+              pages: llmsPages,
+            };
+          }
+        } catch {
+          // llms.txt not available, fall through
         }
       }
 
