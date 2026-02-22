@@ -112,10 +112,25 @@ async function handleMessage(message: MessageType): Promise<unknown> {
             const pathPrefix = urlObj.pathname.replace(/\/$/, '');
 
             // Filter to pages under the current path prefix (e.g. /docs)
+            // Smart truncation: remove last segment if it looks like a page name
+            let filterPrefix = pathPrefix;
+            if (filterPrefix) {
+              const segments = filterPrefix.split('/').filter(Boolean);
+              if (segments.length > 1) {
+                // Check if last segment is a page (not a directory-like path)
+                const last = segments[segments.length - 1];
+                if (last.includes('.') || !sitemapPages.some((p) => p.path.startsWith(filterPrefix + '/'))) {
+                  // Last segment is likely a page name, use parent as prefix
+                  segments.pop();
+                  filterPrefix = '/' + segments.join('/');
+                }
+              }
+            }
+
             let filteredPages = sitemapPages;
-            if (pathPrefix && pathPrefix !== '/') {
+            if (filterPrefix && filterPrefix !== '/') {
               filteredPages = sitemapPages.filter((p) =>
-                p.path.startsWith(pathPrefix)
+                p.path.startsWith(filterPrefix)
               );
               // If filtering removed too many pages, use all
               if (filteredPages.length < 3 && sitemapPages.length > 10) {
@@ -143,7 +158,8 @@ async function handleMessage(message: MessageType): Promise<unknown> {
               }
             }
 
-            if (filteredPages.length > 0) {
+            // Only use sitemap if we got a meaningful number of pages
+            if (filteredPages.length >= 5) {
               return {
                 baseUrl: urlObj.origin,
                 title: tabInfo.title || urlObj.hostname,
@@ -151,6 +167,7 @@ async function handleMessage(message: MessageType): Promise<unknown> {
                 pages: filteredPages,
               };
             }
+            // Otherwise fall through to DOM analysis
           }
         } catch {
           // Sitemap not available, fallback to DOM analysis
