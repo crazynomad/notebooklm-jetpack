@@ -344,36 +344,30 @@ function delay(ms: number): Promise<void> {
 function getFailedSourceUrls(): string[] {
   const urls: string[] = [];
 
-  // Find error icons (Material Icons "info" used for failed sources)
-  // Strategy: find spans containing URLs that are siblings/near error indicators
-  const allSpans = document.querySelectorAll('span');
-  const errorIcons = new Set<Element>();
-
-  // Collect error icon elements
-  document.querySelectorAll('img[alt*="错误"], img[alt*="error"]').forEach((el) => errorIcons.add(el));
-  allSpans.forEach((span) => {
-    if (span.textContent?.trim() === 'info' && span.classList.toString().includes('material')) {
-      errorIcons.add(span);
+  // NotebookLM uses Angular with class "single-source-error-container" for failed sources
+  // The URL is in a .source-title span inside the container
+  const errorContainers = document.querySelectorAll('.single-source-error-container');
+  for (const container of errorContainers) {
+    const titleEl = container.querySelector('.source-title');
+    const text = titleEl?.textContent?.trim();
+    if (text && /^https?:\/\//.test(text)) {
+      urls.push(text);
     }
-  });
+  }
 
-  // For each error icon, walk up to find the source container and extract URL
-  for (const icon of errorIcons) {
-    let parent = icon.parentElement;
-    for (let i = 0; i < 8 && parent; i++) {
-      const spans = parent.querySelectorAll('span');
-      for (const span of spans) {
-        const text = span.textContent?.trim();
-        if (text && /^https?:\/\//.test(text)) {
-          urls.push(text);
-        }
+  // Fallback: also check for mat-icon "info" near source titles with URL text
+  if (urls.length === 0) {
+    const sourceColumns = document.querySelectorAll('.source-title-column');
+    for (const col of sourceColumns) {
+      const row = col.closest('.single-source-container');
+      if (!row) continue;
+      const hasInfoIcon = row.querySelector('mat-icon')?.textContent?.trim() === 'info';
+      if (!hasInfoIcon) continue;
+      const titleEl = col.querySelector('.source-title');
+      const text = titleEl?.textContent?.trim();
+      if (text && /^https?:\/\//.test(text)) {
+        urls.push(text);
       }
-      // Also check for title/tooltip attributes
-      const title = parent.getAttribute('title') || parent.getAttribute('aria-label');
-      if (title && /^https?:\/\//.test(title)) {
-        urls.push(title);
-      }
-      parent = parent.parentElement;
     }
   }
 

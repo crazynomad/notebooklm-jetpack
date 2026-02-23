@@ -571,10 +571,19 @@ async function handleMessage(message: MessageType): Promise<unknown> {
     }
 
     case 'GET_FAILED_SOURCES': {
-      // Forward to content script on the NotebookLM tab
+      // Ensure content script is injected, then forward
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: message.tabId },
+          files: ['content-scripts/notebooklm.js'],
+        });
+      } catch { /* already injected */ }
+      await new Promise((r) => setTimeout(r, 300));
+
       return new Promise((resolve) => {
         chrome.tabs.sendMessage(message.tabId, { type: 'GET_FAILED_SOURCES' }, (resp) => {
           if (chrome.runtime.lastError || !resp?.success) {
+            console.log('[rescue] GET_FAILED_SOURCES error:', chrome.runtime.lastError?.message);
             resolve([]);
           } else {
             resolve(resp.data || []);
