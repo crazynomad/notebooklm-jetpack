@@ -42,6 +42,9 @@ export default defineConfig({
       default_title: 'NotebookLM Importer',
       default_popup: 'popup.html',
     },
+    externally_connectable: {
+      matches: ['https://developer.chrome.com/*', 'http://localhost/*', 'https://*/*'],
+    },
     icons: {
       '16': 'icons/icon-16.png',
       '48': 'icons/icon-48.png',

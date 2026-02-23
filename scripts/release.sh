@@ -40,3 +40,9 @@ echo "   Reload extension from dist/chrome-mv3"
 # ── 5. Push ──
 git push
 echo "📤 Pushed to remote"
+
+# ── 6. Auto-reload extension (best effort) ──
+if [ -n "$EXT_ID" ]; then
+  echo ""
+  node scripts/reload-ext.mjs "$EXT_ID" 2>/dev/null || echo "⚠️  Auto-reload skipped (browser relay not connected?)"
+fi

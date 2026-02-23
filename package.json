@@ -1,6 +1,6 @@
 {
   "name": "notebooklm-importer",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "NotebookLM content importer Chrome Extension - Import web pages, YouTube videos, playlists, and RSS feeds",
   "private": true,
   "type": "module",
@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "release": "bash scripts/release.sh",
+    "reload": "node scripts/reload-ext.mjs",
+    "test:e2e": "node scripts/test-e2e.mjs",
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare",
     "lint": "eslint . --ext .ts,.tsx --quiet",
