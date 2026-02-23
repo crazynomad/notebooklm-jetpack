@@ -49,12 +49,36 @@ function createTurndownService(): TurndownService {
     replacement: () => '',
   });
 
+  // Substack: remove subscribe buttons, share widgets, like buttons
+  td.addRule('removeSubstackNoise', {
+    filter: (node) => {
+      const cl = node.getAttribute('class') || '';
+      const testId = node.getAttribute('data-testid') || '';
+      return (
+        /subscribe-widget|subscription-widget|button-wrapper|like-button|share-dialog|post-ufi|paywall/.test(cl) ||
+        /paywall|navbar/.test(testId)
+      );
+    },
+    replacement: () => '',
+  });
+
+  // Substack: image captions are in <figcaption>
+  td.addRule('substackFigcaption', {
+    filter: 'figcaption',
+    replacement: (content) => content.trim() ? `\n*${content.trim()}*\n` : '',
+  });
+
   return td;
 }
 
 // Content selectors in priority order
 const CONTENT_SELECTORS = [
   '.devsite-article-body',
+  // Substack
+  '.available-content .body.markup',
+  '.available-content',
+  '.body.markup',
+  // General
   '.markdown-body',
   'article [itemprop="articleBody"]',
   'article',
@@ -69,11 +93,29 @@ const CONTENT_SELECTORS = [
 const REMOVE_SELECTORS = [
   'script', 'style', 'nav', 'footer', 'header',
   '.sidebar', '.toc', '.breadcrumb',
+  '.nocontent', '[role="navigation"]',
+  // DevSite
   '.devsite-article-meta', '.devsite-breadcrumb-list',
   'devsite-toc', 'devsite-page-rating', 'devsite-thumbs-rating',
   'devsite-feedback', 'devsite-bookmark', 'devsite-actions',
-  '.nocontent', '[role="navigation"]',
   '.devsite-banner', '.devsite-collections-banner',
+  // Substack
+  '[data-testid="paywall"]',              // paywall boundary + subscription prompts
+  '.subscription-widget-wrap',
+  '.subscribe-widget',
+  '.subscribe-prompt',
+  '.button-wrapper',
+  '.like-button-container',
+  '.post-ufi',                            // like/comment/share bar
+  '.post-footer',
+  '.comments-section',
+  '.recommendation-container',
+  '.footer-wrap',
+  '.pencraft.pc-display-flex.pc-gap-4',   // Substack nav buttons (Previous/Next)
+  '.share-dialog',
+  '.social-share',
+  '[data-testid="navbar"]',
+  '.header-anchor-widget',
 ].join(',');
 
 function htmlToMarkdown(html: string): { markdown: string; title: string } {
@@ -99,6 +141,15 @@ function htmlToMarkdown(html: string): { markdown: string; title: string } {
   // Post-process
   markdown = markdown
     .replace(/\.dcc-[\s\S]*?\n\n/g, '\n\n')
+    // Substack: remove trailing subscription prompts
+    .replace(/Continue reading this post for free.*$/s, '')
+    .replace(/Claim my free post.*$/s, '')
+    .replace(/Already a paid subscriber\?.*$/s, '')
+    .replace(/Get more from .* in the Substack app.*$/s, '')
+    .replace(/Start your Substack.*$/s, '')
+    .replace(/This site requires JavaScript.*$/s, '')
+    .replace(/© \d{4} .*?[·∙].*?Terms.*$/s, '')
+    // General cleanup
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
