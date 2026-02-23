@@ -100,7 +100,7 @@ export function PodcastImport({ initialUrl }: Props) {
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://podcasts.apple.com/cn/podcast/id..."
+              placeholder="Apple Podcasts 或小宇宙链接..."
               className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue focus:border-transparent"
             />
           </div>
@@ -221,9 +221,9 @@ export function PodcastImport({ initialUrl }: Props) {
         <div className="text-xs text-gray-400 space-y-1">
           <p>支持的链接格式：</p>
           <ul className="list-disc list-inside space-y-0.5">
-            <li>播客主页：podcasts.apple.com/.../id123456</li>
-            <li>单集链接：...id123456?i=789012</li>
-            <li>支持所有地区（cn/us/jp 等）</li>
+            <li>Apple Podcasts：podcasts.apple.com/.../id123456</li>
+            <li>小宇宙单集：xiaoyuzhoufm.com/episode/...</li>
+            <li>小宇宙节目：xiaoyuzhoufm.com/podcast/...</li>
           </ul>
         </div>
       )}

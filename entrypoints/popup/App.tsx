@@ -21,7 +21,7 @@ export default function App() {
   useState(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const url = tabs[0]?.url || '';
-      if (/podcasts\.apple\.com\//.test(url)) {
+      if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
         setDefaultTab('podcast');
         setInitialPodcastUrl(url);
       }
