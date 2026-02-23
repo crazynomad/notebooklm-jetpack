@@ -116,16 +116,47 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     // Step 1: Open the add source dialog
     await openAddSourceDialog();
 
-    // Step 2: Click "复制的文字" (Copied text) button
-    const textButton = await findButtonByText(
-      ['复制的文字', '复制的文本', 'Copied text', 'Text'],
-      3000
+    // Step 2: Check if already on "粘贴复制的文字" sub-page (textarea visible)
+    let textArea = await findTextareaByPlaceholder(
+      ['在此处粘贴文字', '粘贴文字', '粘贴', 'Paste text here', 'Paste'],
+      500
     );
-    if (!textButton) {
-      throw new Error('Copied text button not found in dialog');
+
+    if (!textArea) {
+      // Need to navigate to copied text sub-page first
+      // First go back to main dialog if on another sub-page (e.g. URL input)
+      const backButton = await findButtonByText(['arrow_back', '返回', 'Back'], 300);
+      if (backButton) {
+        backButton.click();
+        await delay(500);
+      }
+
+      // Click "复制的文字" (Copied text) button
+      const textButton = await findButtonByText(
+        ['复制的文字', '复制的文本', 'Copied text', 'Text'],
+        3000
+      );
+      if (!textButton) {
+        throw new Error('Copied text button not found in dialog');
+      }
+      textButton.click();
+      await delay(500);
+
+      // Now find the textarea
+      textArea = await findTextareaByPlaceholder(
+        ['在此处粘贴文字', '粘贴文字', '粘贴', 'Paste text here', 'Paste'],
+        3000
+      );
     }
-    textButton.click();
-    await delay(500);
+
+    if (!textArea) {
+      // Last resort fallback: find any textarea in the dialog
+      const dialogTextareas = getDialogTextareas();
+      if (dialogTextareas.length === 0) {
+        throw new Error('Text area not found');
+      }
+      textArea = dialogTextareas[dialogTextareas.length - 1];
+    }
 
     // Step 3: Fill title if available
     if (title) {
@@ -139,29 +170,25 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     }
 
     // Step 4: Fill text content
-    const textArea = await findTextareaByPlaceholder(
-      ['粘贴', 'Paste', '输入', '内容', 'content'],
-      3000
-    );
-    if (!textArea) {
-      // Fallback: find any large textarea in the dialog
-      const dialogTextareas = getDialogTextareas();
-      if (dialogTextareas.length === 0) {
-        throw new Error('Text area not found');
-      }
-      await fillInput(dialogTextareas[dialogTextareas.length - 1], text);
-    } else {
-      await fillInput(textArea, text);
-    }
+    await fillInput(textArea, text);
 
     // Step 5: Click "插入" (Insert) button
+    await delay(300);
     const insertButton = await findButtonByText(['插入', 'Insert'], 3000);
     if (!insertButton) {
       throw new Error('Insert button not found');
     }
     insertButton.click();
 
-    await delay(1500);
+    // Wait for dialog to close / import to complete
+    await delay(2000);
+
+    // If dialog is still open (import might need time), wait more
+    const dialogStillOpen = getMainDialog();
+    if (dialogStillOpen) {
+      await delay(2000);
+    }
+
     return true;
   } catch (error) {
     console.error('Failed to import text:', error);
