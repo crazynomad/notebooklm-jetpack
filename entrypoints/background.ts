@@ -385,7 +385,7 @@ function detectBlockedContent(markdown: string, html: string, url: string): stri
   ];
 
   for (const pattern of blockedPatterns) {
-    if (pattern.test(markdown) || pattern.test(html)) {
+    if (pattern.test(markdown)) {
       return '页面被反爬机制拦截';
     }
   }
