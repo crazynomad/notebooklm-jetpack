@@ -9,6 +9,8 @@ import {
 import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog, fetchLlmsTxt, fetchLlmsFullTxt } from '@/services/docs-site';
 import { fetchAllPages, buildDocsHtml, cleanComponentMd } from '@/services/pdf-generator';
 import { getHistory, clearHistory } from '@/services/history';
+import { fetchPodcast, sanitizeFilename, buildFilename } from '@/services/podcast';
+import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 
 // Helper: render HTML to PDF via CDP and download
 async function handleExportPdfFromHtml(html: string, title: string): Promise<void> {
@@ -198,6 +200,49 @@ export default defineBackground(() => {
 
   // Handle PDF export via persistent port connection (supports progress updates)
   chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'podcast-download') {
+      port.onMessage.addListener(async (msg) => {
+        if (msg.type !== 'DOWNLOAD_PODCAST') return;
+
+        const podcastInfo = msg.podcast as PodcastInfo;
+        const episodes = msg.episodes as PodcastEpisode[];
+        const sendProgress = (data: Record<string, unknown>) => {
+          try { port.postMessage(data); } catch { /* disconnected */ }
+        };
+
+        const folderName = sanitizeFilename(podcastInfo.name);
+        console.log(`[podcast] Downloading ${episodes.length} episodes of "${podcastInfo.name}"`);
+
+        try {
+          for (let i = 0; i < episodes.length; i++) {
+            const ep = episodes[i];
+            const filename = `${folderName}/${buildFilename(i + 1, ep.title, ep.fileExtension)}`;
+            sendProgress({ phase: 'downloading', current: i + 1, total: episodes.length, title: ep.title });
+            console.log(`[podcast] ${i + 1}/${episodes.length}: ${ep.title}`);
+
+            await new Promise<void>((resolve, reject) => {
+              chrome.downloads.download(
+                { url: ep.audioUrl, filename, conflictAction: 'uniquify' },
+                (downloadId) => {
+                  if (chrome.runtime.lastError) {
+                    console.error(`[podcast] Download failed:`, chrome.runtime.lastError.message);
+                    reject(new Error(chrome.runtime.lastError.message));
+                  } else {
+                    console.log(`[podcast] Download started: ${downloadId}`);
+                    resolve();
+                  }
+                },
+              );
+            });
+          }
+          sendProgress({ phase: 'done' });
+        } catch (err) {
+          sendProgress({ phase: 'error', error: String(err) });
+        }
+      });
+      return;
+    }
+
     if (port.name !== 'pdf-export') return;
 
     port.onMessage.addListener(async (msg) => {
@@ -439,8 +484,14 @@ async function handleMessage(message: MessageType): Promise<unknown> {
       return await importText(formattedText, message.conversation.title);
     }
 
+    case 'FETCH_PODCAST': {
+      const result = await fetchPodcast(message.url, { count: message.count });
+      return result;
+    }
+
     case 'GENERATE_PDF':
     case 'EXPORT_PDF':
+    case 'DOWNLOAD_PODCAST':
       // Handled via port connection (onConnect), not onMessage
       return { success: true };
 

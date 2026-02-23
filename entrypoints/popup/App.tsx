@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { Link, List, Rss, BookOpen, History, MessageCircle } from 'lucide-react';
+import { Link, List, Rss, BookOpen, History, MessageCircle, Headphones } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { SingleImport } from '@/components/SingleImport';
@@ -8,6 +8,7 @@ import { BatchImport } from '@/components/BatchImport';
 import { RssImport } from '@/components/RssImport';
 import { DocsImport } from '@/components/DocsImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
+import { PodcastImport } from '@/components/PodcastImport';
 import { HistoryPanel } from '@/components/HistoryPanel';
 
 export default function App() {
@@ -71,6 +72,7 @@ export default function App() {
             { value: 'rss', icon: Rss, label: 'RSS' },
             { value: 'docs', icon: BookOpen, label: '文档站点' },
             { value: 'claude', icon: MessageCircle, label: 'Claude' },
+            { value: 'podcast', icon: Headphones, label: '播客' },
           ].map(({ value, icon: Icon, label }) => (
             <Tabs.Trigger
               key={value}
@@ -107,6 +109,10 @@ export default function App() {
 
         <Tabs.Content value="claude" className="p-4">
           <ClaudeImport onProgress={setImportProgress} />
+        </Tabs.Content>
+
+        <Tabs.Content value="podcast" className="p-4">
+          <PodcastImport />
         </Tabs.Content>
       </Tabs.Root>
     </div>

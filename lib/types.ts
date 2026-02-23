@@ -69,7 +69,9 @@ export type MessageType =
   | { type: 'EXTRACT_CLAUDE_CONVERSATION'; tabId: number }
   | { type: 'IMPORT_CLAUDE_CONVERSATION'; conversation: ClaudeConversation; selectedMessageIds: string[] }
   | { type: 'EXPORT_PDF'; blobUrl: string; title: string }
-  | { type: 'GENERATE_PDF'; siteInfo: DocSiteInfo };
+  | { type: 'GENERATE_PDF'; siteInfo: DocSiteInfo }
+  | { type: 'FETCH_PODCAST'; url: string; count?: number }
+  | { type: 'DOWNLOAD_PODCAST' };
 
 export type MessageResponse =
   | { success: true; data: unknown }
