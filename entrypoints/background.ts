@@ -13,6 +13,7 @@ import { getHistory, clearHistory } from '@/services/history';
 // Helper: render HTML to PDF via CDP and download
 async function handleExportPdfFromHtml(html: string, title: string): Promise<void> {
   const filename = `${(title || 'docs').replace(/[^a-zA-Z0-9\u4e00-\u9fff-_ ]/g, '').trim().slice(0, 60)}.pdf`;
+  console.log('[EXPORT_PDF] Starting, HTML size:', (html.length / 1024).toFixed(1), 'KB');
 
   // Create blank tab, then inject HTML content via CDP
   const tab = await chrome.tabs.create({ url: 'about:blank', active: false });
@@ -20,35 +21,77 @@ async function handleExportPdfFromHtml(html: string, title: string): Promise<voi
   const tabId = tab.id;
 
   // Brief wait for about:blank to be ready
-  await new Promise(r => setTimeout(r, 300));
+  await new Promise(r => setTimeout(r, 500));
 
   // Attach debugger
   await new Promise<void>((resolve, reject) => {
     chrome.debugger.attach({ tabId }, '1.3', () => {
-      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      if (chrome.runtime.lastError) reject(new Error('[EXPORT_PDF] debugger.attach failed: ' + chrome.runtime.lastError.message));
       else resolve();
     });
   });
+  console.log('[EXPORT_PDF] Debugger attached to tab', tabId);
 
-  // Set HTML content via CDP (no size limit unlike data URLs)
-  await new Promise<void>((resolve, reject) => {
-    chrome.debugger.sendCommand({ tabId }, 'Page.setDocumentContent', {
-      frameId: String(tabId),
-      html,
-    }, () => {
-      if (chrome.runtime.lastError) {
-        // Fallback: try without frameId
-        chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
-          expression: `document.open(); document.write(${JSON.stringify(html)}); document.close();`,
-        }, () => resolve());
-      } else resolve();
+  // Get the actual frameId from the page
+  let frameId: string;
+  try {
+    const frameTree = await new Promise<{ frameTree: { frame: { id: string } } }>((resolve, reject) => {
+      chrome.debugger.sendCommand({ tabId }, 'Page.getFrameTree', {}, (res) => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else resolve(res as { frameTree: { frame: { id: string } } });
+      });
     });
-  });
+    frameId = frameTree.frameTree.frame.id;
+    console.log('[EXPORT_PDF] Got frameId:', frameId);
+  } catch (err) {
+    console.warn('[EXPORT_PDF] Failed to get frameId, using fallback:', err);
+    frameId = '';
+  }
+
+  // Set HTML content via CDP
+  if (frameId) {
+    await new Promise<void>((resolve, reject) => {
+      chrome.debugger.sendCommand({ tabId }, 'Page.setDocumentContent', {
+        frameId,
+        html,
+      }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn('[EXPORT_PDF] setDocumentContent failed:', chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          console.log('[EXPORT_PDF] setDocumentContent succeeded');
+          resolve();
+        }
+      });
+    }).catch(async () => {
+      // Fallback: inject via Runtime.evaluate in chunks if needed
+      console.log('[EXPORT_PDF] Falling back to Runtime.evaluate');
+      await cdpEvaluate(tabId, `document.open(); document.close();`);
+      // Write in chunks to avoid CDP command size limits
+      const chunkSize = 1024 * 512; // 512KB chunks
+      for (let i = 0; i < html.length; i += chunkSize) {
+        const chunk = html.slice(i, i + chunkSize);
+        await cdpEvaluate(tabId, `document.write(${JSON.stringify(chunk)});`);
+      }
+      await cdpEvaluate(tabId, `document.close();`);
+      console.log('[EXPORT_PDF] Fallback write completed');
+    });
+  } else {
+    // No frameId, use evaluate directly
+    await cdpEvaluate(tabId, `document.open(); document.close();`);
+    const chunkSize = 1024 * 512;
+    for (let i = 0; i < html.length; i += chunkSize) {
+      const chunk = html.slice(i, i + chunkSize);
+      await cdpEvaluate(tabId, `document.write(${JSON.stringify(chunk)});`);
+    }
+    await cdpEvaluate(tabId, `document.close();`);
+  }
 
   // Wait for render
-  await new Promise(r => setTimeout(r, 1500));
+  await new Promise(r => setTimeout(r, 2000));
 
   // Print to PDF
+  console.log('[EXPORT_PDF] Printing to PDF...');
   const result = await new Promise<{ data: string }>((resolve, reject) => {
     chrome.debugger.sendCommand({ tabId }, 'Page.printToPDF', {
       printBackground: true,
@@ -58,7 +101,7 @@ async function handleExportPdfFromHtml(html: string, title: string): Promise<voi
       marginLeft: 0.4,
       marginRight: 0.4,
     }, (res) => {
-      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      if (chrome.runtime.lastError) reject(new Error('[EXPORT_PDF] printToPDF failed: ' + chrome.runtime.lastError.message));
       else resolve(res as { data: string });
     });
   });
@@ -66,9 +109,33 @@ async function handleExportPdfFromHtml(html: string, title: string): Promise<voi
   chrome.debugger.detach({ tabId });
   chrome.tabs.remove(tabId);
 
-  const pdfDataUrl = 'data:application/pdf;base64,' + result.data;
-  console.log('[EXPORT_PDF] PDF generated, downloading as:', filename);
-  chrome.downloads.download({ url: pdfDataUrl, filename, saveAs: true });
+  // Convert base64 to blob URL to avoid data URL size limits
+  const byteChars = atob(result.data);
+  const byteArray = new Uint8Array(byteChars.length);
+  for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+  const blob = new Blob([byteArray], { type: 'application/pdf' });
+  const blobUrl = URL.createObjectURL(blob);
+
+  console.log('[EXPORT_PDF] PDF generated, size:', (byteArray.length / 1024 / 1024).toFixed(2), 'MB, downloading as:', filename);
+  chrome.downloads.download({ url: blobUrl, filename, saveAs: true }, (downloadId) => {
+    if (chrome.runtime.lastError) {
+      console.error('[EXPORT_PDF] download failed:', chrome.runtime.lastError.message);
+    } else {
+      console.log('[EXPORT_PDF] Download started, id:', downloadId);
+    }
+    // Revoke blob URL after a delay
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+  });
+}
+
+// Helper: evaluate JS via CDP
+function cdpEvaluate(tabId: number, expression: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', { expression }, () => {
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve();
+    });
+  });
 }
 import {
   extractClaudeConversation,
