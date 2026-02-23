@@ -1,111 +1,90 @@
 #!/usr/bin/env node
 /**
- * Reload the extension via CDP → chrome.runtime.sendMessage to the extension's
- * onMessageExternal handler.
+ * Reload Chrome extension via CDP + chrome.developerPrivate API.
+ * Requires chrome://extensions to be open in a Chrome instance with remote debugging.
  *
  * Usage: node scripts/reload-ext.mjs [extensionId]
- *
- * Requires: Chrome browser relay attached to a tab (OpenClaw), or
- *           Chrome launched with --remote-debugging-port=9222
+ * Env: EXT_ID, CDP_PORT (default: tries 18800, 9222)
  */
 
 const EXT_ID = process.argv[2] || process.env.EXT_ID || '';
-// Try multiple CDP ports: browser relay (18792), openclaw browser (18800), or custom
-const CDP_PORTS = (process.env.CDP_PORT || '18792,18800').split(',').map(p => p.trim());
+const CDP_PORTS = (process.env.CDP_PORT || '18800,9222').split(',').map(p => p.trim());
 
-async function findExtensionId() {
-  if (EXT_ID) return EXT_ID;
-
-  // Try to discover from Chrome targets
-  try {
-    const resp = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-    const targets = await resp.json();
-    for (const t of targets) {
-      if (t.url?.startsWith('chrome-extension://') && t.url.includes('background')) {
-        const id = t.url.split('/')[2];
-        console.log(`  Found extension: ${id}`);
-        return id;
-      }
-    }
-  } catch { /* ignore */ }
-
-  console.error('❌ No extension ID provided and could not auto-detect.');
-  console.error('   Usage: node scripts/reload-ext.mjs <extensionId>');
-  console.error('   Or set EXT_ID env var.');
+if (!EXT_ID) {
+  console.error('❌ No extension ID. Set EXT_ID env or pass as argument.');
   process.exit(1);
 }
 
-async function getPageTarget() {
+async function findExtensionsPage() {
   for (const port of CDP_PORTS) {
     try {
       const resp = await fetch(`http://127.0.0.1:${port}/json`);
-      const text = await resp.text();
-      const targets = JSON.parse(text);
-      const page = targets.find(t => t.type === 'page' && t.url?.startsWith('http'));
-      if (page) {
-        console.log(`  CDP connected on port ${port}`);
-        return page;
+      const targets = await resp.json();
+      const extPage = targets.find(t => t.url?.startsWith('chrome://extensions'));
+      if (extPage) return { port, target: extPage };
+
+      // No extensions page open — try to create one
+      const createResp = await fetch(`http://127.0.0.1:${port}/json/new?chrome%3A%2F%2Fextensions`, { method: 'PUT' });
+      if (createResp.ok) {
+        const newTarget = await createResp.json();
+        await new Promise(r => setTimeout(r, 1500)); // Wait for page load
+        return { port, target: newTarget };
       }
     } catch { /* try next port */ }
   }
-  throw new Error('No page target found. Attach browser relay or start OpenClaw browser.');
+  return null;
 }
 
-async function sendCdpCommand(ws, method, params = {}) {
-  const id = Math.floor(Math.random() * 100000);
+async function reloadViaWs(wsUrl) {
+  const { default: WebSocket } = await import('ws');
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`CDP timeout: ${method}`)), 5000);
-    const handler = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.id === id) {
+    const ws = new WebSocket(wsUrl);
+    const timeout = setTimeout(() => { ws.close(); reject(new Error('timeout')); }, 8000);
+
+    ws.on('open', () => {
+      ws.send(JSON.stringify({
+        id: 1,
+        method: 'Runtime.evaluate',
+        params: {
+          expression: `chrome.developerPrivate.reload('${EXT_ID}', {failQuietly: true}).then(() => 'ok').catch(e => 'error: ' + e.message)`,
+          awaitPromise: true,
+          returnByValue: true,
+        },
+      }));
+    });
+
+    ws.on('message', (data) => {
+      const msg = JSON.parse(data);
+      if (msg.id === 1) {
         clearTimeout(timeout);
-        ws.removeEventListener('message', handler);
-        if (data.error) reject(new Error(data.error.message));
-        else resolve(data.result);
+        ws.close();
+        const value = msg.result?.result?.value;
+        if (value === 'ok') resolve(true);
+        else reject(new Error(value || 'Unknown error'));
       }
-    };
-    ws.addEventListener('message', handler);
-    ws.send(JSON.stringify({ id, method, params }));
+    });
+
+    ws.on('error', (err) => { clearTimeout(timeout); reject(err); });
   });
 }
 
 async function main() {
-  const extId = await findExtensionId();
-  console.log(`🔄 Reloading extension ${extId}...`);
+  console.log(`🔄 Reloading extension ${EXT_ID}...`);
 
-  const target = await getPageTarget();
-  const { WebSocket } = await import('ws');
-  const ws = new WebSocket(target.webSocketDebuggerUrl);
-
-  await new Promise((resolve, reject) => {
-    ws.onopen = resolve;
-    ws.onerror = reject;
-  });
-
-  try {
-    const result = await sendCdpCommand(ws, 'Runtime.evaluate', {
-      expression: `
-        new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage('${extId}', { type: 'DEV_RELOAD' }, (resp) => {
-            if (chrome.runtime.lastError) reject(chrome.runtime.lastError.message);
-            else resolve(resp);
-          });
-        })
-      `,
-      awaitPromise: true,
-      returnByValue: true,
-    });
-    if (result?.result?.value?.ok) {
-      console.log('✅ Extension reload triggered');
-    } else {
-      console.log('⚠️  Response:', JSON.stringify(result?.result));
-    }
-  } catch (err) {
-    console.error('❌ Reload failed:', err.message);
-    console.error('   Make sure the extension has externally_connectable configured');
+  const found = await findExtensionsPage();
+  if (!found) {
+    console.log('⚠️  No Chrome with remote debugging found. Please reload manually.');
+    process.exit(0);
   }
 
-  ws.close();
+  console.log(`  CDP port ${found.port}, target: ${found.target.url}`);
+
+  try {
+    await reloadViaWs(found.target.webSocketDebuggerUrl);
+    console.log('✅ Extension reloaded');
+  } catch (err) {
+    console.log(`⚠️  Reload failed: ${err.message}`);
+  }
 }
 
 main().catch(console.error);
