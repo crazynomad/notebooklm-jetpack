@@ -171,10 +171,14 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
 
 // ─── Helpers ────────────────────────────────────────────────
 
+function getMainDialog(): Element | null {
+  // Prefer Material dialog container (avoids matching emoji keyboard [role="dialog"])
+  return document.querySelector('mat-dialog-container') || document.querySelector('.mat-mdc-dialog-container');
+}
+
 async function openAddSourceDialog(): Promise<void> {
-  // Check if dialog is already open
-  const existingDialog = document.querySelector('[role="dialog"]');
-  if (existingDialog) {
+  // Check if Material dialog is already open
+  if (getMainDialog()) {
     return; // Dialog already open
   }
 
@@ -186,8 +190,8 @@ async function openAddSourceDialog(): Promise<void> {
   addButton.click();
   await delay(500);
 
-  // Wait for dialog to appear
-  const dialog = await waitForElement('[role="dialog"]', 3000);
+  // Wait for Material dialog to appear
+  const dialog = await waitForElement('mat-dialog-container, .mat-mdc-dialog-container', 3000);
   if (!dialog) {
     throw new Error('Add source dialog did not open');
   }
@@ -224,19 +228,34 @@ async function findButtonByText(
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
-    // Search in dialog first, then entire document
+    // Search in Material dialog first, then fallback [role="dialog"], then document
     const containers = [
+      getMainDialog(),
       document.querySelector('[role="dialog"]'),
       document,
     ].filter(Boolean) as (Element | Document)[];
 
     for (const container of containers) {
+      // Search <button> elements
       const buttons = container.querySelectorAll('button');
       for (const button of buttons) {
         const btnText = button.textContent?.trim() || '';
         for (const text of texts) {
           if (btnText.includes(text)) {
             return button;
+          }
+        }
+      }
+      // Also search clickable spans (Material button labels) and walk up to button
+      const spans = container.querySelectorAll('span.mdc-button__label, [class*="button__label"]');
+      for (const span of spans) {
+        const spanText = span.textContent?.trim() || '';
+        for (const text of texts) {
+          if (spanText === text) {
+            const parentBtn = span.closest('button, [role="button"], a') as HTMLElement;
+            if (parentBtn) return parentBtn;
+            // If no button parent, the span's parent might be clickable
+            return span.parentElement as HTMLElement;
           }
         }
       }
@@ -269,7 +288,7 @@ async function findTextareaByPlaceholder(
     }
 
     // Also check contenteditable and role="textbox" elements within dialog
-    const dialog = document.querySelector('[role="dialog"]');
+    const dialog = getMainDialog() || document.querySelector('[role="dialog"]');
     if (dialog) {
       const textboxes = dialog.querySelectorAll<HTMLElement>('[role="textbox"], [contenteditable="true"]');
       for (const tb of textboxes) {
