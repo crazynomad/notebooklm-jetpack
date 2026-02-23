@@ -1,23 +1,21 @@
 import { useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { Link, List, Rss, BookOpen, History, MessageCircle, Headphones } from 'lucide-react';
+import { BookOpen, History, MessageCircle, Headphones, Import } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { SingleImport } from '@/components/SingleImport';
-import { BatchImport } from '@/components/BatchImport';
-import { RssImport } from '@/components/RssImport';
 import { DocsImport } from '@/components/DocsImport';
-import { ClaudeImport } from '@/components/ClaudeImport';
 import { PodcastImport } from '@/components/PodcastImport';
+import { ClaudeImport } from '@/components/ClaudeImport';
+import { ImportPanel } from '@/components/ImportPanel';
 import { HistoryPanel } from '@/components/HistoryPanel';
 
 export default function App() {
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [defaultTab, setDefaultTab] = useState('single');
+  const [defaultTab, setDefaultTab] = useState('docs');
   const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
 
-  // Auto-detect Apple Podcast URL from current tab
+  // Auto-detect URL from current tab
   useState(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const url = tabs[0]?.url || '';
@@ -38,7 +36,7 @@ export default function App() {
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-notebooklm-blue flex items-center justify-center">
-            <Link className="w-4 h-4 text-white" />
+            <BookOpen className="w-4 h-4 text-white" />
           </div>
           <span className="font-medium text-gray-900">NotebookLM Importer</span>
           <span className="text-[10px] text-gray-400 ml-1" title={`Build: ${__BUILD_TIME__}`}>v{__VERSION__}+{__GIT_HASH__}</span>
@@ -80,12 +78,10 @@ export default function App() {
       <Tabs.Root defaultValue={defaultTab} className="flex flex-col">
         <Tabs.List className="flex border-b border-gray-100">
           {[
-            { value: 'single', icon: Link, label: '单个导入' },
-            { value: 'batch', icon: List, label: '批量导入' },
-            { value: 'rss', icon: Rss, label: 'RSS' },
-            { value: 'docs', icon: BookOpen, label: '文档站点' },
-            { value: 'claude', icon: MessageCircle, label: 'Claude' },
+            { value: 'docs', icon: BookOpen, label: '文档站' },
             { value: 'podcast', icon: Headphones, label: '播客' },
+            { value: 'claude', icon: MessageCircle, label: 'Claude' },
+            { value: 'import', icon: Import, label: '导入' },
           ].map(({ value, icon: Icon, label }) => (
             <Tabs.Trigger
               key={value}
@@ -104,28 +100,20 @@ export default function App() {
           ))}
         </Tabs.List>
 
-        <Tabs.Content value="single" className="p-4">
-          <SingleImport onProgress={setImportProgress} />
-        </Tabs.Content>
-
-        <Tabs.Content value="batch" className="p-4">
-          <BatchImport onProgress={setImportProgress} />
-        </Tabs.Content>
-
-        <Tabs.Content value="rss" className="p-4">
-          <RssImport onProgress={setImportProgress} />
-        </Tabs.Content>
-
         <Tabs.Content value="docs" className="p-4">
           <DocsImport onProgress={setImportProgress} />
+        </Tabs.Content>
+
+        <Tabs.Content value="podcast" className="p-4">
+          <PodcastImport initialUrl={initialPodcastUrl} />
         </Tabs.Content>
 
         <Tabs.Content value="claude" className="p-4">
           <ClaudeImport onProgress={setImportProgress} />
         </Tabs.Content>
 
-        <Tabs.Content value="podcast" className="p-4">
-          <PodcastImport initialUrl={initialPodcastUrl} />
+        <Tabs.Content value="import" className="p-4">
+          <ImportPanel onProgress={setImportProgress} />
         </Tabs.Content>
       </Tabs.Root>
     </div>
