@@ -42,17 +42,19 @@ export default function App() {
   return (
     <div className="min-h-[480px] bg-white">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-3 py-2.5 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-notebooklm-blue flex items-center justify-center">
-            <BookOpen className="w-4 h-4 text-white" />
+          <div className="w-7 h-7 rounded-lg bg-notebooklm-blue flex items-center justify-center">
+            <BookOpen className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="font-medium text-gray-900">NotebookLM Importer</span>
-          <span className="text-[10px] text-gray-400 ml-1" title={`Build: ${__BUILD_TIME__}`}>v{__VERSION__}+{__GIT_HASH__}</span>
+          <div>
+            <span className="font-semibold text-sm text-gray-900">NotebookLM Importer</span>
+            <span className="text-[9px] text-gray-400 ml-1.5" title={`Build: ${__BUILD_TIME__}`}>v{__VERSION__}</span>
+          </div>
         </div>
         <button
           onClick={() => setShowHistory(true)}
-          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           title="导入历史"
         >
           <History className="w-4 h-4" />
@@ -88,7 +90,7 @@ export default function App() {
 
       {/* Tabs */}
       <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
-        <Tabs.List className="flex border-b border-gray-100">
+        <Tabs.List className="flex border-b border-gray-100 px-1">
           {[
             { value: 'docs', icon: BookOpen, label: '文档站' },
             { value: 'podcast', icon: Headphones, label: '播客' },
@@ -100,14 +102,16 @@ export default function App() {
               key={value}
               value={value}
               className={cn(
-                'flex-1 py-3 text-xs font-medium text-gray-500',
-                'flex flex-col items-center gap-1 relative',
+                'flex-1 py-2 text-[11px] font-medium text-gray-400',
+                'flex flex-col items-center gap-0.5 relative',
                 'border-b-2 border-transparent',
-                'hover:text-gray-700 hover:bg-gray-50',
-                'data-[state=active]:text-notebooklm-blue data-[state=active]:border-notebooklm-blue'
+                'hover:text-gray-600 hover:bg-gray-50/50 rounded-t',
+                'transition-colors duration-150',
+                'data-[state=active]:text-notebooklm-blue data-[state=active]:border-notebooklm-blue',
+                'data-[state=active]:bg-blue-50/30'
               )}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-3.5 h-3.5" />
               {label}
             </Tabs.Trigger>
           ))}
