@@ -121,7 +121,8 @@ async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> 
     const r = await fetch(mdUrl, { signal: AbortSignal.timeout(8000) });
     if (r.ok) {
       const text = await r.text();
-      if (!text.startsWith('<!DOCTYPE') && !text.startsWith('<html') && text.length > 50) {
+      const trimmed = text.trimStart();
+      if (!trimmed.toLowerCase().startsWith('<!doctype') && !trimmed.toLowerCase().startsWith('<html') && text.length > 50) {
         const cleaned = cleanComponentMd(text);
         const title = cleaned.match(/^#\s+(.+)/m)?.[1] || page.title;
         return { url: page.url, title, markdown: cleaned, section: page.section, wordCount: cleaned.split(/\s+/).length };
