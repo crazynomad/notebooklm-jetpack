@@ -1,8 +1,21 @@
-import { useState } from 'react';
-import { Headphones, Loader2, CheckCircle, AlertCircle, Download, Music } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Headphones, Loader2, CheckCircle, AlertCircle, Download, Music, Radio } from 'lucide-react';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 
 type State = 'idle' | 'loading' | 'loaded' | 'downloading' | 'done' | 'error';
+type Platform = 'unknown' | 'apple' | 'xiaoyuzhou';
+
+function detectPlatform(url: string): Platform {
+  if (/xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) return 'xiaoyuzhou';
+  if (/podcasts\.apple\.com\//.test(url)) return 'apple';
+  return 'unknown';
+}
+
+const platformConfig = {
+  apple: { name: 'Apple Podcasts', color: 'purple', accent: 'bg-purple-500 hover:bg-purple-600', accentLight: 'bg-purple-50', textAccent: 'text-purple-600', textDark: 'text-purple-900', ring: 'focus:ring-purple-500', check: 'text-purple-500' },
+  xiaoyuzhou: { name: '小宇宙', color: 'emerald', accent: 'bg-emerald-500 hover:bg-emerald-600', accentLight: 'bg-emerald-50', textAccent: 'text-emerald-600', textDark: 'text-emerald-900', ring: 'focus:ring-emerald-500', check: 'text-emerald-500' },
+  unknown: { name: '播客', color: 'purple', accent: 'bg-purple-500 hover:bg-purple-600', accentLight: 'bg-purple-50', textAccent: 'text-purple-600', textDark: 'text-purple-900', ring: 'focus:ring-purple-500', check: 'text-purple-500' },
+};
 
 interface Props {
   initialUrl?: string;
@@ -18,8 +31,12 @@ export function PodcastImport({ initialUrl }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [progress, setProgress] = useState<{ current: number; total: number; title?: string }>({ current: 0, total: 0 });
 
+  const platform = useMemo(() => detectPlatform(url), [url]);
+  const theme = platformConfig[platform];
+
   const handleFetch = () => {
-    if (!url) { setError('请输入 Apple Podcast 链接'); setState('error'); return; }
+    if (!url) { setError('请输入播客链接'); setState('error'); return; }
+    if (platform === 'unknown') { setError('无法识别链接，支持 Apple Podcasts 和小宇宙'); setState('error'); return; }
     setState('loading');
     setError('');
     setPodcast(null);
@@ -90,17 +107,18 @@ export function PodcastImport({ initialUrl }: Props) {
     <div className="space-y-4">
       {/* Input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Apple Podcast 链接
+        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+          {platform === 'xiaoyuzhou' ? <Radio className="w-4 h-4 text-emerald-500" /> : <Headphones className="w-4 h-4 text-purple-500" />}
+          {platform === 'unknown' ? '播客链接' : theme.name}
         </label>
         <div className="flex gap-2">
           <div className="flex-1 relative">
-            <Headphones className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Music className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Apple Podcasts 或小宇宙链接..."
+              placeholder="粘贴 Apple Podcasts 或小宇宙链接..."
               className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue focus:border-transparent"
             />
           </div>
@@ -113,7 +131,7 @@ export function PodcastImport({ initialUrl }: Props) {
             onChange={(e) => setCount(e.target.value ? parseInt(e.target.value) : undefined)}
             placeholder="全部"
             min={1}
-            max={200}
+            max={500}
             className="w-16 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-notebooklm-blue"
           />
           <label className="text-xs text-gray-500">集</label>
@@ -121,7 +139,7 @@ export function PodcastImport({ initialUrl }: Props) {
           <button
             onClick={handleFetch}
             disabled={!url || state === 'loading'}
-            className="px-4 py-1.5 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            className={`px-4 py-1.5 ${theme.accent} text-white text-xs rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1`}
           >
             {state === 'loading' ? (
               <><Loader2 className="w-3 h-3 animate-spin" />查询中...</>
@@ -134,13 +152,16 @@ export function PodcastImport({ initialUrl }: Props) {
 
       {/* Podcast Info */}
       {podcast && (
-        <div className="bg-purple-50 rounded-lg p-3 flex items-center gap-3">
+        <div className={`${theme.accentLight} rounded-lg p-3 flex items-center gap-3`}>
           {podcast.artworkUrl && (
             <img src={podcast.artworkUrl} alt="" className="w-12 h-12 rounded-lg object-cover" />
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-purple-900 truncate">{podcast.name}</p>
-            <p className="text-xs text-purple-600">{podcast.artist} · {episodes.length} 集</p>
+            <p className={`text-sm font-medium ${theme.textDark} truncate`}>{podcast.name}</p>
+            <p className={`text-xs ${theme.textAccent}`}>
+              {podcast.artist}{podcast.artist && ' · '}{episodes.length} 集
+              <span className="text-gray-400 ml-1">via {theme.name}</span>
+            </p>
           </div>
         </div>
       )}
@@ -167,7 +188,7 @@ export function PodcastImport({ initialUrl }: Props) {
                   type="checkbox"
                   checked={selected.has(ep.id)}
                   onChange={() => toggleEpisode(ep.id)}
-                  className="mt-1 rounded border-gray-300 text-purple-500 focus:ring-purple-500"
+                  className={`mt-1 rounded border-gray-300 ${theme.check} ${theme.ring}`}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-700 line-clamp-1">{ep.title}</p>
@@ -186,13 +207,13 @@ export function PodcastImport({ initialUrl }: Props) {
         <button
           onClick={handleDownload}
           disabled={selected.size === 0 || state === 'downloading'}
-          className="w-full py-2.5 bg-purple-500 text-white text-sm rounded-lg hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className={`w-full py-2.5 ${theme.accent} text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
         >
           {state === 'downloading' ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               下载中 {progress.current}/{progress.total}
-              {progress.title && <span className="text-purple-200 text-xs truncate max-w-[150px]">· {progress.title}</span>}
+              {progress.title && <span className="text-white/60 text-xs truncate max-w-[150px]">· {progress.title}</span>}
             </>
           ) : state === 'done' ? (
             <>
