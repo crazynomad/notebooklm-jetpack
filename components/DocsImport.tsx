@@ -152,12 +152,35 @@ export function DocsImport({ onProgress }: Props) {
 
     try {
       const filteredSiteInfo = { ...siteInfo, pages };
-      // Send to background — runs even if popup closes
-      chrome.runtime.sendMessage({
-        type: 'GENERATE_PDF',
-        siteInfo: filteredSiteInfo,
+      // Connect to background via port for progress updates
+      const port = chrome.runtime.connect({ name: 'pdf-export' });
+      port.postMessage({ type: 'GENERATE_PDF', siteInfo: filteredSiteInfo });
+
+      port.onMessage.addListener((msg) => {
+        if (msg.phase === 'fetching') {
+          setPdfState('fetching');
+          setPdfProgress({ phase: 'fetching', current: msg.current, total: msg.total, currentPage: msg.currentPage });
+        } else if (msg.phase === 'rendering') {
+          setPdfState('generating');
+          setPdfProgress({ phase: 'rendering', current: 1, total: 1 });
+        } else if (msg.phase === 'done') {
+          setPdfState('done');
+          port.disconnect();
+        } else if (msg.phase === 'error') {
+          setState('error');
+          setError(msg.error || 'PDF 生成失败');
+          setPdfState('idle');
+          port.disconnect();
+        }
       });
-      setPdfState('done');
+
+      port.onDisconnect.addListener(() => {
+        // Background disconnected (e.g. service worker restart) — if not done, show message
+        if (pdfState !== 'done') {
+          setPdfState('done');
+          // PDF generation continues in background even if port drops
+        }
+      });
     } catch (err) {
       setState('error');
       setError(err instanceof Error ? err.message : 'PDF 生成失败');

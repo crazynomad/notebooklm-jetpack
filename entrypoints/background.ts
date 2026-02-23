@@ -122,6 +122,84 @@ export default defineBackground(() => {
     }
   });
 
+  // Handle PDF export via persistent port connection (supports progress updates)
+  chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== 'pdf-export') return;
+
+    port.onMessage.addListener(async (msg) => {
+      if (msg.type !== 'GENERATE_PDF') return;
+
+      const si = msg.siteInfo;
+      const sendProgress = (data: Record<string, unknown>) => {
+        try { port.postMessage(data); } catch { /* port disconnected */ }
+      };
+
+      console.log('[GENERATE_PDF] Starting via port, pages:', si.pages.length);
+
+      try {
+        let html: string;
+
+        // Fast path: llms-full.txt
+        if (si.hasLlmsFullTxt) {
+          sendProgress({ phase: 'fetching', current: 0, total: 1, currentPage: 'llms-full.txt' });
+          const origin = new URL(si.baseUrl).origin;
+          const r = await fetch(`${origin}/llms-full.txt`, { signal: AbortSignal.timeout(30000) });
+          if (r.ok) {
+            const fullText = await r.text();
+            if (fullText.length > 1000) {
+              const sections = fullText.split(/(?=^# )/m).filter(s => s.trim().length > 50);
+              const contents = sections.map((section, i) => {
+                const titleMatch = section.match(/^#\s+(.+)/m);
+                const title = titleMatch?.[1] || `Section ${i + 1}`;
+                const cleaned = cleanComponentMd(section);
+                return {
+                  url: `${origin}/#section-${i}`,
+                  title,
+                  markdown: cleaned,
+                  section: undefined as string | undefined,
+                  wordCount: cleaned.split(/\s+/).length,
+                };
+              });
+              sendProgress({ phase: 'fetching', current: 1, total: 1 });
+              sendProgress({ phase: 'rendering', current: 1, total: 1 });
+              html = buildDocsHtml(si, contents);
+              await handleExportPdfFromHtml(html, si.title);
+              sendProgress({ phase: 'done' });
+              return;
+            }
+          }
+        }
+
+        // Standard path: fetch pages individually
+        const maxPages = 1000;
+        const pagesToFetch = si.pages.slice(0, maxPages);
+        console.log('[GENERATE_PDF] Fetching', pagesToFetch.length, 'pages...');
+
+        const contents = await fetchAllPages(pagesToFetch, {
+          concurrency: 5,
+          onProgress: (p) => {
+            sendProgress({ phase: 'fetching', current: p.current, total: p.total, currentPage: p.currentPage });
+            if (p.current % 50 === 0) console.log(`[GENERATE_PDF] Progress: ${p.current}/${p.total}`);
+          },
+        });
+
+        if (contents.length === 0) {
+          sendProgress({ phase: 'error', error: '未能获取任何页面内容' });
+          return;
+        }
+
+        console.log('[GENERATE_PDF] Fetched', contents.length, 'pages, building HTML...');
+        sendProgress({ phase: 'rendering', current: 1, total: 1 });
+        html = buildDocsHtml(si, contents);
+        await handleExportPdfFromHtml(html, si.title);
+        sendProgress({ phase: 'done' });
+      } catch (err) {
+        console.error('[GENERATE_PDF] Error:', err);
+        sendProgress({ phase: 'error', error: String(err) });
+      }
+    });
+  });
+
   // Handle messages from popup and content scripts
   chrome.runtime.onMessage.addListener(
     (
@@ -287,78 +365,10 @@ async function handleMessage(message: MessageType): Promise<unknown> {
       return await importText(formattedText, message.conversation.title);
     }
 
-    case 'GENERATE_PDF': {
-      console.log('[GENERATE_PDF] Starting, pages:', message.siteInfo.pages.length);
-      const si = message.siteInfo;
-
-      try {
-        let html: string;
-
-        // Fast path: llms-full.txt
-        if (si.hasLlmsFullTxt) {
-          console.log('[GENERATE_PDF] Trying llms-full.txt...');
-          const origin = new URL(si.baseUrl).origin;
-          const r = await fetch(`${origin}/llms-full.txt`, { signal: AbortSignal.timeout(30000) });
-          if (r.ok) {
-            const fullText = await r.text();
-            if (fullText.length > 1000) {
-              const sections = fullText.split(/(?=^# )/m).filter(s => s.trim().length > 50);
-              const contents = sections.map((section, i) => {
-                const titleMatch = section.match(/^#\s+(.+)/m);
-                const title = titleMatch?.[1] || `Section ${i + 1}`;
-                const cleaned = cleanComponentMd(section);
-                return {
-                  url: `${origin}/#section-${i}`,
-                  title,
-                  markdown: cleaned,
-                  section: undefined as string | undefined,
-                  wordCount: cleaned.split(/\s+/).length,
-                };
-              });
-              html = buildDocsHtml(si, contents);
-              console.log('[GENERATE_PDF] llms-full.txt →', contents.length, 'sections');
-              // Send to EXPORT_PDF handler
-              const blob = `data:text/html;base64,${btoa(unescape(encodeURIComponent(html)))}`;
-              // Directly create tab and export
-              await handleExportPdfFromHtml(html, si.title);
-              return { success: true };
-            }
-          }
-        }
-
-        // Standard path: fetch pages individually
-        const maxPages = 1000;
-        const pagesToFetch = si.pages.slice(0, maxPages);
-        console.log('[GENERATE_PDF] Fetching', pagesToFetch.length, 'pages...');
-
-        const contents = await fetchAllPages(pagesToFetch, {
-          concurrency: 5,
-          onProgress: (p) => {
-            if (p.current % 50 === 0) console.log(`[GENERATE_PDF] Progress: ${p.current}/${p.total}`);
-          },
-        });
-
-        if (contents.length === 0) {
-          console.error('[GENERATE_PDF] No content fetched');
-          return { error: 'No content fetched' };
-        }
-
-        console.log('[GENERATE_PDF] Fetched', contents.length, 'pages, building HTML...');
-        html = buildDocsHtml(si, contents);
-        await handleExportPdfFromHtml(html, si.title);
-        return { success: true };
-      } catch (err) {
-        console.error('[GENERATE_PDF] Error:', err);
-        return { error: String(err) };
-      }
-    }
-
-    case 'EXPORT_PDF': {
-      // Legacy: popup sends blob URL + title (kept for backward compat)
-      // New flow uses GENERATE_PDF instead
-      console.log('[EXPORT_PDF] Received via legacy path');
+    case 'GENERATE_PDF':
+    case 'EXPORT_PDF':
+      // Handled via port connection (onConnect), not onMessage
       return { success: true };
-    }
 
     default:
       throw new Error('Unknown message type');
