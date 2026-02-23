@@ -34,7 +34,28 @@ export default defineContentScript({
         sendResponse({ success: true, data: failedUrls });
         return true;
       }
+
+      if (message.type === 'RESCUE_SOURCE_DONE') {
+        // Update inline banner after rescue completes
+        updateInlineBanner(message.results);
+        sendResponse({ success: true });
+        return true;
+      }
     });
+
+    // Auto-inject rescue banner if failed sources detected
+    setTimeout(() => injectRescueBanner(), 2000);
+
+    // Re-check periodically (sources may load late)
+    const observer = new MutationObserver(() => {
+      if (!document.getElementById('nlm-rescue-banner')) {
+        injectRescueBanner();
+      }
+    });
+    const scrollArea = document.querySelector('.scroll-area-desktop');
+    if (scrollArea) {
+      observer.observe(scrollArea, { childList: true });
+    }
   },
 });
 
@@ -337,6 +358,189 @@ async function fillInput(
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─── Inline Rescue Banner ───────────────────────────────────
+
+function injectRescueBanner(): void {
+  // Don't duplicate
+  if (document.getElementById('nlm-rescue-banner')) return;
+
+  const failedUrls = getFailedSourceUrls();
+  if (failedUrls.length === 0) return;
+
+  const scrollArea = document.querySelector('.scroll-area-desktop');
+  if (!scrollArea) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'nlm-rescue-banner';
+  banner.innerHTML = `
+    <style>
+      #nlm-rescue-banner {
+        margin: 8px 12px;
+        padding: 10px 12px;
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-radius: 10px;
+        font-family: 'Google Sans', Roboto, sans-serif;
+        font-size: 13px;
+        color: #92400e;
+        animation: nlm-fade-in 0.3s ease;
+      }
+      @keyframes nlm-fade-in {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      #nlm-rescue-banner .nlm-rescue-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #nlm-rescue-banner .nlm-rescue-icon {
+        width: 16px; height: 16px; flex-shrink: 0;
+      }
+      #nlm-rescue-banner .nlm-rescue-text { flex: 1; }
+      #nlm-rescue-banner .nlm-rescue-btn {
+        padding: 4px 12px;
+        background: #f59e0b;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+        transition: background 0.15s;
+      }
+      #nlm-rescue-banner .nlm-rescue-btn:hover { background: #d97706; }
+      #nlm-rescue-banner .nlm-rescue-btn:disabled {
+        opacity: 0.6; cursor: not-allowed;
+      }
+      #nlm-rescue-banner .nlm-rescue-details {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #fde68a;
+        font-size: 12px;
+        color: #78350f;
+      }
+      #nlm-rescue-banner .nlm-rescue-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 0;
+        overflow: hidden;
+      }
+      #nlm-rescue-banner .nlm-rescue-item-url {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+      #nlm-rescue-banner .nlm-rescue-status {
+        flex-shrink: 0;
+        font-size: 11px;
+      }
+      #nlm-rescue-banner .nlm-rescue-success { color: #16a34a; }
+      #nlm-rescue-banner .nlm-rescue-error { color: #dc2626; }
+      #nlm-rescue-banner .nlm-rescue-spinner {
+        display: inline-block;
+        width: 12px; height: 12px;
+        border: 2px solid #fff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: nlm-spin 0.6s linear infinite;
+      }
+      @keyframes nlm-spin { to { transform: rotate(360deg); } }
+      #nlm-rescue-banner .nlm-dismiss {
+        background: none; border: none; color: #b45309;
+        cursor: pointer; font-size: 16px; padding: 0 2px;
+        line-height: 1; flex-shrink: 0;
+      }
+      #nlm-rescue-banner .nlm-dismiss:hover { color: #92400e; }
+    </style>
+    <div class="nlm-rescue-header">
+      <svg class="nlm-rescue-icon" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span class="nlm-rescue-text">
+        <strong>${failedUrls.length}</strong> 个来源导入失败，可尝试抢救
+      </span>
+      <button class="nlm-rescue-btn" id="nlm-rescue-btn">
+        ↻ 抢救
+      </button>
+      <button class="nlm-dismiss" id="nlm-rescue-dismiss" title="关闭">×</button>
+    </div>
+    <div class="nlm-rescue-details" id="nlm-rescue-details" style="display:none">
+      ${failedUrls.map((url) => `
+        <div class="nlm-rescue-item" data-url="${url}">
+          <span class="nlm-rescue-item-url" title="${url}">${url}</span>
+          <span class="nlm-rescue-status" data-status="pending">待抢救</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  scrollArea.insertBefore(banner, scrollArea.firstChild);
+
+  // Button handlers
+  document.getElementById('nlm-rescue-btn')?.addEventListener('click', () => {
+    const btn = document.getElementById('nlm-rescue-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="nlm-rescue-spinner"></span> 抢救中...';
+
+    // Show details
+    const details = document.getElementById('nlm-rescue-details');
+    if (details) details.style.display = 'block';
+
+    // Send rescue request to background
+    chrome.runtime.sendMessage({ type: 'RESCUE_SOURCES', urls: failedUrls }, (resp) => {
+      const results = resp?.success ? resp.data : (resp || []);
+      updateInlineBanner(results);
+    });
+  });
+
+  document.getElementById('nlm-rescue-dismiss')?.addEventListener('click', () => {
+    banner.remove();
+  });
+}
+
+function updateInlineBanner(results: Array<{ url: string; status: string; title?: string; error?: string }>): void {
+  const btn = document.getElementById('nlm-rescue-btn') as HTMLButtonElement;
+  const successCount = results.filter((r) => r.status === 'success').length;
+  const failCount = results.filter((r) => r.status === 'error').length;
+
+  if (btn) {
+    btn.innerHTML = `✓ 完成 (${successCount}/${results.length})`;
+    btn.disabled = true;
+    btn.style.background = successCount > 0 ? '#16a34a' : '#dc2626';
+  }
+
+  // Update text
+  const textEl = document.querySelector('#nlm-rescue-banner .nlm-rescue-text');
+  if (textEl) {
+    textEl.innerHTML = `抢救完成：<strong>${successCount}</strong> 成功${failCount > 0 ? `，<strong>${failCount}</strong> 失败` : ''}`;
+  }
+
+  // Update individual items
+  for (const result of results) {
+    const item = document.querySelector(`#nlm-rescue-details .nlm-rescue-item[data-url="${CSS.escape(result.url)}"]`);
+    if (!item) continue;
+    const statusEl = item.querySelector('.nlm-rescue-status');
+    if (statusEl) {
+      if (result.status === 'success') {
+        statusEl.className = 'nlm-rescue-status nlm-rescue-success';
+        statusEl.textContent = `✓ ${result.title || '成功'}`;
+      } else {
+        statusEl.className = 'nlm-rescue-status nlm-rescue-error';
+        statusEl.textContent = `✗ ${result.error || '失败'}`;
+      }
+    }
+  }
 }
 
 // ─── Failed Source Detection ────────────────────────────────
