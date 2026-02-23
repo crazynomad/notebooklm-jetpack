@@ -91,7 +91,7 @@ export interface HistoryItem {
   error?: string;
 }
 
-// Claude conversation types
+// AI conversation types (Claude / ChatGPT / Gemini)
 export type ClaudeRole = 'human' | 'assistant';
 
 export interface ClaudeMessage {
@@ -101,10 +101,21 @@ export interface ClaudeMessage {
   timestamp?: string;
 }
 
+/** A question-answer pair (basic import unit) */
+export interface QAPair {
+  id: string;
+  question: string;
+  answer: string;
+  questionTimestamp?: string;
+  answerTimestamp?: string;
+}
+
 export interface ClaudeConversation {
   id: string;
   title: string;
   url: string;
   messages: ClaudeMessage[];
+  /** Grouped Q&A pairs for import */
+  pairs?: QAPair[];
   extractedAt: number;
 }

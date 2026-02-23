@@ -38,10 +38,17 @@ export function formatConversationForImport(
 
   const lines: string[] = [];
 
+  // Detect platform from URL
+  const platform = conversation.url.includes('chatgpt.com') || conversation.url.includes('chat.openai.com')
+    ? 'ChatGPT'
+    : conversation.url.includes('gemini.google.com')
+      ? 'Gemini'
+      : 'Claude';
+
   // Header
   lines.push(`# ${conversation.title}`);
   lines.push('');
-  lines.push('**来源**: Claude 对话');
+  lines.push(`**来源**: ${platform} 对话`);
   lines.push(`**URL**: ${conversation.url}`);
   lines.push(
     `**提取时间**: ${new Date(conversation.extractedAt).toLocaleString('zh-CN')}`
@@ -52,7 +59,8 @@ export function formatConversationForImport(
 
   // Messages
   for (const message of selectedMessages) {
-    const roleLabel = message.role === 'human' ? '👤 Human' : '🤖 Claude';
+    const assistantLabel = platform === 'ChatGPT' ? 'ChatGPT' : platform === 'Gemini' ? 'Gemini' : 'Claude';
+    const roleLabel = message.role === 'human' ? '👤 Human' : `🤖 ${assistantLabel}`;
     lines.push(`## ${roleLabel}`);
     if (message.timestamp) {
       lines.push(`*${message.timestamp}*`);

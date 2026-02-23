@@ -1,6 +1,6 @@
 // Content script for extracting Claude conversations
 // Updated: 2026-02-22 — adapted to current Claude UI
-import type { ClaudeConversation, ClaudeMessage } from '@/lib/types';
+import type { ClaudeConversation, ClaudeMessage, QAPair } from '@/lib/types';
 
 export default defineContentScript({
   matches: ['https://claude.ai/*'],
@@ -34,13 +34,42 @@ async function extractConversation(): Promise<ClaudeConversation> {
     throw new Error('未找到对话消息，请确保在 Claude 对话页面');
   }
 
+  // Group messages into Q&A pairs
+  const pairs = groupIntoPairs(messages);
+
   return {
     id: extractConversationId(),
     title,
     url: window.location.href,
     messages,
+    pairs,
     extractedAt: Date.now(),
   };
+}
+
+function groupIntoPairs(messages: ClaudeMessage[]): QAPair[] {
+  const pairs: QAPair[] = [];
+  let i = 0;
+  while (i < messages.length) {
+    const question = messages[i].role === 'human' ? messages[i].content : '';
+    const qTimestamp = messages[i].role === 'human' ? messages[i].timestamp : undefined;
+    if (messages[i].role === 'human') i++;
+
+    const answer = i < messages.length && messages[i].role === 'assistant' ? messages[i].content : '';
+    const aTimestamp = i < messages.length && messages[i].role === 'assistant' ? messages[i].timestamp : undefined;
+    if (i < messages.length && messages[i].role === 'assistant') i++;
+
+    if (question || answer) {
+      pairs.push({
+        id: `pair-${pairs.length}`,
+        question,
+        answer,
+        questionTimestamp: qTimestamp,
+        answerTimestamp: aTimestamp,
+      });
+    }
+  }
+  return pairs;
 }
 
 function extractConversationId(): string {
@@ -63,35 +92,29 @@ function extractTitle(): string {
 function extractMessages(): ClaudeMessage[] {
   const messages: ClaudeMessage[] = [];
 
-  // Strategy 1: Find the main conversation container
-  // Claude uses a max-w-3xl flex column container for messages
-  const container = findMessageContainer();
-  if (!container) {
-    console.warn('Message container not found, trying fallback');
-    return extractMessagesFallback();
+  // Direct approach: match user messages and Claude responses by precise selectors
+  const userEls = document.querySelectorAll('[data-testid="user-message"]');
+  const claudeEls = document.querySelectorAll('div.font-claude-response');
+
+  const maxLen = Math.max(userEls.length, claudeEls.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (i < userEls.length) {
+      const text = userEls[i].textContent?.trim();
+      if (text) {
+        messages.push({ id: `msg-${messages.length}`, role: 'human', content: text });
+      }
+    }
+    if (i < claudeEls.length) {
+      const text = cleanText(claudeEls[i]);
+      if (text) {
+        messages.push({ id: `msg-${messages.length}`, role: 'assistant', content: text });
+      }
+    }
   }
 
-  const children = Array.from(container.children);
-  let msgIndex = 0;
-
-  for (const child of children) {
-    const isUser = !!child.querySelector('[data-testid="user-message"]');
-    const isClaude = !!child.querySelector('[class*="font-claude-response"]');
-
-    if (!isUser && !isClaude) continue;
-
-    const content = extractContentFromElement(child, isUser ? 'human' : 'assistant');
-    if (!content) continue;
-
-    const timestamp = extractTimestampFromElement(child);
-
-    messages.push({
-      id: `msg-${msgIndex}`,
-      role: isUser ? 'human' : 'assistant',
-      content,
-      timestamp,
-    });
-    msgIndex++;
+  // Fallback to old approach if direct selectors fail
+  if (messages.length === 0) {
+    return extractMessagesFallback();
   }
 
   return messages;

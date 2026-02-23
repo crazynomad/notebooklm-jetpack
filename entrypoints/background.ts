@@ -138,7 +138,7 @@ import {
   extractClaudeConversation,
   formatConversationForImport,
 } from '@/services/claude-conversation';
-import type { MessageType, MessageResponse } from '@/lib/types';
+import type { MessageType, MessageResponse, ClaudeConversation } from '@/lib/types';
 
 // Dev reload: allow external messages to trigger extension reload
 try {
@@ -722,11 +722,23 @@ async function handleMessage(message: MessageType): Promise<unknown> {
       return await extractClaudeConversation(message.tabId);
 
     case 'IMPORT_CLAUDE_CONVERSATION': {
-      const formattedText = formatConversationForImport(
-        message.conversation,
-        message.selectedMessageIds
-      );
-      return await importText(formattedText, message.conversation.title);
+      const conv = message.conversation as ClaudeConversation;
+      const pairs = conv.pairs || [];
+      if (pairs.length > 0) {
+        // New pairs-based import
+        const platform = conv.url.includes('chatgpt.com') || conv.url.includes('chat.openai.com')
+          ? 'ChatGPT' : conv.url.includes('gemini.google.com') ? 'Gemini' : 'Claude';
+        const lines: string[] = [`# ${conv.title}`, '', `**来源**: ${platform} 对话`, `**URL**: ${conv.url}`, '', '---', ''];
+        for (const pair of pairs) {
+          if (pair.question) { lines.push('## 👤 Human', '', pair.question, ''); }
+          if (pair.answer) { lines.push(`## 🤖 ${platform}`, '', pair.answer, ''); }
+          lines.push('---', '');
+        }
+        return await importText(lines.join('\n'), conv.title);
+      }
+      // Fallback: old message-based import
+      const formattedText = formatConversationForImport(conv, message.selectedMessageIds);
+      return await importText(formattedText, conv.title);
     }
 
     case 'FETCH_PODCAST': {

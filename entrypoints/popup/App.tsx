@@ -13,7 +13,7 @@ import { RescueBanner } from '@/components/RescueBanner';
 export default function App() {
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [defaultTab, setDefaultTab] = useState('docs');
+  const [activeTab, setActiveTab] = useState('docs');
   const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
 
@@ -23,8 +23,10 @@ export default function App() {
       const url = tabs[0]?.url || '';
       const tabId = tabs[0]?.id;
       if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
-        setDefaultTab('podcast');
+        setActiveTab('podcast');
         setInitialPodcastUrl(url);
+      } else if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) {
+        setActiveTab('claude');
       }
       if (/notebooklm\.google\.com/.test(url) && tabId) {
         setNotebookLMTabId(tabId);
@@ -84,12 +86,12 @@ export default function App() {
       {notebookLMTabId && <RescueBanner tabId={notebookLMTabId} />}
 
       {/* Tabs */}
-      <Tabs.Root defaultValue={defaultTab} className="flex flex-col">
+      <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
         <Tabs.List className="flex border-b border-gray-100">
           {[
             { value: 'docs', icon: BookOpen, label: '文档站' },
             { value: 'podcast', icon: Headphones, label: '播客' },
-            { value: 'claude', icon: MessageCircle, label: 'Claude' },
+            { value: 'claude', icon: MessageCircle, label: 'AI 对话' },
             { value: 'more', icon: MoreHorizontal, label: '更多' },
           ].map(({ value, icon: Icon, label }) => (
             <Tabs.Trigger
