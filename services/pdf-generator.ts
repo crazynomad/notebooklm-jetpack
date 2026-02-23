@@ -115,27 +115,36 @@ interface PageContent {
 }
 
 async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> {
+  console.log('[fetchPage] Starting:', page.url);
+
   // Strategy 1: Try .md suffix (returns clean markdown — works on Mintlify, VitePress, Bun, Clerk, etc.)
   try {
     const mdUrl = page.url.replace(/\/$/, '') + '.md';
     const r = await fetch(mdUrl, { signal: AbortSignal.timeout(8000) });
+    console.log('[fetchPage] .md probe:', r.status, mdUrl);
     if (r.ok) {
       const text = await r.text();
       const trimmed = text.trimStart();
       if (!trimmed.toLowerCase().startsWith('<!doctype') && !trimmed.toLowerCase().startsWith('<html') && text.length > 50) {
         const cleaned = cleanComponentMd(text);
         const title = cleaned.match(/^#\s+(.+)/m)?.[1] || page.title;
+        console.log('[fetchPage] Strategy 1 success, markdown length:', cleaned.length);
         return { url: page.url, title, markdown: cleaned, section: page.section, wordCount: cleaned.split(/\s+/).length };
+      } else {
+        console.log('[fetchPage] .md returned HTML or too short, falling through');
       }
     }
-  } catch { /* fall through */ }
+  } catch (err) { console.log('[fetchPage] .md probe failed:', err); }
 
   // Strategy 2: Fetch HTML and convert to Markdown via Turndown
   try {
+    console.log('[fetchPage] Strategy 2: fetching HTML...');
     const r = await fetch(page.url, { signal: AbortSignal.timeout(10000) });
-    if (!r.ok) return null;
+    if (!r.ok) { console.log('[fetchPage] HTML fetch failed:', r.status); return null; }
     const html = await r.text();
+    console.log('[fetchPage] HTML fetched, size:', html.length);
     const doc = new DOMParser().parseFromString(html, 'text/html');
+    console.log('[fetchPage] DOMParser succeeded');
     const selectors = [
       '.devsite-article-body',  // Google DevSite (developer.chrome.com, etc.)
       '.markdown-body',         // GitHub-style
@@ -148,8 +157,10 @@ async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> 
       '.content',
     ];
     let el: Element | null = null;
-    for (const s of selectors) { el = doc.querySelector(s); if (el) break; }
+    let matchedSelector = 'body (fallback)';
+    for (const s of selectors) { el = doc.querySelector(s); if (el) { matchedSelector = s; break; } }
     if (!el) el = doc.body;
+    console.log('[fetchPage] Content selector matched:', matchedSelector);
     // Remove non-content elements before conversion
     el.querySelectorAll([
       'script', 'style', 'nav', 'footer', 'header',
@@ -161,9 +172,12 @@ async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> 
       '.devsite-banner',
     ].join(',')).forEach(e => e.remove());
     const title = doc.querySelector('h1')?.textContent?.trim() || doc.title || page.title;
+    console.log('[fetchPage] Title:', title, '| innerHTML length:', el.innerHTML.length);
     // Convert HTML → Markdown using Turndown (preserves structure, code blocks, links, etc.)
     const td = createTurndownService();
+    console.log('[fetchPage] Running Turndown...');
     let markdown = td.turndown(el.innerHTML);
+    console.log('[fetchPage] Turndown done, markdown length:', markdown.length);
     // Post-process: remove leaked CSS blocks (e.g. .dcc-* rules from DevSite inline styles)
     markdown = markdown
       .replace(/\.dcc-[\s\S]*?\n\n/g, '\n\n')
