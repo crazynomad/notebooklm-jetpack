@@ -3,61 +3,7 @@
  */
 
 import { marked } from 'marked';
-import TurndownService from 'turndown';
 import type { DocPageItem, DocSiteInfo } from '@/lib/types';
-
-// ── Turndown instance with custom rules for doc sites ──
-
-function createTurndownService(): TurndownService {
-  const td = new TurndownService({
-    headingStyle: 'atx',
-    codeBlockStyle: 'fenced',
-    bulletListMarker: '-',
-  });
-
-  // DevSite: <pre class="devsite-click-to-copy"> → fenced code block
-  td.addRule('devsiteCode', {
-    filter: (node) =>
-      node.nodeName === 'PRE' &&
-      (node.getAttribute('class') || '').includes('devsite-click-to-copy'),
-    replacement: (_content, node) => {
-      const lang = (node.getAttribute('syntax') || '').toLowerCase();
-      const codeEl = (node as Element).querySelector('code') || node;
-      const text = codeEl.textContent || '';
-      return `\n\n\`\`\`${lang}\n${text.trim()}\n\`\`\`\n\n`;
-    },
-  });
-
-  // Remove <style> tags
-  td.addRule('removeStyle', {
-    filter: 'style',
-    replacement: () => '',
-  });
-
-  // Remove devsite UI components (toc, ratings, nav, etc.)
-  td.addRule('removeDevsiteUI', {
-    filter: (node) => {
-      const tag = node.nodeName.toLowerCase();
-      return (
-        tag.startsWith('devsite-') &&
-        tag !== 'devsite-code' &&
-        tag !== 'devsite-content'
-      );
-    },
-    replacement: () => '',
-  });
-
-  // Remove breadcrumbs, sidebars, etc.
-  td.addRule('removeNavElements', {
-    filter: (node) => {
-      const cl = node.getAttribute('class') || '';
-      return /breadcrumb|sidebar|devsite-nav|devsite-toc/.test(cl);
-    },
-    replacement: () => '',
-  });
-
-  return td;
-}
 
 export interface PdfGeneratorOptions {
   concurrency?: number;
@@ -102,6 +48,111 @@ export function cleanComponentMd(md: string): string {
   md = md.replace(/<\/?[A-Z][a-zA-Z]*[^>]*>/g, '');
   md = md.replace(/\n{3,}/g, '\n\n');
   return md.trim();
+}
+
+// ── HTML → Markdown via regex (no DOM dependency, safe for Service Worker) ──
+
+function htmlToMarkdown(html: string): string {
+  let md = html;
+
+  // Remove script, style, svg
+  md = md.replace(/<script[\s\S]*?<\/script>/gi, '');
+  md = md.replace(/<style[\s\S]*?<\/style>/gi, '');
+  md = md.replace(/<svg[\s\S]*?<\/svg>/gi, '');
+
+  // Code blocks: <pre><code>...</code></pre> → fenced code blocks
+  md = md.replace(/<pre[^>]*>\s*<code[^>]*(?:class="[^"]*language-(\w+)[^"]*")?[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi,
+    (_m, lang, code) => `\n\n\`\`\`${lang || ''}\n${decodeHtmlEntities(code.trim())}\n\`\`\`\n\n`);
+  // Bare <pre>
+  md = md.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi,
+    (_m, code) => `\n\n\`\`\`\n${decodeHtmlEntities(code.trim())}\n\`\`\`\n\n`);
+
+  // Headings
+  md = md.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_m, t) => `\n\n# ${stripTags(t).trim()}\n\n`);
+  md = md.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_m, t) => `\n\n## ${stripTags(t).trim()}\n\n`);
+  md = md.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (_m, t) => `\n\n### ${stripTags(t).trim()}\n\n`);
+  md = md.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, (_m, t) => `\n\n#### ${stripTags(t).trim()}\n\n`);
+  md = md.replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, (_m, t) => `\n\n##### ${stripTags(t).trim()}\n\n`);
+  md = md.replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, (_m, t) => `\n\n###### ${stripTags(t).trim()}\n\n`);
+
+  // Inline code
+  md = md.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_m, c) => `\`${decodeHtmlEntities(c.trim())}\``);
+
+  // Bold / Italic
+  md = md.replace(/<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/gi, (_m, t) => `**${stripTags(t).trim()}**`);
+  md = md.replace(/<(?:em|i)[^>]*>([\s\S]*?)<\/(?:em|i)>/gi, (_m, t) => `*${stripTags(t).trim()}*`);
+
+  // Links
+  md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href, text) => {
+    const t = stripTags(text).trim();
+    return t ? `[${t}](${href})` : '';
+  });
+
+  // Images
+  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
+  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '![]($1)');
+
+  // List items
+  md = md.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, t) => `- ${stripTags(t).trim()}\n`);
+
+  // Blockquotes
+  md = md.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (_m, t) => {
+    return stripTags(t).trim().split('\n').map(l => `> ${l}`).join('\n') + '\n\n';
+  });
+
+  // Tables: basic conversion
+  md = md.replace(/<table[\s\S]*?<\/table>/gi, (table) => {
+    const rows: string[][] = [];
+    const rowMatches = table.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+    for (const row of rowMatches) {
+      const cells = (row.match(/<(?:td|th)[^>]*>[\s\S]*?<\/(?:td|th)>/gi) || [])
+        .map(c => stripTags(c.replace(/<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/i, '$1')).trim());
+      if (cells.length) rows.push(cells);
+    }
+    if (rows.length === 0) return '';
+    const maxCols = Math.max(...rows.map(r => r.length));
+    const padded = rows.map(r => { while (r.length < maxCols) r.push(''); return r; });
+    let result = '\n\n';
+    result += '| ' + padded[0].join(' | ') + ' |\n';
+    result += '| ' + padded[0].map(() => '---').join(' | ') + ' |\n';
+    for (let i = 1; i < padded.length; i++) {
+      result += '| ' + padded[i].join(' | ') + ' |\n';
+    }
+    return result + '\n';
+  });
+
+  // Paragraphs and line breaks
+  md = md.replace(/<br\s*\/?>/gi, '\n');
+  md = md.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (_m, t) => `\n\n${stripTags(t).trim()}\n\n`);
+  md = md.replace(/<hr[^>]*\/?>/gi, '\n\n---\n\n');
+
+  // Remove remaining HTML tags
+  md = md.replace(/<[^>]+>/g, '');
+
+  // Decode HTML entities
+  md = decodeHtmlEntities(md);
+
+  // Clean up whitespace
+  md = md.replace(/\n{3,}/g, '\n\n').trim();
+
+  return md;
+}
+
+function stripTags(html: string): string {
+  return html.replace(/<[^>]+>/g, '');
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(parseInt(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_m, n) => String.fromCharCode(parseInt(n, 16)));
 }
 
 // ── Fetch pages ──
@@ -233,11 +284,10 @@ async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> 
     const titleText = h1Match ? h1Match[1].replace(/<[^>]+>/g, '').trim() : '';
     const title = titleText || page.title;
 
-    // Convert HTML → Markdown using Turndown
-    const td = createTurndownService();
-    console.log('[fetchPage] Running Turndown...');
-    let markdown = td.turndown(contentHtml);
-    console.log('[fetchPage] Turndown done, markdown length:', markdown.length);
+    // Convert HTML → Markdown via regex (Turndown hangs in Service Worker)
+    console.log('[fetchPage] Converting HTML to markdown via regex...');
+    let markdown = htmlToMarkdown(contentHtml);
+    console.log('[fetchPage] Conversion done, markdown length:', markdown.length);
     // Post-process: remove leaked CSS blocks (e.g. .dcc-* rules from DevSite inline styles)
     markdown = markdown
       .replace(/\.dcc-[\s\S]*?\n\n/g, '\n\n')
