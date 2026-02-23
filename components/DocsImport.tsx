@@ -34,8 +34,81 @@ export function DocsImport({ onProgress }: Props) {
   const [results, setResults] = useState<{ success: number; failed: number } | null>(null);
   const [pdfState, setPdfState] = useState<'idle' | 'fetching' | 'generating' | 'done'>('idle');
   const [pdfProgress, setPdfProgress] = useState<PdfProgress | null>(null);
+  const [isOnNotebookLM, setIsOnNotebookLM] = useState(false);
+  const [manualUrl, setManualUrl] = useState('');
+
+  // Detect if current tab is NotebookLM
+  useState(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const url = tabs[0]?.url || '';
+      if (/notebooklm\.google\.com/.test(url)) {
+        setIsOnNotebookLM(true);
+      }
+    });
+  });
+
+  const analyzeUrl = async (targetUrl: string) => {
+    setState('analyzing');
+    setError('');
+    setSiteInfo(null);
+
+    // Open the URL in a new tab, analyze it, then close
+    const newTab = await chrome.tabs.create({ url: targetUrl, active: false });
+    if (!newTab.id) {
+      setState('error');
+      setError('无法创建标签页');
+      return;
+    }
+
+    // Wait for tab to load
+    await new Promise<void>((resolve) => {
+      const listener = (tabId: number, info: chrome.tabs.TabChangeInfo) => {
+        if (tabId === newTab.id && info.status === 'complete') {
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }
+      };
+      chrome.tabs.onUpdated.addListener(listener);
+      // Timeout after 15s
+      setTimeout(() => {
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }, 15000);
+    });
+
+    chrome.runtime.sendMessage({ type: 'ANALYZE_DOC_SITE', tabId: newTab.id }, (response) => {
+      // Close the helper tab
+      if (newTab.id) chrome.tabs.remove(newTab.id);
+
+      if (response?.success && response.data) {
+        const info = response.data as DocSiteInfo;
+        if (info.pages.length === 0) {
+          setState('error');
+          setError('未能从此页面提取到文档链接，请确保该 URL 是文档站点');
+          return;
+        }
+        setSiteInfo(info);
+        setSelectedPages(new Set(info.pages.map((p) => p.url)));
+        setState('analyzed');
+      } else {
+        setState('error');
+        setError(response?.error || '分析失败，请确保 URL 是文档站点');
+      }
+    });
+  };
 
   const handleAnalyze = async () => {
+    if (isOnNotebookLM) {
+      // Manual URL mode
+      if (!manualUrl || !manualUrl.startsWith('http')) {
+        setState('error');
+        setError('请输入有效的文档站点 URL');
+        return;
+      }
+      await analyzeUrl(manualUrl);
+      return;
+    }
+
     setState('analyzing');
     setError('');
     setSiteInfo(null);
@@ -204,24 +277,52 @@ export function DocsImport({ onProgress }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Analyze button */}
-      <button
-        onClick={handleAnalyze}
-        disabled={state === 'analyzing'}
-        className="w-full py-3 px-4 bg-indigo-500 text-white text-sm rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {state === 'analyzing' ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            正在分析...
-          </>
-        ) : (
-          <>
-            <Search className="w-4 h-4" />
-            分析当前站点
-          </>
-        )}
-      </button>
+      {/* Analyze: URL input when on NotebookLM, button when on doc site */}
+      {isOnNotebookLM ? (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">文档站点 URL</label>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={manualUrl}
+              onChange={(e) => setManualUrl(e.target.value)}
+              placeholder="https://docs.openclaw.ai/"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAnalyze(); }}
+            />
+            <button
+              onClick={handleAnalyze}
+              disabled={state === 'analyzing' || !manualUrl}
+              className="px-4 py-2 bg-indigo-500 text-white text-sm rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {state === 'analyzing' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Search className="w-4 h-4" />
+              )}
+              分析
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={handleAnalyze}
+          disabled={state === 'analyzing'}
+          className="w-full py-3 px-4 bg-indigo-500 text-white text-sm rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {state === 'analyzing' ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              正在分析...
+            </>
+          ) : (
+            <>
+              <Search className="w-4 h-4" />
+              分析当前站点
+            </>
+          )}
+        </button>
+      )}
 
       {/* Site info */}
       {siteInfo && (
@@ -373,12 +474,20 @@ export function DocsImport({ onProgress }: Props) {
       {!siteInfo && state === 'idle' && (
         <div className="text-xs text-gray-400 space-y-2">
           <p className="font-medium text-gray-500">使用说明：</p>
-          <ol className="list-decimal list-inside space-y-1">
-            <li>打开文档站点（如 Docusaurus、MkDocs 等）</li>
-            <li>确保侧边栏导航可见</li>
-            <li>点击「分析当前站点」提取所有页面</li>
-            <li>选择要导入的页面，批量导入到 NotebookLM</li>
-          </ol>
+          {isOnNotebookLM ? (
+            <ol className="list-decimal list-inside space-y-1">
+              <li>输入文档站点的任意页面 URL</li>
+              <li>点击「分析」自动提取所有页面</li>
+              <li>选择要导入的页面，批量导入到 NotebookLM</li>
+            </ol>
+          ) : (
+            <ol className="list-decimal list-inside space-y-1">
+              <li>打开文档站点（如 Docusaurus、MkDocs 等）</li>
+              <li>确保侧边栏导航可见</li>
+              <li>点击「分析当前站点」提取所有页面</li>
+              <li>选择要导入的页面，批量导入到 NotebookLM</li>
+            </ol>
+          )}
           <p className="mt-2">支持的框架：</p>
           <ul className="list-disc list-inside space-y-0.5">
             <li>Docusaurus、VitePress、MkDocs</li>
