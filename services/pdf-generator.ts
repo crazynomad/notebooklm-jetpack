@@ -1,9 +1,63 @@
 /**
- * PDF Generator v5 — Markdown → HTML (marked GFM) → browser tab → print
+ * PDF Generator v6 — HTML → Markdown (Turndown) → HTML (marked GFM) → browser tab → print
  */
 
 import { marked } from 'marked';
+import TurndownService from 'turndown';
 import type { DocPageItem, DocSiteInfo } from '@/lib/types';
+
+// ── Turndown instance with custom rules for doc sites ──
+
+function createTurndownService(): TurndownService {
+  const td = new TurndownService({
+    headingStyle: 'atx',
+    codeBlockStyle: 'fenced',
+    bulletListMarker: '-',
+  });
+
+  // DevSite: <pre class="devsite-click-to-copy"> → fenced code block
+  td.addRule('devsiteCode', {
+    filter: (node) =>
+      node.nodeName === 'PRE' &&
+      (node.getAttribute('class') || '').includes('devsite-click-to-copy'),
+    replacement: (_content, node) => {
+      const lang = (node.getAttribute('syntax') || '').toLowerCase();
+      const codeEl = (node as Element).querySelector('code') || node;
+      const text = codeEl.textContent || '';
+      return `\n\n\`\`\`${lang}\n${text.trim()}\n\`\`\`\n\n`;
+    },
+  });
+
+  // Remove <style> tags
+  td.addRule('removeStyle', {
+    filter: 'style',
+    replacement: () => '',
+  });
+
+  // Remove devsite UI components (toc, ratings, nav, etc.)
+  td.addRule('removeDevsiteUI', {
+    filter: (node) => {
+      const tag = node.nodeName.toLowerCase();
+      return (
+        tag.startsWith('devsite-') &&
+        tag !== 'devsite-code' &&
+        tag !== 'devsite-content'
+      );
+    },
+    replacement: () => '',
+  });
+
+  // Remove breadcrumbs, sidebars, etc.
+  td.addRule('removeNavElements', {
+    filter: (node) => {
+      const cl = node.getAttribute('class') || '';
+      return /breadcrumb|sidebar|devsite-nav|devsite-toc/.test(cl);
+    },
+    replacement: () => '',
+  });
+
+  return td;
+}
 
 export interface PdfGeneratorOptions {
   concurrency?: number;
@@ -75,7 +129,7 @@ async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> 
     }
   } catch { /* fall through */ }
 
-  // Strategy 2: Fetch HTML and extract content
+  // Strategy 2: Fetch HTML and convert to Markdown via Turndown
   try {
     const r = await fetch(page.url, { signal: AbortSignal.timeout(10000) });
     if (!r.ok) return null;
@@ -85,10 +139,18 @@ async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> 
     let el: Element | null = null;
     for (const s of selectors) { el = doc.querySelector(s); if (el) break; }
     if (!el) el = doc.body;
+    // Remove non-content elements before conversion
     el.querySelectorAll('script,style,nav,footer,header,.sidebar,.toc,.breadcrumb').forEach(e => e.remove());
     const title = doc.querySelector('h1')?.textContent?.trim() || doc.title || page.title;
-    const text = el.textContent?.trim() || '';
-    return { url: page.url, title, markdown: text, section: page.section, wordCount: text.split(/\s+/).length };
+    // Convert HTML → Markdown using Turndown (preserves structure, code blocks, links, etc.)
+    const td = createTurndownService();
+    let markdown = td.turndown(el.innerHTML);
+    // Post-process: remove leaked CSS blocks (e.g. .dcc-* rules from DevSite inline styles)
+    markdown = markdown
+      .replace(/\.dcc-[\s\S]*?\n\n/g, '\n\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    return { url: page.url, title, markdown, section: page.section, wordCount: markdown.split(/\s+/).length };
   } catch { return null; }
 }
 
