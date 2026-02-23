@@ -7,6 +7,16 @@
  * Env: CDP_PORT (default 18792), EXT_ID
  */
 
+// Load .env if exists
+import { readFileSync } from 'fs';
+try {
+  const env = readFileSync('.env', 'utf8');
+  for (const line of env.split('\n')) {
+    const [k, v] = line.split('=');
+    if (k && v && !process.env[k]) process.env[k.trim()] = v.trim();
+  }
+} catch { /* no .env */ }
+
 const EXT_ID = process.argv[2] || process.env.EXT_ID || '';
 const CDP_PORT = process.env.CDP_PORT || '18800'; // OpenClaw managed browser (no auth needed)
 const TEST_URL = 'https://developer.chrome.com/docs/extensions/reference/api';
