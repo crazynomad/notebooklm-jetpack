@@ -350,6 +350,56 @@ interface RescueResult {
   error?: string;
 }
 
+/**
+ * Detect if fetched content is a blocked/anti-scraping page rather than real article content.
+ * Returns error message if blocked, null if content looks legit.
+ */
+function detectBlockedContent(markdown: string, html: string, url: string): string | null {
+  // Too short — no real content
+  if (markdown.length < 50) {
+    return '内容太少，可能是付费/登录墙';
+  }
+
+  // WeChat-specific: blocked page has no rich_media_content and empty title
+  if (url.includes('mp.weixin.qq.com')) {
+    const hasContent = /rich_media_content|js_content/.test(html);
+    const hasTitle = /<title>[^<]{2,}<\/title>/.test(html);
+    if (!hasContent && !hasTitle) {
+      return '微信公众号反爬拦截，需在微信内打开';
+    }
+  }
+
+  // Generic anti-scraping signals
+  const blockedPatterns = [
+    /环境异常.*验证/s,
+    /完成验证后.*继续访问/s,
+    /访问过于频繁/,
+    /请完成.*安全验证/s,
+    /robot.*verification/i,
+    /captcha.*required/i,
+    /access.*denied.*bot/i,
+    /please.*verify.*human/i,
+    /cloudflare.*checking/i,
+    /just.*moment.*checking/i,
+    /enable.*javascript.*cookies/i,
+  ];
+
+  for (const pattern of blockedPatterns) {
+    if (pattern.test(markdown) || pattern.test(html)) {
+      return '页面被反爬机制拦截';
+    }
+  }
+
+  // Content ratio check: if markdown is mostly boilerplate (very few words relative to HTML size)
+  const wordCount = markdown.split(/\s+/).filter((w) => w.length > 1).length;
+  const htmlSize = html.length;
+  if (htmlSize > 10000 && wordCount < 30) {
+    return '页面内容为空壳，可能需要登录';
+  }
+
+  return null;
+}
+
 async function rescueSources(urls: string[]): Promise<RescueResult[]> {
   const results: RescueResult[] = [];
 
@@ -389,8 +439,10 @@ async function rescueSources(urls: string[]): Promise<RescueResult[]> {
           .trim();
       }
 
-      if (markdown.length < 50) {
-        results.push({ url, status: 'error', error: '内容太少，可能是付费/登录墙' });
+      // Content quality check — detect anti-scraping / blocked pages
+      const contentIssue = detectBlockedContent(markdown, html, url);
+      if (contentIssue) {
+        results.push({ url, status: 'error', error: contentIssue });
         continue;
       }
 
