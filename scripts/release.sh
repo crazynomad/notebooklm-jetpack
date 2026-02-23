@@ -3,6 +3,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Load .env if exists
+[ -f .env ] && export $(grep -v '^#' .env | xargs)
+
 # ── 1. Bump patch version ──
 CURRENT=$(node -p "require('./package.json').version")
 IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
