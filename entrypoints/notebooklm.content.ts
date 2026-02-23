@@ -59,18 +59,34 @@ export default defineContentScript({
       injectRepairBanner();
     }, 2000);
 
-    // Re-check periodically (sources may load late)
+    // Re-check when source list changes (new sources added, sources removed, etc.)
+    let lastSourceCount = document.querySelectorAll('.single-source-container').length;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const observer = new MutationObserver(() => {
-      if (!document.getElementById('nlm-rescue-banner')) {
-        injectRescueBanner();
-      }
-      if (!document.getElementById('nlm-repair-banner')) {
-        injectRepairBanner();
-      }
+      if (debounceTimer) return;
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        const currentCount = document.querySelectorAll('.single-source-container').length;
+        const rescueBanner = document.getElementById('nlm-rescue-banner');
+        const repairBanner = document.getElementById('nlm-repair-banner');
+
+        if (currentCount !== lastSourceCount) {
+          // Source count changed — remove and re-inject banners with updated counts
+          lastSourceCount = currentCount;
+          rescueBanner?.remove();
+          repairBanner?.remove();
+          injectRescueBanner();
+          injectRepairBanner();
+        } else {
+          // Source count unchanged — just ensure banners exist
+          if (!rescueBanner) injectRescueBanner();
+          if (!repairBanner) injectRepairBanner();
+        }
+      }, 800);
     });
     const scrollArea = document.querySelector('.scroll-area-desktop');
     if (scrollArea) {
-      observer.observe(scrollArea, { childList: true });
+      observer.observe(scrollArea, { childList: true, subtree: true });
     }
   },
 });
@@ -205,6 +221,18 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     for (let i = 0; i < 10; i++) {
       await delay(1000);
       if (!getMainDialog()) break;
+    }
+
+    // Step 6: Rename the newly created source (NotebookLM defaults to "粘贴的文字")
+    if (title) {
+      await delay(2500); // Wait for source list to fully update after dialog closes
+      try {
+        await renameSource('粘贴的文字', title);
+        console.log(`[rename] Renamed source to: ${title}`);
+      } catch (e) {
+        console.warn('[rename] Failed to rename source:', e);
+        // Non-fatal: import succeeded even if rename fails
+      }
     }
 
     return true;
@@ -422,6 +450,142 @@ async function fillInput(
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─── Source Rename ──────────────────────────────────────────
+
+/**
+ * Rename a source in the source list by clicking its three-dot menu → "重命名来源".
+ * Finds the LAST source matching `oldName` (most recently added).
+ */
+async function renameSource(oldName: string, newName: string): Promise<void> {
+  // NotebookLM DOM: .single-source-container > .source-title-column (title) + .source-item-more-button (⋮)
+  const allItems = document.querySelectorAll('.single-source-container');
+  let targetMoreBtn: HTMLElement | null = null;
+
+  // Search from last to first (most recently added source is at the bottom)
+  for (let i = allItems.length - 1; i >= 0; i--) {
+    const item = allItems[i];
+    const titleEl = item.querySelector('.source-title-column');
+    if (titleEl?.textContent?.trim() === oldName) {
+      targetMoreBtn = item.querySelector('.source-item-more-button') as HTMLElement;
+      if (!targetMoreBtn) {
+        // Fallback: find button with aria-label="更多"
+        targetMoreBtn = item.querySelector('button[aria-label="更多"], button[aria-label="More"]') as HTMLElement;
+      }
+      if (targetMoreBtn) break;
+    }
+  }
+
+  if (!targetMoreBtn) {
+    throw new Error(`Source "${oldName}" not found in source list`);
+  }
+
+  // Scroll the source into view first (it may be outside viewport)
+  targetMoreBtn.scrollIntoView({ block: 'center', behavior: 'instant' });
+  await delay(500);
+
+  // Click the more button to open context menu, with retry
+  let renameItem: HTMLElement | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    targetMoreBtn.click();
+    await delay(600);
+
+    renameItem = await findMenuItemByText(['重命名来源', 'Rename source', 'Rename'], 3000);
+    if (renameItem) break;
+
+    // Menu didn't open — dismiss any stale overlay and retry
+    console.warn(`[rename] Attempt ${attempt + 1}: menu not found, retrying...`);
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    await delay(500);
+  }
+
+  if (!renameItem) {
+    throw new Error('Rename menu item not found after 3 attempts');
+  }
+  renameItem.click();
+  await delay(800);
+
+  // Find the rename dialog input (label: "来源名称")
+  const renameInput = await findInputByPlaceholder(['来源名称', 'Source name'], 3000) 
+    || await findInputByLabel(['来源名称', 'Source name'], 3000);
+  if (!renameInput) {
+    // Try Escape to close dialog
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    throw new Error('Rename input not found');
+  }
+
+  // Clear and fill with new name
+  renameInput.select();
+  await delay(100);
+  await fillInput(renameInput, newName);
+
+  // Click "保存" (Save) button
+  const saveBtn = await findButtonByText(['保存', 'Save'], 3000);
+  if (!saveBtn) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    throw new Error('Save button not found');
+  }
+  saveBtn.click();
+  await delay(500);
+}
+
+/**
+ * Find a menu item by text (inside mat-menu-panel or similar menu).
+ */
+async function findMenuItemByText(
+  texts: string[],
+  timeout: number = 3000
+): Promise<HTMLElement | null> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeout) {
+    const items = document.querySelectorAll('[role="menuitem"], .mat-menu-item, .mat-mdc-menu-item, button[mat-menu-item]');
+    for (const item of items) {
+      const itemText = item.textContent?.trim() || '';
+      for (const text of texts) {
+        if (itemText.includes(text)) {
+          return item as HTMLElement;
+        }
+      }
+    }
+    await delay(100);
+  }
+  return null;
+}
+
+/**
+ * Find an input by its associated label text (for Angular Material mat-label).
+ */
+async function findInputByLabel(
+  labels: string[],
+  timeout: number = 3000
+): Promise<HTMLInputElement | null> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeout) {
+    // Angular Material: mat-label inside mat-form-field, input is sibling
+    const matLabels = document.querySelectorAll('mat-label, label, .mat-mdc-floating-label');
+    for (const lbl of matLabels) {
+      const lblText = lbl.textContent?.trim()?.replace(/\*$/, '').trim() || '';
+      for (const label of labels) {
+        if (lblText === label || lblText.includes(label)) {
+          // Find the input within the same form field
+          const formField = lbl.closest('mat-form-field, .mat-mdc-form-field, .mat-form-field');
+          if (formField) {
+            const input = formField.querySelector('input') as HTMLInputElement;
+            if (input) return input;
+          }
+          // Fallback: label's for attribute
+          const forId = (lbl as HTMLLabelElement).htmlFor;
+          if (forId) {
+            const input = document.getElementById(forId) as HTMLInputElement;
+            if (input) return input;
+          }
+        }
+      }
+    }
+    await delay(100);
+  }
+  return null;
 }
 
 // ─── Inline Rescue Banner ───────────────────────────────────

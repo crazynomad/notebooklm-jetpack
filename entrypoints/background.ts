@@ -446,8 +446,8 @@ async function rescueSources(urls: string[]): Promise<RescueResult[]> {
         continue;
       }
 
-      // Prepend source URL for reference
-      const content = `Source: ${url}\n\n${markdown}`;
+      // Prepend title and source URL for reference
+      const content = `# ${title}\n\nSource: ${url}\n\n${markdown}`;
 
       // Import as text to NotebookLM
       const success = await importText(content, title);
@@ -560,7 +560,7 @@ async function repairWechatSources(urls: string[]): Promise<RescueResult[]> {
       }
 
       const title = extracted.title || new URL(url).hostname;
-      const content = `Source: ${url}\n\n# ${title}\n\n${extracted.content}`;
+      const content = `# ${title}\n\nSource: ${url}\n\n${extracted.content}`;
 
       // Import as text
       const success = await importText(content, title);
