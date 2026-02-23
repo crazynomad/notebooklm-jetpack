@@ -65,7 +65,7 @@ async function generatePdf(pages, outPath) {
       .text(`${pages.length} 个页面 · 生成日期 ${new Date().toISOString().split('T')[0]}`, { align: 'center' });
     doc.moveDown(0.5);
     doc.fontSize(10).fillColor('#999')
-      .text('由 NotebookLM Importer 扩展生成', { align: 'center' });
+      .text('由 NotebookLM Jetpack 扩展生成', { align: 'center' });
 
     // TOC
     doc.addPage();

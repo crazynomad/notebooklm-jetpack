@@ -220,7 +220,7 @@ async function main() {
   pdf.moveDown(1);
   pdf.font('Chinese').fontSize(11).fillColor('#666').text(`${contents.length} 个页面 · ${new Date().toISOString().split('T')[0]}`, { align: 'center' });
   pdf.moveDown(0.5);
-  pdf.fontSize(9).fillColor('#999').text('由 NotebookLM Importer 生成', { align: 'center' });
+  pdf.fontSize(9).fillColor('#999').text('由 NotebookLM Jetpack 生成', { align: 'center' });
 
   // TOC
   pdf.addPage();
