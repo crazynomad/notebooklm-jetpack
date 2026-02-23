@@ -27,6 +27,7 @@ export default function App() {
             <Link className="w-4 h-4 text-white" />
           </div>
           <span className="font-medium text-gray-900">NotebookLM Importer</span>
+          <span className="text-[10px] text-gray-400 ml-1">v{chrome.runtime.getManifest().version}</span>
         </div>
         <button
           onClick={() => setShowHistory(true)}
