@@ -39,19 +39,27 @@ async function importUrlToNotebookLM(url: string): Promise<boolean> {
     // Step 1: Open the add source dialog
     await openAddSourceDialog();
 
-    // Step 2: Click "网站" (Website) button in the dialog
-    const websiteButton = await findButtonByText(['网站', 'Website', 'Link'], 3000);
-    if (!websiteButton) {
-      throw new Error('Website button not found in dialog');
-    }
-    websiteButton.click();
-    await delay(500);
-
-    // Step 3: Find the URL textarea (placeholder="粘贴任何链接" or "Paste")
-    const urlTextarea = await findTextareaByPlaceholder(
+    // Step 2: Check if we're already on the URL input step (dialog may already be at website sub-page)
+    let urlTextarea = await findTextareaByPlaceholder(
       ['粘贴任何链接', '粘贴', 'Paste any link', 'Paste'],
-      3000
+      500
     );
+
+    if (!urlTextarea) {
+      // Not at URL input step yet — click "网站" (Website) button
+      const websiteButton = await findButtonByText(['网站', 'Website', 'Link'], 3000);
+      if (!websiteButton) {
+        throw new Error('Website button not found in dialog');
+      }
+      websiteButton.click();
+      await delay(500);
+
+      // Now find the URL textarea
+      urlTextarea = await findTextareaByPlaceholder(
+        ['粘贴任何链接', '粘贴', 'Paste any link', 'Paste'],
+        3000
+      );
+    }
     if (!urlTextarea) {
       throw new Error('URL input textarea not found');
     }
@@ -216,19 +224,40 @@ async function findButtonByText(
 async function findTextareaByPlaceholder(
   placeholders: string[],
   timeout: number = 3000
-): Promise<HTMLTextAreaElement | null> {
+): Promise<HTMLTextAreaElement | HTMLInputElement | null> {
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeout) {
-    const textareas = document.querySelectorAll<HTMLTextAreaElement>('textarea');
-    for (const textarea of textareas) {
-      const ph = textarea.placeholder?.toLowerCase() || '';
+    // Search both textarea and input elements
+    const elements = document.querySelectorAll<HTMLTextAreaElement | HTMLInputElement>(
+      'textarea, input[type="text"], input[type="url"], input:not([type])'
+    );
+    for (const el of elements) {
+      const ph = el.placeholder?.toLowerCase() || '';
       for (const placeholder of placeholders) {
         if (ph.includes(placeholder.toLowerCase())) {
-          return textarea;
+          return el;
         }
       }
     }
+
+    // Also check contenteditable and role="textbox" elements within dialog
+    const dialog = document.querySelector('[role="dialog"]');
+    if (dialog) {
+      const textboxes = dialog.querySelectorAll<HTMLElement>('[role="textbox"], [contenteditable="true"]');
+      for (const tb of textboxes) {
+        const ph = tb.getAttribute('aria-placeholder')?.toLowerCase()
+          || tb.getAttribute('placeholder')?.toLowerCase()
+          || tb.dataset?.placeholder?.toLowerCase()
+          || '';
+        for (const placeholder of placeholders) {
+          if (ph.includes(placeholder.toLowerCase())) {
+            return tb as unknown as HTMLTextAreaElement;
+          }
+        }
+      }
+    }
+
     await delay(100);
   }
 

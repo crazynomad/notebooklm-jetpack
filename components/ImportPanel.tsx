@@ -23,6 +23,10 @@ interface Props {
 type ImportState = 'idle' | 'loading' | 'importing' | 'success' | 'error';
 type Mode = 'single' | 'batch' | 'rss';
 
+function isNotebookLMUrl(url: string): boolean {
+  return /notebooklm\.google\.com/.test(url);
+}
+
 export function ImportPanel({ onProgress }: Props) {
   const [mode, setMode] = useState<Mode>('single');
   const [url, setUrl] = useState('');
@@ -36,11 +40,14 @@ export function ImportPanel({ onProgress }: Props) {
   const [importResults, setImportResults] = useState<ImportItem[] | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  // Load current tab URL on mount
+  // Load current tab URL on mount (exclude NotebookLM pages)
   useState(() => {
     chrome.runtime.sendMessage({ type: 'GET_CURRENT_TAB' }, (response) => {
       if (response?.success && response.data) {
-        setCurrentTabUrl(response.data as string);
+        const tabUrl = response.data as string;
+        if (!isNotebookLMUrl(tabUrl)) {
+          setCurrentTabUrl(tabUrl);
+        }
       }
     });
   });
@@ -55,6 +62,11 @@ export function ImportPanel({ onProgress }: Props) {
   const handleSingleImport = (targetUrl: string) => {
     if (!isValidUrl(targetUrl)) {
       setError('请输入有效的 URL');
+      setState('error');
+      return;
+    }
+    if (isNotebookLMUrl(targetUrl)) {
+      setError('不能导入 NotebookLM 自身的页面');
       setState('error');
       return;
     }
