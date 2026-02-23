@@ -31,6 +31,7 @@ export default defineConfig({
       'contextMenus',
       'downloads',
       'debugger',
+      'offscreen',
     ],
     host_permissions: [
       'https://notebooklm.google.com/*',

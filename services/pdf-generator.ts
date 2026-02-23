@@ -50,109 +50,41 @@ export function cleanComponentMd(md: string): string {
   return md.trim();
 }
 
-// ── HTML → Markdown via regex (no DOM dependency, safe for Service Worker) ──
+// ── Offscreen document for HTML→Markdown (DOMParser + Turndown need DOM) ──
 
-function htmlToMarkdown(html: string): string {
-  let md = html;
+let offscreenReady = false;
 
-  // Remove script, style, svg
-  md = md.replace(/<script[\s\S]*?<\/script>/gi, '');
-  md = md.replace(/<style[\s\S]*?<\/style>/gi, '');
-  md = md.replace(/<svg[\s\S]*?<\/svg>/gi, '');
-
-  // Code blocks: <pre><code>...</code></pre> → fenced code blocks
-  md = md.replace(/<pre[^>]*>\s*<code[^>]*(?:class="[^"]*language-(\w+)[^"]*")?[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi,
-    (_m, lang, code) => `\n\n\`\`\`${lang || ''}\n${decodeHtmlEntities(code.trim())}\n\`\`\`\n\n`);
-  // Bare <pre>
-  md = md.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi,
-    (_m, code) => `\n\n\`\`\`\n${decodeHtmlEntities(code.trim())}\n\`\`\`\n\n`);
-
-  // Headings
-  md = md.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_m, t) => `\n\n# ${stripTags(t).trim()}\n\n`);
-  md = md.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_m, t) => `\n\n## ${stripTags(t).trim()}\n\n`);
-  md = md.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (_m, t) => `\n\n### ${stripTags(t).trim()}\n\n`);
-  md = md.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, (_m, t) => `\n\n#### ${stripTags(t).trim()}\n\n`);
-  md = md.replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, (_m, t) => `\n\n##### ${stripTags(t).trim()}\n\n`);
-  md = md.replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, (_m, t) => `\n\n###### ${stripTags(t).trim()}\n\n`);
-
-  // Inline code
-  md = md.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_m, c) => `\`${decodeHtmlEntities(c.trim())}\``);
-
-  // Bold / Italic
-  md = md.replace(/<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/gi, (_m, t) => `**${stripTags(t).trim()}**`);
-  md = md.replace(/<(?:em|i)[^>]*>([\s\S]*?)<\/(?:em|i)>/gi, (_m, t) => `*${stripTags(t).trim()}*`);
-
-  // Links
-  md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href, text) => {
-    const t = stripTags(text).trim();
-    return t ? `[${t}](${href})` : '';
+async function ensureOffscreen(): Promise<void> {
+  if (offscreenReady) return;
+  // Check if already exists
+  const contexts = await (chrome.runtime as unknown as { getContexts(f: { contextTypes: string[] }): Promise<{ documentUrl: string }[]> })
+    .getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
+  if (contexts.length > 0) {
+    offscreenReady = true;
+    return;
+  }
+  await chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: [chrome.offscreen.Reason.DOM_PARSER],
+    justification: 'Convert HTML to Markdown using DOMParser + Turndown',
   });
-
-  // Images
-  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
-  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '![]($1)');
-
-  // List items
-  md = md.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, t) => `- ${stripTags(t).trim()}\n`);
-
-  // Blockquotes
-  md = md.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (_m, t) => {
-    return stripTags(t).trim().split('\n').map(l => `> ${l}`).join('\n') + '\n\n';
-  });
-
-  // Tables: basic conversion
-  md = md.replace(/<table[\s\S]*?<\/table>/gi, (table) => {
-    const rows: string[][] = [];
-    const rowMatches = table.match(/<tr[\s\S]*?<\/tr>/gi) || [];
-    for (const row of rowMatches) {
-      const cells = (row.match(/<(?:td|th)[^>]*>[\s\S]*?<\/(?:td|th)>/gi) || [])
-        .map(c => stripTags(c.replace(/<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/i, '$1')).trim());
-      if (cells.length) rows.push(cells);
-    }
-    if (rows.length === 0) return '';
-    const maxCols = Math.max(...rows.map(r => r.length));
-    const padded = rows.map(r => { while (r.length < maxCols) r.push(''); return r; });
-    let result = '\n\n';
-    result += '| ' + padded[0].join(' | ') + ' |\n';
-    result += '| ' + padded[0].map(() => '---').join(' | ') + ' |\n';
-    for (let i = 1; i < padded.length; i++) {
-      result += '| ' + padded[i].join(' | ') + ' |\n';
-    }
-    return result + '\n';
-  });
-
-  // Paragraphs and line breaks
-  md = md.replace(/<br\s*\/?>/gi, '\n');
-  md = md.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (_m, t) => `\n\n${stripTags(t).trim()}\n\n`);
-  md = md.replace(/<hr[^>]*\/?>/gi, '\n\n---\n\n');
-
-  // Remove remaining HTML tags
-  md = md.replace(/<[^>]+>/g, '');
-
-  // Decode HTML entities
-  md = decodeHtmlEntities(md);
-
-  // Clean up whitespace
-  md = md.replace(/\n{3,}/g, '\n\n').trim();
-
-  return md;
+  offscreenReady = true;
+  console.log('[offscreen] Document created');
 }
 
-function stripTags(html: string): string {
-  return html.replace(/<[^>]+>/g, '');
-}
-
-function decodeHtmlEntities(text: string): string {
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(parseInt(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_m, n) => String.fromCharCode(parseInt(n, 16)));
+async function convertHtmlToMarkdown(html: string): Promise<{ markdown: string; title: string }> {
+  await ensureOffscreen();
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ type: 'HTML_TO_MARKDOWN', html }, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else if (response?.success) {
+        resolve({ markdown: response.markdown, title: response.title });
+      } else {
+        reject(new Error(response?.error || 'Unknown offscreen error'));
+      }
+    });
+  });
 }
 
 // ── Fetch pages ──
@@ -195,101 +127,13 @@ async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> 
     const html = await r.text();
     console.log('[fetchPage] HTML fetched, size:', html.length);
 
-    // Extract content region via regex (DOMParser can hang in Service Worker for large HTML)
-    let contentHtml = html;
-    const contentPatterns = [
-      // Google DevSite
-      { start: /<div\s+class="devsite-article-body[^"]*"[^>]*>/i, end: null, name: 'devsite-article-body' },
-      // GitHub-style
-      { start: /<div\s+class="markdown-body[^"]*"[^>]*>/i, end: null, name: 'markdown-body' },
-      // Generic article/main
-      { start: /<article[^>]*>/i, end: /<\/article>/i, name: 'article' },
-      { start: /<main[^>]*>/i, end: /<\/main>/i, name: 'main' },
-    ];
+    // Send to offscreen document for DOMParser + Turndown conversion
+    console.log('[fetchPage] Sending to offscreen for conversion...');
+    const result = await convertHtmlToMarkdown(html);
+    console.log('[fetchPage] Offscreen returned, markdown length:', result.markdown.length);
 
-    let matchedSelector = 'full page';
-    for (const pattern of contentPatterns) {
-      const startMatch = pattern.start.exec(html);
-      if (startMatch) {
-        const startIdx = startMatch.index;
-        // Find the matching closing tag by counting nesting
-        const tagName = pattern.name.includes('-') ? 'div' : pattern.name;
-        let depth = 1;
-        let idx = startIdx + startMatch[0].length;
-        const openRe = new RegExp(`<${tagName}[\\s>]`, 'gi');
-        const closeRe = new RegExp(`</${tagName}>`, 'gi');
-
-        // Simple approach: grab from start to a reasonable end
-        if (pattern.end) {
-          closeRe.lastIndex = idx;
-          const endMatch = pattern.end.exec(html);
-          if (endMatch) {
-            contentHtml = html.slice(startIdx, endMatch.index + endMatch[0].length);
-            matchedSelector = pattern.name;
-            break;
-          }
-        } else {
-          // For div-based selectors, grab a large chunk and find balanced close
-          const chunk = html.slice(startIdx, startIdx + html.length);
-          let pos = startMatch[0].length;
-          let nestDepth = 1;
-          const divOpenRe = /<div[\s>]/gi;
-          const divCloseRe = /<\/div>/gi;
-          divOpenRe.lastIndex = pos;
-          divCloseRe.lastIndex = pos;
-
-          while (nestDepth > 0 && pos < chunk.length) {
-            divOpenRe.lastIndex = pos;
-            divCloseRe.lastIndex = pos;
-            const nextOpen = divOpenRe.exec(chunk);
-            const nextClose = divCloseRe.exec(chunk);
-
-            if (!nextClose) break;
-            if (nextOpen && nextOpen.index < nextClose.index) {
-              nestDepth++;
-              pos = nextOpen.index + nextOpen[0].length;
-            } else {
-              nestDepth--;
-              if (nestDepth === 0) {
-                contentHtml = chunk.slice(0, nextClose.index + nextClose[0].length);
-                matchedSelector = pattern.name;
-                break;
-              }
-              pos = nextClose.index + nextClose[0].length;
-            }
-          }
-          if (matchedSelector !== 'full page') break;
-        }
-      }
-    }
-    console.log('[fetchPage] Content extracted via:', matchedSelector, '| length:', contentHtml.length);
-
-    // Strip non-content tags via regex
-    contentHtml = contentHtml
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[\s\S]*?<\/style>/gi, '')
-      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
-      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
-      .replace(/<header[\s\S]*?<\/header>/gi, '')
-      .replace(/<devsite-toc[\s\S]*?<\/devsite-toc>/gi, '')
-      .replace(/<devsite-page-rating[\s\S]*?<\/devsite-page-rating>/gi, '')
-      .replace(/<devsite-thumbs-rating[\s\S]*?<\/devsite-thumbs-rating>/gi, '')
-      .replace(/<devsite-feedback[\s\S]*?<\/devsite-feedback>/gi, '')
-      .replace(/<devsite-bookmark[\s\S]*?<\/devsite-bookmark>/gi, '')
-      .replace(/<div[^>]*class="[^"]*(?:breadcrumb|nocontent|devsite-article-meta)[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '');
-    console.log('[fetchPage] After cleanup, length:', contentHtml.length);
-
-    // Extract title from h1
-    const h1Match = contentHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-    const titleText = h1Match ? h1Match[1].replace(/<[^>]+>/g, '').trim() : '';
-    const title = titleText || page.title;
-
-    // Convert HTML → Markdown via regex (Turndown hangs in Service Worker)
-    console.log('[fetchPage] Converting HTML to markdown via regex...');
-    let markdown = htmlToMarkdown(contentHtml);
-    console.log('[fetchPage] Conversion done, markdown length:', markdown.length);
-    // Post-process: remove leaked CSS blocks (e.g. .dcc-* rules from DevSite inline styles)
-    markdown = markdown
+    const title = result.title || page.title;
+    let markdown = result.markdown
       .replace(/\.dcc-[\s\S]*?\n\n/g, '\n\n')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
