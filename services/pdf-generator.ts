@@ -135,12 +135,30 @@ async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> 
     if (!r.ok) return null;
     const html = await r.text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const selectors = ['article', 'main', '[role="main"]', '#content', '.prose', '.content'];
+    const selectors = [
+      '.devsite-article-body',  // Google DevSite (developer.chrome.com, etc.)
+      '.markdown-body',         // GitHub-style
+      'article [itemprop="articleBody"]',
+      'article',
+      'main',
+      '[role="main"]',
+      '#content',
+      '.prose',
+      '.content',
+    ];
     let el: Element | null = null;
     for (const s of selectors) { el = doc.querySelector(s); if (el) break; }
     if (!el) el = doc.body;
     // Remove non-content elements before conversion
-    el.querySelectorAll('script,style,nav,footer,header,.sidebar,.toc,.breadcrumb').forEach(e => e.remove());
+    el.querySelectorAll([
+      'script', 'style', 'nav', 'footer', 'header',
+      '.sidebar', '.toc', '.breadcrumb',
+      '.devsite-article-meta', '.devsite-breadcrumb-list',
+      'devsite-toc', 'devsite-page-rating', 'devsite-thumbs-rating',
+      'devsite-feedback', 'devsite-bookmark',
+      '.nocontent', '[role="navigation"]',
+      '.devsite-banner',
+    ].join(',')).forEach(e => e.remove());
     const title = doc.querySelector('h1')?.textContent?.trim() || doc.title || page.title;
     // Convert HTML → Markdown using Turndown (preserves structure, code blocks, links, etc.)
     const td = createTurndownService();
