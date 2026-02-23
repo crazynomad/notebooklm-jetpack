@@ -71,9 +71,9 @@ const REMOVE_SELECTORS = [
   '.sidebar', '.toc', '.breadcrumb',
   '.devsite-article-meta', '.devsite-breadcrumb-list',
   'devsite-toc', 'devsite-page-rating', 'devsite-thumbs-rating',
-  'devsite-feedback', 'devsite-bookmark',
+  'devsite-feedback', 'devsite-bookmark', 'devsite-actions',
   '.nocontent', '[role="navigation"]',
-  '.devsite-banner',
+  '.devsite-banner', '.devsite-collections-banner',
 ].join(',');
 
 function htmlToMarkdown(html: string): { markdown: string; title: string } {
