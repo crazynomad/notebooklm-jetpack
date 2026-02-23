@@ -109,22 +109,17 @@ async function handleExportPdfFromHtml(html: string, title: string): Promise<voi
   chrome.debugger.detach({ tabId });
   chrome.tabs.remove(tabId);
 
-  // Convert base64 to blob URL to avoid data URL size limits
-  const byteChars = atob(result.data);
-  const byteArray = new Uint8Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
-  const blob = new Blob([byteArray], { type: 'application/pdf' });
-  const blobUrl = URL.createObjectURL(blob);
+  const pdfSizeMB = (result.data.length * 3 / 4 / 1024 / 1024).toFixed(2);
+  console.log('[EXPORT_PDF] PDF generated, ~size:', pdfSizeMB, 'MB, downloading as:', filename);
 
-  console.log('[EXPORT_PDF] PDF generated, size:', (byteArray.length / 1024 / 1024).toFixed(2), 'MB, downloading as:', filename);
-  chrome.downloads.download({ url: blobUrl, filename, saveAs: true }, (downloadId) => {
+  // Use data URL for download (Service Worker has no URL.createObjectURL)
+  const pdfDataUrl = 'data:application/pdf;base64,' + result.data;
+  chrome.downloads.download({ url: pdfDataUrl, filename, saveAs: true }, (downloadId) => {
     if (chrome.runtime.lastError) {
       console.error('[EXPORT_PDF] download failed:', chrome.runtime.lastError.message);
     } else {
       console.log('[EXPORT_PDF] Download started, id:', downloadId);
     }
-    // Revoke blob URL after a delay
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   });
 }
 
