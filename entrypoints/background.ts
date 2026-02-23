@@ -406,9 +406,9 @@ async function rescueSources(urls: string[]): Promise<RescueResult[]> {
         error: success ? undefined : '导入 NotebookLM 失败',
       });
 
-      // Delay between imports
+      // Delay between imports (wait for dialog to fully close)
       if (urls.indexOf(url) < urls.length - 1) {
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 3000));
       }
     } catch (error) {
       results.push({

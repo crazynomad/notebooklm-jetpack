@@ -6,6 +6,10 @@ export default defineContentScript({
   runAt: 'document_idle',
 
   main() {
+    // Prevent duplicate listener registration from multiple injections
+    if ((window as unknown as Record<string, boolean>).__NLM_IMPORTER_LOADED__) return;
+    (window as unknown as Record<string, boolean>).__NLM_IMPORTER_LOADED__ = true;
+
     console.log('NotebookLM Importer content script loaded');
 
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -172,21 +176,23 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     // Step 4: Fill text content
     await fillInput(textArea, text);
 
-    // Step 5: Click "插入" (Insert) button
-    await delay(300);
-    const insertButton = await findButtonByText(['插入', 'Insert'], 3000);
+    // Step 5: Click "插入" (Insert) button — wait longer for it to become enabled
+    await delay(800);
+    const insertButton = await findButtonByText(['插入', 'Insert'], 5000);
     if (!insertButton) {
       throw new Error('Insert button not found');
+    }
+    // Wait for button to be enabled (disabled while processing input)
+    for (let i = 0; i < 10; i++) {
+      if (!(insertButton as HTMLButtonElement).disabled) break;
+      await delay(300);
     }
     insertButton.click();
 
     // Wait for dialog to close / import to complete
-    await delay(2000);
-
-    // If dialog is still open (import might need time), wait more
-    const dialogStillOpen = getMainDialog();
-    if (dialogStillOpen) {
-      await delay(2000);
+    for (let i = 0; i < 10; i++) {
+      await delay(1000);
+      if (!getMainDialog()) break;
     }
 
     return true;
