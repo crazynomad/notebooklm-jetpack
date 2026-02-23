@@ -72,7 +72,7 @@ async function ensureOffscreen(): Promise<void> {
   console.log('[offscreen] Document created');
 }
 
-async function convertHtmlToMarkdown(html: string): Promise<{ markdown: string; title: string }> {
+export async function convertHtmlToMarkdown(html: string): Promise<{ markdown: string; title: string }> {
   await ensureOffscreen();
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({ type: 'HTML_TO_MARKDOWN', html }, (response) => {

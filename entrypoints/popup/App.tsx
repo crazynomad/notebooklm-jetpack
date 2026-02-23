@@ -8,20 +8,26 @@ import { PodcastImport } from '@/components/PodcastImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
 import { ImportPanel } from '@/components/ImportPanel';
 import { HistoryPanel } from '@/components/HistoryPanel';
+import { RescueBanner } from '@/components/RescueBanner';
 
 export default function App() {
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [defaultTab, setDefaultTab] = useState('docs');
   const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
+  const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
 
   // Auto-detect URL from current tab
   useState(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const url = tabs[0]?.url || '';
+      const tabId = tabs[0]?.id;
       if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
         setDefaultTab('podcast');
         setInitialPodcastUrl(url);
+      }
+      if (/notebooklm\.google\.com/.test(url) && tabId) {
+        setNotebookLMTabId(tabId);
       }
     });
   });
@@ -73,6 +79,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Rescue banner — shown when on NotebookLM page */}
+      {notebookLMTabId && <RescueBanner tabId={notebookLMTabId} />}
 
       {/* Tabs */}
       <Tabs.Root defaultValue={defaultTab} className="flex flex-col">

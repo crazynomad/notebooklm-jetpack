@@ -28,6 +28,12 @@ export default defineContentScript({
           });
         return true;
       }
+
+      if (message.type === 'GET_FAILED_SOURCES') {
+        const failedUrls = getFailedSourceUrls();
+        sendResponse({ success: true, data: failedUrls });
+        return true;
+      }
     });
   },
 });
@@ -331,6 +337,47 @@ async function fillInput(
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─── Failed Source Detection ────────────────────────────────
+
+function getFailedSourceUrls(): string[] {
+  const urls: string[] = [];
+
+  // Find error icons (Material Icons "info" used for failed sources)
+  // Strategy: find spans containing URLs that are siblings/near error indicators
+  const allSpans = document.querySelectorAll('span');
+  const errorIcons = new Set<Element>();
+
+  // Collect error icon elements
+  document.querySelectorAll('img[alt*="错误"], img[alt*="error"]').forEach((el) => errorIcons.add(el));
+  allSpans.forEach((span) => {
+    if (span.textContent?.trim() === 'info' && span.classList.toString().includes('material')) {
+      errorIcons.add(span);
+    }
+  });
+
+  // For each error icon, walk up to find the source container and extract URL
+  for (const icon of errorIcons) {
+    let parent = icon.parentElement;
+    for (let i = 0; i < 8 && parent; i++) {
+      const spans = parent.querySelectorAll('span');
+      for (const span of spans) {
+        const text = span.textContent?.trim();
+        if (text && /^https?:\/\//.test(text)) {
+          urls.push(text);
+        }
+      }
+      // Also check for title/tooltip attributes
+      const title = parent.getAttribute('title') || parent.getAttribute('aria-label');
+      if (title && /^https?:\/\//.test(title)) {
+        urls.push(title);
+      }
+      parent = parent.parentElement;
+    }
+  }
+
+  return [...new Set(urls)];
 }
 
 async function waitForElement<T extends Element = Element>(

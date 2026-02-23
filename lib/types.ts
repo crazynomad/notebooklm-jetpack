@@ -71,7 +71,9 @@ export type MessageType =
   | { type: 'EXPORT_PDF'; blobUrl: string; title: string }
   | { type: 'GENERATE_PDF'; siteInfo: DocSiteInfo }
   | { type: 'FETCH_PODCAST'; url: string; count?: number }
-  | { type: 'DOWNLOAD_PODCAST' };
+  | { type: 'DOWNLOAD_PODCAST' }
+  | { type: 'GET_FAILED_SOURCES'; tabId: number }
+  | { type: 'RESCUE_SOURCES'; urls: string[] };
 
 export type MessageResponse =
   | { success: true; data: unknown }

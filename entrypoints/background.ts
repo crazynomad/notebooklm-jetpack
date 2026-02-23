@@ -7,7 +7,7 @@ import {
   getAllTabUrls,
 } from '@/services/notebooklm';
 import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog, fetchLlmsTxt, fetchLlmsFullTxt } from '@/services/docs-site';
-import { fetchAllPages, buildDocsHtml, cleanComponentMd } from '@/services/pdf-generator';
+import { fetchAllPages, buildDocsHtml, cleanComponentMd, convertHtmlToMarkdown } from '@/services/pdf-generator';
 import { getHistory, clearHistory } from '@/services/history';
 import { fetchPodcast, sanitizeFilename, buildFilename } from '@/services/podcast';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
@@ -341,6 +341,87 @@ export default defineBackground(() => {
   );
 });
 
+// ── Rescue failed sources ──
+// Fetch page content ourselves and import as text (bypasses NotebookLM's URL fetch)
+interface RescueResult {
+  url: string;
+  status: 'success' | 'error';
+  title?: string;
+  error?: string;
+}
+
+async function rescueSources(urls: string[]): Promise<RescueResult[]> {
+  const results: RescueResult[] = [];
+
+  for (const url of urls) {
+    try {
+      console.log(`[rescue] Fetching: ${url}`);
+      const resp = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (!resp.ok) {
+        results.push({ url, status: 'error', error: `HTTP ${resp.status}` });
+        continue;
+      }
+
+      const html = await resp.text();
+
+      // Convert HTML to Markdown via offscreen document (Turndown)
+      let markdown: string;
+      let title: string;
+      try {
+        const result = await convertHtmlToMarkdown(html);
+        markdown = result.markdown;
+        title = result.title || new URL(url).hostname;
+      } catch {
+        // Fallback: basic text extraction
+        const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        title = titleMatch?.[1]?.trim()?.replace(/\s+/g, ' ') || new URL(url).hostname;
+        markdown = html
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[\s\S]*?<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+
+      if (markdown.length < 50) {
+        results.push({ url, status: 'error', error: '内容太少，可能是付费/登录墙' });
+        continue;
+      }
+
+      // Prepend source URL for reference
+      const content = `Source: ${url}\n\n${markdown}`;
+
+      // Import as text to NotebookLM
+      const success = await importText(content, title);
+      results.push({
+        url,
+        status: success ? 'success' : 'error',
+        title,
+        error: success ? undefined : '导入 NotebookLM 失败',
+      });
+
+      // Delay between imports
+      if (urls.indexOf(url) < urls.length - 1) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    } catch (error) {
+      results.push({
+        url,
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  return results;
+}
+
 async function handleMessage(message: MessageType): Promise<unknown> {
   switch (message.type) {
     case 'IMPORT_URL':
@@ -487,6 +568,23 @@ async function handleMessage(message: MessageType): Promise<unknown> {
     case 'FETCH_PODCAST': {
       const result = await fetchPodcast(message.url, { count: message.count });
       return result;
+    }
+
+    case 'GET_FAILED_SOURCES': {
+      // Forward to content script on the NotebookLM tab
+      return new Promise((resolve) => {
+        chrome.tabs.sendMessage(message.tabId, { type: 'GET_FAILED_SOURCES' }, (resp) => {
+          if (chrome.runtime.lastError || !resp?.success) {
+            resolve([]);
+          } else {
+            resolve(resp.data || []);
+          }
+        });
+      });
+    }
+
+    case 'RESCUE_SOURCES': {
+      return await rescueSources(message.urls);
     }
 
     case 'GENERATE_PDF':
