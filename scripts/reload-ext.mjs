@@ -10,7 +10,8 @@
  */
 
 const EXT_ID = process.argv[2] || process.env.EXT_ID || '';
-const CDP_PORT = process.env.CDP_PORT || '18792'; // OpenClaw browser relay
+// Try multiple CDP ports: browser relay (18792), openclaw browser (18800), or custom
+const CDP_PORTS = (process.env.CDP_PORT || '18792,18800').split(',').map(p => p.trim());
 
 async function findExtensionId() {
   if (EXT_ID) return EXT_ID;
@@ -35,11 +36,19 @@ async function findExtensionId() {
 }
 
 async function getPageTarget() {
-  const resp = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-  const targets = await resp.json();
-  const page = targets.find(t => t.type === 'page' && t.url?.startsWith('http'));
-  if (!page) throw new Error('No page target found. Attach browser relay to a tab first.');
-  return page;
+  for (const port of CDP_PORTS) {
+    try {
+      const resp = await fetch(`http://127.0.0.1:${port}/json`);
+      const text = await resp.text();
+      const targets = JSON.parse(text);
+      const page = targets.find(t => t.type === 'page' && t.url?.startsWith('http'));
+      if (page) {
+        console.log(`  CDP connected on port ${port}`);
+        return page;
+      }
+    } catch { /* try next port */ }
+  }
+  throw new Error('No page target found. Attach browser relay or start OpenClaw browser.');
 }
 
 async function sendCdpCommand(ws, method, params = {}) {
