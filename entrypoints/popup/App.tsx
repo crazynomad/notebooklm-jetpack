@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { BookOpen, History, MessageCircle, Headphones, Import } from 'lucide-react';
+import { BookOpen, History, MessageCircle, Headphones, MoreHorizontal } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { DocsImport } from '@/components/DocsImport';
 import { PodcastImport } from '@/components/PodcastImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
-import { ImportPanel } from '@/components/ImportPanel';
+import { MorePanel } from '@/components/MorePanel';
 import { HistoryPanel } from '@/components/HistoryPanel';
 import { RescueBanner } from '@/components/RescueBanner';
 
@@ -90,7 +90,7 @@ export default function App() {
             { value: 'docs', icon: BookOpen, label: '文档站' },
             { value: 'podcast', icon: Headphones, label: '播客' },
             { value: 'claude', icon: MessageCircle, label: 'Claude' },
-            { value: 'import', icon: Import, label: '导入' },
+            { value: 'more', icon: MoreHorizontal, label: '更多' },
           ].map(({ value, icon: Icon, label }) => (
             <Tabs.Trigger
               key={value}
@@ -121,8 +121,8 @@ export default function App() {
           <ClaudeImport onProgress={setImportProgress} />
         </Tabs.Content>
 
-        <Tabs.Content value="import" className="p-4">
-          <ImportPanel onProgress={setImportProgress} />
+        <Tabs.Content value="more" className="p-4">
+          <MorePanel onProgress={setImportProgress} />
         </Tabs.Content>
       </Tabs.Root>
     </div>

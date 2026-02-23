@@ -1,0 +1,292 @@
+import { useState } from 'react';
+import {
+  Rss,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  ExternalLink,
+  Youtube,
+  Github,
+  Heart,
+  Info,
+} from 'lucide-react';
+import type { ImportProgress, ImportItem, RssFeedItem } from '@/lib/types';
+
+interface Props {
+  onProgress: (progress: ImportProgress | null) => void;
+}
+
+type ImportState = 'idle' | 'loading' | 'importing' | 'success' | 'error';
+
+export function MorePanel({ onProgress }: Props) {
+  const [rssUrl, setRssUrl] = useState('');
+  const [rssArticles, setRssArticles] = useState<RssFeedItem[]>([]);
+  const [selectedArticles, setSelectedArticles] = useState<Set<string>>(new Set());
+  const [state, setState] = useState<ImportState>('idle');
+  const [error, setError] = useState('');
+  const [importResults, setImportResults] = useState<ImportItem[] | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showRss, setShowRss] = useState(false);
+
+  const resetState = () => {
+    setState('idle');
+    setError('');
+    setImportResults(null);
+  };
+
+  // ── RSS ──
+  const handleRssLoad = () => {
+    if (!rssUrl) { setError('请输入 RSS 链接'); setState('error'); return; }
+    setState('loading');
+    setError('');
+    setRssArticles([]);
+
+    chrome.runtime.sendMessage({ type: 'PARSE_RSS', rssUrl }, (response) => {
+      if (response?.success && Array.isArray(response.data)) {
+        const items = response.data as RssFeedItem[];
+        setRssArticles(items);
+        setSelectedArticles(new Set(items.map((a) => a.url)));
+        setState('idle');
+      } else {
+        setState('error');
+        setError(response?.error || 'RSS 解析失败');
+      }
+    });
+  };
+
+  const handleBatchImport = (urls: string[]) => {
+    setState('importing');
+    setError('');
+    setImportResults(null);
+
+    const items: ImportItem[] = urls.map((u) => ({ url: u, status: 'pending' as const }));
+    onProgress({ total: urls.length, completed: 0, items });
+
+    chrome.runtime.sendMessage(
+      { type: 'RESCUE_SOURCES', urls },
+      (response) => {
+        onProgress(null);
+        if (response?.success && Array.isArray(response.data)) {
+          setImportResults(response.data);
+          setState('success');
+        } else {
+          setState('error');
+          setError(response?.error || '导入失败');
+        }
+      }
+    );
+  };
+
+  const handleRssImport = () => {
+    const urls = rssArticles.filter((a) => selectedArticles.has(a.url)).map((a) => a.url);
+    if (urls.length === 0) { setError('请至少选择一篇文章'); setState('error'); return; }
+    handleBatchImport(urls);
+  };
+
+  const handleRetryFailed = () => {
+    if (!importResults) return;
+    const failedUrls = importResults.filter((i) => i.status === 'error').map((i) => i.url);
+    if (failedUrls.length > 0) handleBatchImport(failedUrls);
+  };
+
+  const successCount = importResults?.filter((i) => i.status === 'success').length || 0;
+  const failedCount = importResults?.filter((i) => i.status === 'error').length || 0;
+
+  return (
+    <div className="space-y-4">
+      {/* RSS Import — collapsible section */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <button
+          onClick={() => { setShowRss(!showRss); resetState(); }}
+          className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <Rss className="w-4 h-4 text-orange-500" />
+            RSS 导入
+          </div>
+          {showRss ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </button>
+
+        {showRss && (
+          <div className="p-3 space-y-3 border-t border-gray-200">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Rss className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="url"
+                  value={rssUrl}
+                  onChange={(e) => setRssUrl(e.target.value)}
+                  placeholder="https://example.com/feed.xml"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={handleRssLoad}
+                disabled={!rssUrl || state === 'loading'}
+                className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {state === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                加载
+              </button>
+            </div>
+
+            {rssArticles.length > 0 && (
+              <>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600">已选择 {selectedArticles.size}/{rssArticles.length} 篇</span>
+                    <div className="flex gap-2 text-xs">
+                      <button onClick={() => setSelectedArticles(new Set(rssArticles.map((a) => a.url)))} className="text-notebooklm-blue hover:underline">全选</button>
+                      <button onClick={() => setSelectedArticles(new Set())} className="text-gray-400 hover:underline">取消全选</button>
+                    </div>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                    {rssArticles.map((article) => (
+                      <label key={article.url} className="flex items-start gap-3 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0">
+                        <input
+                          type="checkbox"
+                          checked={selectedArticles.has(article.url)}
+                          onChange={() => {
+                            setSelectedArticles((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(article.url)) next.delete(article.url);
+                              else next.add(article.url);
+                              return next;
+                            });
+                          }}
+                          className="mt-1 rounded border-gray-300 text-notebooklm-blue focus:ring-notebooklm-blue"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-700 line-clamp-2">{article.title}</p>
+                          {article.pubDate && <p className="text-xs text-gray-400 mt-0.5">{new Date(article.pubDate).toLocaleDateString('zh-CN')}</p>}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  onClick={handleRssImport}
+                  disabled={selectedArticles.size === 0 || state === 'importing'}
+                  className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />正在导入...</> : <><Rss className="w-4 h-4" />导入选中文章 ({selectedArticles.size})</>}
+                </button>
+              </>
+            )}
+
+            {rssArticles.length === 0 && state === 'idle' && (
+              <p className="text-xs text-gray-400">常见格式：/feed, /rss, /atom.xml, medium.com/feed/@user</p>
+            )}
+
+            {state === 'error' && !importResults && (
+              <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Import Results */}
+      {importResults && importResults.length > 0 && (
+        <div className="space-y-2">
+          <div className={`flex items-center justify-between text-sm rounded-lg p-3 ${failedCount > 0 ? 'bg-yellow-50' : 'bg-green-50'}`}>
+            <div className="flex items-center gap-2">
+              {failedCount > 0 ? <AlertCircle className="w-4 h-4 text-yellow-600" /> : <CheckCircle className="w-4 h-4 text-green-600" />}
+              <span className={failedCount > 0 ? 'text-yellow-700' : 'text-green-600'}>
+                成功 {successCount} 个{failedCount > 0 && `，失败 ${failedCount} 个`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {failedCount > 0 && (
+                <button onClick={handleRetryFailed} disabled={state === 'importing'} className="text-xs text-yellow-700 hover:text-yellow-800 flex items-center gap-1">
+                  <RotateCcw className="w-3 h-3" />重试失败
+                </button>
+              )}
+              <button onClick={() => setShowDetails(!showDetails)} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                {showDetails ? <><ChevronUp className="w-3 h-3" />收起</> : <><ChevronDown className="w-3 h-3" />详情</>}
+              </button>
+            </div>
+          </div>
+          {showDetails && (
+            <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+              {importResults.map((item, index) => (
+                <div key={index} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50">
+                  {item.status === 'success'
+                    ? <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                    : <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />}
+                  <span className="flex-1 truncate text-gray-600" title={item.url}>{item.url}</span>
+                  {item.status === 'error' && (
+                    <button onClick={() => handleBatchImport([item.url])} disabled={state === 'importing'} className="text-gray-400 hover:text-notebooklm-blue flex-shrink-0" title="重试">
+                      <RotateCcw className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* About Section */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="px-3 py-2.5 bg-gray-50">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <Info className="w-4 h-4 text-blue-500" />
+            关于
+          </div>
+        </div>
+        <div className="p-3 space-y-3">
+          {/* YouTube Channel */}
+          <a
+            href="https://www.youtube.com/@greentrainpodcast"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-2.5 bg-red-50 rounded-lg hover:bg-red-100 transition-colors group"
+          >
+            <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Youtube className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 group-hover:text-red-700">绿皮火车播客</p>
+              <p className="text-xs text-gray-500">YouTube 频道 · 教程与分享</p>
+            </div>
+            <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-red-500 flex-shrink-0" />
+          </a>
+
+          {/* GitHub */}
+          <a
+            href="https://github.com/crazynomad/notebooklm-importer"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors group"
+          >
+            <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Github className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 group-hover:text-gray-900">crazynomad/notebooklm-importer</p>
+              <p className="text-xs text-gray-500">开源项目 · 欢迎 Star ⭐</p>
+            </div>
+            <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
+          </a>
+
+          {/* Version & Copyright */}
+          <div className="pt-2 border-t border-gray-100 text-center">
+            <p className="text-xs text-gray-400">
+              v{__VERSION__}+{__GIT_HASH__}
+            </p>
+            <p className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1">
+              Made with <Heart className="w-3 h-3 text-red-400 inline" /> by 绿皮火车播客
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
