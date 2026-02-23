@@ -474,6 +474,118 @@ async function rescueSources(urls: string[]): Promise<RescueResult[]> {
   return results;
 }
 
+// ── Repair WeChat sources ──
+// Open page in browser tab → extract rendered content → import as text
+async function repairWechatSources(urls: string[]): Promise<RescueResult[]> {
+  const results: RescueResult[] = [];
+
+  for (const url of urls) {
+    try {
+      console.log(`[repair] Opening: ${url}`);
+
+      // Open the URL in a new tab
+      const tab = await chrome.tabs.create({ url, active: false });
+      if (!tab.id) throw new Error('Failed to create tab');
+
+      // Wait for page to load
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve(); // resolve even on timeout, we'll try to extract anyway
+        }, 15000);
+
+        const listener = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+          if (tabId === tab.id && changeInfo.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
+            clearTimeout(timeout);
+            resolve();
+          }
+        };
+        chrome.tabs.onUpdated.addListener(listener);
+      });
+
+      // Give extra time for dynamic content to render
+      await new Promise((r) => setTimeout(r, 3000));
+
+      // Extract content from the rendered page
+      const extractResult = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          // WeChat article content is in #js_content or .rich_media_content
+          const contentEl = document.querySelector('#js_content')
+            || document.querySelector('.rich_media_content')
+            || document.querySelector('article')
+            || document.querySelector('.rich_media_area_primary');
+
+          const titleEl = document.querySelector('.rich_media_title, #activity-name, h1');
+          const title = titleEl?.textContent?.trim() || document.title || '';
+
+          if (!contentEl || contentEl.textContent?.trim().length === 0) {
+            return { success: false, error: '页面内容为空，可能需要在微信中验证' };
+          }
+
+          // Get text content, preserving some structure
+          const content = (contentEl as HTMLElement).innerText || contentEl.textContent || '';
+          return { success: true, title, content: content.trim() };
+        },
+      });
+
+      // Close the tab
+      await chrome.tabs.remove(tab.id);
+
+      const extracted = extractResult?.[0]?.result as {
+        success: boolean;
+        title?: string;
+        content?: string;
+        error?: string;
+      } | undefined;
+
+      if (!extracted?.success || !extracted.content) {
+        results.push({
+          url,
+          status: 'error',
+          error: extracted?.error || '无法提取内容',
+        });
+        continue;
+      }
+
+      // Content quality check
+      if (extracted.content.length < 100) {
+        results.push({
+          url,
+          status: 'error',
+          error: '提取到的内容太少，可能被拦截',
+        });
+        continue;
+      }
+
+      const title = extracted.title || new URL(url).hostname;
+      const content = `Source: ${url}\n\n# ${title}\n\n${extracted.content}`;
+
+      // Import as text
+      const success = await importText(content, title);
+      results.push({
+        url,
+        status: success ? 'success' : 'error',
+        title,
+        error: success ? undefined : '导入 NotebookLM 失败',
+      });
+
+      if (urls.indexOf(url) < urls.length - 1) {
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    } catch (error) {
+      results.push({
+        url,
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  return results;
+}
+
 async function handleMessage(message: MessageType): Promise<unknown> {
   switch (message.type) {
     case 'IMPORT_URL':
@@ -646,6 +758,10 @@ async function handleMessage(message: MessageType): Promise<unknown> {
 
     case 'RESCUE_SOURCES': {
       return await rescueSources(message.urls);
+    }
+
+    case 'REPAIR_WECHAT_SOURCES': {
+      return await repairWechatSources(message.urls);
     }
 
     case 'GENERATE_PDF':

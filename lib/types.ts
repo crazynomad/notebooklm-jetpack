@@ -73,7 +73,9 @@ export type MessageType =
   | { type: 'FETCH_PODCAST'; url: string; count?: number }
   | { type: 'DOWNLOAD_PODCAST' }
   | { type: 'GET_FAILED_SOURCES'; tabId: number }
-  | { type: 'RESCUE_SOURCES'; urls: string[] };
+  | { type: 'RESCUE_SOURCES'; urls: string[] }
+  | { type: 'GET_WECHAT_SOURCES'; tabId: number }
+  | { type: 'REPAIR_WECHAT_SOURCES'; urls: string[] };
 
 export type MessageResponse =
   | { success: true; data: unknown }

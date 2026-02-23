@@ -39,6 +39,12 @@ export default defineContentScript({
         return true;
       }
 
+      if (message.type === 'GET_WECHAT_SOURCES') {
+        const urls = getWechatFakeSuccessSources();
+        sendResponse({ success: true, data: urls });
+        return true;
+      }
+
       if (message.type === 'RESCUE_SOURCE_DONE') {
         // Update inline banner after rescue completes
         updateInlineBanner(message.results);
@@ -47,13 +53,19 @@ export default defineContentScript({
       }
     });
 
-    // Auto-inject rescue banner if failed sources detected
-    setTimeout(() => injectRescueBanner(), 2000);
+    // Auto-inject banners if issues detected
+    setTimeout(() => {
+      injectRescueBanner();
+      injectRepairBanner();
+    }, 2000);
 
     // Re-check periodically (sources may load late)
     const observer = new MutationObserver(() => {
       if (!document.getElementById('nlm-rescue-banner')) {
         injectRescueBanner();
+      }
+      if (!document.getElementById('nlm-repair-banner')) {
+        injectRepairBanner();
       }
     });
     const scrollArea = document.querySelector('.scroll-area-desktop');
@@ -684,6 +696,269 @@ async function removeFailedSources(): Promise<void> {
 }
 
 // ─── Failed Source Detection ────────────────────────────────
+
+// ─── Repair Banner (WeChat fake-success) ────────────────────
+
+function injectRepairBanner(): void {
+  if (document.getElementById('nlm-repair-banner')) return;
+
+  const wechatUrls = getWechatFakeSuccessSources();
+  if (wechatUrls.length === 0) return;
+
+  const scrollArea = document.querySelector('.scroll-area-desktop');
+  if (!scrollArea) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'nlm-repair-banner';
+  banner.innerHTML = `
+    <style>
+      #nlm-repair-banner {
+        margin: 8px 12px;
+        padding: 10px 12px;
+        background: #eff6ff;
+        border: 1px solid #93c5fd;
+        border-radius: 10px;
+        font-family: 'Google Sans', Roboto, sans-serif;
+        font-size: 13px;
+        color: #1e40af;
+        animation: nlm-fade-in 0.3s ease;
+      }
+      #nlm-repair-banner .nlm-repair-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #nlm-repair-banner .nlm-repair-icon {
+        width: 16px; height: 16px; flex-shrink: 0;
+      }
+      #nlm-repair-banner .nlm-repair-text { flex: 1; }
+      #nlm-repair-banner .nlm-repair-btn {
+        padding: 4px 12px;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+        transition: background 0.15s;
+      }
+      #nlm-repair-banner .nlm-repair-btn:hover { background: #2563eb; }
+      #nlm-repair-banner .nlm-repair-btn:disabled {
+        opacity: 0.6; cursor: not-allowed;
+      }
+      #nlm-repair-banner .nlm-repair-details {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #bfdbfe;
+        font-size: 12px;
+        color: #1e3a8a;
+      }
+      #nlm-repair-banner .nlm-repair-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 0;
+        overflow: hidden;
+      }
+      #nlm-repair-banner .nlm-repair-item-url {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+      #nlm-repair-banner .nlm-repair-status { flex-shrink: 0; font-size: 11px; }
+      #nlm-repair-banner .nlm-repair-success { color: #16a34a; }
+      #nlm-repair-banner .nlm-repair-error { color: #dc2626; }
+      #nlm-repair-banner .nlm-repair-spinner {
+        display: inline-block;
+        width: 12px; height: 12px;
+        border: 2px solid #fff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: nlm-spin 0.6s linear infinite;
+      }
+      #nlm-repair-banner .nlm-repair-footer {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid #bfdbfe;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #nlm-repair-banner .nlm-repair-footer label {
+        display: flex; align-items: center; gap: 6px;
+        font-size: 12px; color: #1e3a8a; cursor: pointer; flex: 1;
+      }
+      #nlm-repair-banner .nlm-repair-footer input[type="checkbox"] {
+        accent-color: #3b82f6; width: 14px; height: 14px;
+      }
+      #nlm-repair-banner .nlm-repair-done-btn {
+        padding: 6px 16px; background: #16a34a; color: white;
+        border: none; border-radius: 6px; font-size: 12px;
+        font-weight: 500; cursor: pointer;
+      }
+      #nlm-repair-banner .nlm-repair-done-btn:hover { background: #15803d; }
+      #nlm-repair-banner .nlm-dismiss {
+        background: none; border: none; color: #3b82f6;
+        cursor: pointer; font-size: 16px; padding: 0 2px;
+        line-height: 1; flex-shrink: 0;
+      }
+    </style>
+    <div class="nlm-repair-header">
+      <svg class="nlm-repair-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+      <span class="nlm-repair-text">
+        <strong>${wechatUrls.length}</strong> 个微信公众号来源需要修复
+      </span>
+      <button class="nlm-repair-btn" id="nlm-repair-btn">
+        🔧 修复
+      </button>
+      <button class="nlm-dismiss" id="nlm-repair-dismiss" title="关闭">×</button>
+    </div>
+    <div class="nlm-repair-details" id="nlm-repair-details" style="display:none">
+      ${wechatUrls.map((url) => `
+        <div class="nlm-repair-item" data-url="${url}">
+          <span class="nlm-repair-item-url" title="${url}">${url}</span>
+          <span class="nlm-repair-status" data-status="pending">待修复</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // Insert after rescue banner if it exists, otherwise at top
+  const rescueBanner = document.getElementById('nlm-rescue-banner');
+  if (rescueBanner && rescueBanner.nextSibling) {
+    scrollArea.insertBefore(banner, rescueBanner.nextSibling);
+  } else if (rescueBanner) {
+    scrollArea.appendChild(banner);
+  } else {
+    scrollArea.insertBefore(banner, scrollArea.firstChild);
+  }
+
+  document.getElementById('nlm-repair-btn')?.addEventListener('click', () => {
+    const btn = document.getElementById('nlm-repair-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="nlm-repair-spinner"></span> 修复中...';
+    const details = document.getElementById('nlm-repair-details');
+    if (details) details.style.display = 'block';
+
+    chrome.runtime.sendMessage({ type: 'REPAIR_WECHAT_SOURCES', urls: wechatUrls }, (resp) => {
+      const results = resp?.success ? resp.data : (resp || []);
+      updateRepairBanner(results, wechatUrls);
+    });
+  });
+
+  document.getElementById('nlm-repair-dismiss')?.addEventListener('click', () => {
+    banner.remove();
+  });
+}
+
+function updateRepairBanner(results: Array<{ url: string; status: string; title?: string; error?: string }>, originalUrls: string[]): void {
+  const btn = document.getElementById('nlm-repair-btn') as HTMLButtonElement;
+  const successCount = results.filter((r) => r.status === 'success').length;
+  const failCount = results.filter((r) => r.status === 'error').length;
+
+  if (btn) btn.style.display = 'none';
+
+  const textEl = document.querySelector('#nlm-repair-banner .nlm-repair-text');
+  if (textEl) {
+    textEl.innerHTML = `修复完成：<strong>${successCount}</strong> 成功${failCount > 0 ? `，<strong>${failCount}</strong> 失败` : ''}`;
+  }
+
+  for (const result of results) {
+    const item = document.querySelector(`#nlm-repair-details .nlm-repair-item[data-url="${CSS.escape(result.url)}"]`);
+    if (!item) continue;
+    const statusEl = item.querySelector('.nlm-repair-status');
+    if (statusEl) {
+      if (result.status === 'success') {
+        statusEl.className = 'nlm-repair-status nlm-repair-success';
+        statusEl.textContent = `✓ ${result.title || '成功'}`;
+      } else {
+        statusEl.className = 'nlm-repair-status nlm-repair-error';
+        statusEl.textContent = `✗ ${result.error || '失败'}`;
+      }
+    }
+  }
+
+  if (successCount > 0) {
+    const bannerEl = document.getElementById('nlm-repair-banner');
+    if (bannerEl && !document.getElementById('nlm-repair-footer')) {
+      const footer = document.createElement('div');
+      footer.id = 'nlm-repair-footer';
+      footer.className = 'nlm-repair-footer';
+      footer.innerHTML = `
+        <label>
+          <input type="checkbox" id="nlm-repair-remove-old" checked />
+          移除原始微信来源
+        </label>
+        <button class="nlm-repair-done-btn" id="nlm-repair-done-btn">✓ 完成</button>
+      `;
+      bannerEl.appendChild(footer);
+
+      document.getElementById('nlm-repair-done-btn')?.addEventListener('click', async () => {
+        const removeCheckbox = document.getElementById('nlm-repair-remove-old') as HTMLInputElement;
+        if (removeCheckbox?.checked) {
+          await removeSourcesByUrl(originalUrls);
+        }
+        bannerEl.remove();
+      });
+    }
+  }
+}
+
+async function removeSourcesByUrl(urls: string[]): Promise<void> {
+  for (const url of urls) {
+    // Find the source item with this URL title
+    const sources = document.querySelectorAll('.source-title');
+    for (const source of sources) {
+      if (source.textContent?.trim() !== url) continue;
+      const container = source.closest('.single-source-container');
+      if (!container) continue;
+
+      // Click the "更多" menu button
+      const menuBtn = container.querySelector('button') as HTMLElement;
+      if (!menuBtn) continue;
+      menuBtn.click();
+      await delay(500);
+
+      // Find "移除来源" menu item
+      const menuItems = document.querySelectorAll('[role="menuitem"], .mat-mdc-menu-item');
+      for (const item of menuItems) {
+        const text = item.textContent?.trim() || '';
+        if (text.includes('移除来源') || text.includes('Remove source')) {
+          (item as HTMLElement).click();
+          await delay(1000);
+          break;
+        }
+      }
+      break;
+    }
+  }
+}
+
+// ─── WeChat Fake-Success Detection ──────────────────────────
+
+function getWechatFakeSuccessSources(): string[] {
+  const urls: string[] = [];
+  const sources = document.querySelectorAll('.source-title');
+  sources.forEach((s) => {
+    const text = s.textContent?.trim();
+    if (text && /^https?:\/\/mp\.weixin\.qq\.com\//.test(text)) {
+      const container = s.closest('.single-source-container');
+      // Only include non-error ones (error ones are handled by rescue)
+      if (container && !container.classList.contains('single-source-error-container')) {
+        urls.push(text);
+      }
+    }
+  });
+  return [...new Set(urls)];
+}
 
 function getFailedSourceUrls(): string[] {
   const urls: string[] = [];
