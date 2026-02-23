@@ -139,7 +139,7 @@ import {
 import type { MessageType, MessageResponse } from '@/lib/types';
 
 // Dev reload: allow external messages to trigger extension reload
-if (chrome.runtime.onMessageExternal) {
+try {
   chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === 'DEV_RELOAD') {
       console.log('[DEV] Reload triggered externally');
@@ -148,7 +148,7 @@ if (chrome.runtime.onMessageExternal) {
       return true;
     }
   });
-}
+} catch { /* fake-browser in WXT build doesn't support onMessageExternal */ }
 
 // Context menu IDs
 const MENU_ID_PAGE = 'import-page';
