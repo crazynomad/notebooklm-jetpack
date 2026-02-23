@@ -7,6 +7,7 @@ export type DocFramework =
   | 'readthedocs'
   | 'sphinx'
   | 'mintlify'
+  | 'devsite'
   | 'anthropic'
   | 'sitemap'
   | 'yuque'

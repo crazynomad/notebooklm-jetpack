@@ -17,6 +17,7 @@ const FRAMEWORK_LABELS: Record<DocFramework, string> = {
   readthedocs: 'ReadTheDocs / Sphinx',
   sphinx: 'Sphinx',
   mintlify: 'Mintlify',
+  devsite: 'Google DevSite',
   anthropic: 'Anthropic Docs',
   sitemap: 'Sitemap',
   yuque: '语雀',

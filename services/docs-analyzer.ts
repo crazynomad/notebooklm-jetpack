@@ -97,6 +97,13 @@ export function detectFramework(doc: Document): DocFramework {
     return 'mintlify';
   }
 
+  // Google DevSite detection (developer.chrome.com, developer.android.com, etc.)
+  const devsiteBookNav = doc.querySelector('devsite-book-nav');
+  const devsiteHeader = doc.querySelector('devsite-header');
+  if (devsiteBookNav || devsiteHeader) {
+    return 'devsite';
+  }
+
   // Anthropic Claude Platform docs detection
   const anthropicTheme = doc.querySelector('html[data-theme="claude"]');
   const anthropicDocs = doc.querySelector('a[href*="/docs/en/"]');
@@ -126,6 +133,8 @@ export function extractPages(
       return extractReadTheDocsPages(doc, baseUrl);
     case 'mintlify':
       return extractMintlifyPages(doc, baseUrl);
+    case 'devsite':
+      return extractDevSitePages(doc, baseUrl);
     case 'anthropic':
       return extractAnthropicPages(doc, baseUrl);
     case 'yuque':
@@ -490,6 +499,50 @@ function extractMintlifyPages(doc: Document, baseUrl: string): DocPageItem[] {
         });
       });
     }
+  }
+
+  return deduplicatePages(pages);
+}
+
+// Extract Google DevSite pages (developer.chrome.com, developer.android.com, etc.)
+function extractDevSitePages(doc: Document, baseUrl: string): DocPageItem[] {
+  const pages: DocPageItem[] = [];
+
+  // DevSite uses <devsite-book-nav> for the sidebar navigation
+  const bookNav = doc.querySelector('devsite-book-nav');
+  if (bookNav) {
+    const links = bookNav.querySelectorAll<HTMLAnchorElement>('a[href]');
+    let currentSection = '';
+
+    links.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+      const url = resolveUrl(href, baseUrl);
+      if (!isSameSite(url, baseUrl)) return;
+
+      // Detect section headers: links with devsite-nav-title class or bold/uppercase style
+      const isSection = link.closest('.devsite-nav-section-header') !== null;
+      if (isSection) {
+        currentSection = link.textContent?.trim() || '';
+      }
+
+      // Determine level from nesting
+      let level = 0;
+      let parent = link.parentElement;
+      while (parent && parent !== bookNav) {
+        if (parent.matches('ul')) level++;
+        parent = parent.parentElement;
+      }
+
+      pages.push({
+        url,
+        title: link.textContent?.trim() || url,
+        path: new URL(url).pathname,
+        level: Math.min(Math.max(level - 1, 0), 3),
+        section: currentSection || undefined,
+      });
+    });
   }
 
   return deduplicatePages(pages);
