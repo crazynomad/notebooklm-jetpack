@@ -822,8 +822,27 @@ function extractGenericPages(doc: Document, baseUrl: string): DocPageItem[] {
 // Analyze the current document and return site info
 export function analyzeDocSite(doc: Document, baseUrl: string): DocSiteInfo {
   const framework = detectFramework(doc);
-  const pages = extractPages(doc, framework, baseUrl);
+  const allPages = extractPages(doc, framework, baseUrl);
   const title = doc.title || new URL(baseUrl).hostname;
+
+  // Scope pages to the current URL's parent path
+  // e.g. baseUrl = https://example.com/docs/extensions/reference/api
+  //   → scopePath = /docs/extensions/reference/
+  // Only include pages whose path starts with scopePath
+  const baseUrlObj = new URL(baseUrl);
+  const pathSegments = baseUrlObj.pathname.replace(/\/$/, '').split('/').filter(Boolean);
+  // Go up one level: /a/b/c → /a/b/
+  const scopePath = pathSegments.length > 1
+    ? '/' + pathSegments.slice(0, -1).join('/') + '/'
+    : '/';
+  const pages = allPages.filter((page) => {
+    try {
+      const pagePath = new URL(page.url).pathname;
+      return pagePath.startsWith(scopePath);
+    } catch {
+      return true;
+    }
+  });
 
   return {
     baseUrl,
