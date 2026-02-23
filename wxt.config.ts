@@ -1,4 +1,7 @@
 import { defineConfig } from 'wxt';
+import { execSync } from 'child_process';
+
+const gitHash = execSync('git rev-parse --short HEAD').toString().trim();
 
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
@@ -44,6 +47,7 @@ export default defineConfig({
     define: {
       'process.env': '{}',
       'process.env.NODE_ENV': mode === 'development' ? '"development"' : '"production"',
+      __GIT_HASH__: JSON.stringify(gitHash),
     },
   }),
 });
