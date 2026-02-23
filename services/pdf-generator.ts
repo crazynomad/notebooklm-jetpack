@@ -143,40 +143,100 @@ async function fetchPageContent(page: DocPageItem): Promise<PageContent | null> 
     if (!r.ok) { console.log('[fetchPage] HTML fetch failed:', r.status); return null; }
     const html = await r.text();
     console.log('[fetchPage] HTML fetched, size:', html.length);
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    console.log('[fetchPage] DOMParser succeeded');
-    const selectors = [
-      '.devsite-article-body',  // Google DevSite (developer.chrome.com, etc.)
-      '.markdown-body',         // GitHub-style
-      'article [itemprop="articleBody"]',
-      'article',
-      'main',
-      '[role="main"]',
-      '#content',
-      '.prose',
-      '.content',
+
+    // Extract content region via regex (DOMParser can hang in Service Worker for large HTML)
+    let contentHtml = html;
+    const contentPatterns = [
+      // Google DevSite
+      { start: /<div\s+class="devsite-article-body[^"]*"[^>]*>/i, end: null, name: 'devsite-article-body' },
+      // GitHub-style
+      { start: /<div\s+class="markdown-body[^"]*"[^>]*>/i, end: null, name: 'markdown-body' },
+      // Generic article/main
+      { start: /<article[^>]*>/i, end: /<\/article>/i, name: 'article' },
+      { start: /<main[^>]*>/i, end: /<\/main>/i, name: 'main' },
     ];
-    let el: Element | null = null;
-    let matchedSelector = 'body (fallback)';
-    for (const s of selectors) { el = doc.querySelector(s); if (el) { matchedSelector = s; break; } }
-    if (!el) el = doc.body;
-    console.log('[fetchPage] Content selector matched:', matchedSelector);
-    // Remove non-content elements before conversion
-    el.querySelectorAll([
-      'script', 'style', 'nav', 'footer', 'header',
-      '.sidebar', '.toc', '.breadcrumb',
-      '.devsite-article-meta', '.devsite-breadcrumb-list',
-      'devsite-toc', 'devsite-page-rating', 'devsite-thumbs-rating',
-      'devsite-feedback', 'devsite-bookmark',
-      '.nocontent', '[role="navigation"]',
-      '.devsite-banner',
-    ].join(',')).forEach(e => e.remove());
-    const title = doc.querySelector('h1')?.textContent?.trim() || doc.title || page.title;
-    console.log('[fetchPage] Title:', title, '| innerHTML length:', el.innerHTML.length);
-    // Convert HTML → Markdown using Turndown (preserves structure, code blocks, links, etc.)
+
+    let matchedSelector = 'full page';
+    for (const pattern of contentPatterns) {
+      const startMatch = pattern.start.exec(html);
+      if (startMatch) {
+        const startIdx = startMatch.index;
+        // Find the matching closing tag by counting nesting
+        const tagName = pattern.name.includes('-') ? 'div' : pattern.name;
+        let depth = 1;
+        let idx = startIdx + startMatch[0].length;
+        const openRe = new RegExp(`<${tagName}[\\s>]`, 'gi');
+        const closeRe = new RegExp(`</${tagName}>`, 'gi');
+
+        // Simple approach: grab from start to a reasonable end
+        if (pattern.end) {
+          closeRe.lastIndex = idx;
+          const endMatch = pattern.end.exec(html);
+          if (endMatch) {
+            contentHtml = html.slice(startIdx, endMatch.index + endMatch[0].length);
+            matchedSelector = pattern.name;
+            break;
+          }
+        } else {
+          // For div-based selectors, grab a large chunk and find balanced close
+          const chunk = html.slice(startIdx, startIdx + html.length);
+          let pos = startMatch[0].length;
+          let nestDepth = 1;
+          const divOpenRe = /<div[\s>]/gi;
+          const divCloseRe = /<\/div>/gi;
+          divOpenRe.lastIndex = pos;
+          divCloseRe.lastIndex = pos;
+
+          while (nestDepth > 0 && pos < chunk.length) {
+            divOpenRe.lastIndex = pos;
+            divCloseRe.lastIndex = pos;
+            const nextOpen = divOpenRe.exec(chunk);
+            const nextClose = divCloseRe.exec(chunk);
+
+            if (!nextClose) break;
+            if (nextOpen && nextOpen.index < nextClose.index) {
+              nestDepth++;
+              pos = nextOpen.index + nextOpen[0].length;
+            } else {
+              nestDepth--;
+              if (nestDepth === 0) {
+                contentHtml = chunk.slice(0, nextClose.index + nextClose[0].length);
+                matchedSelector = pattern.name;
+                break;
+              }
+              pos = nextClose.index + nextClose[0].length;
+            }
+          }
+          if (matchedSelector !== 'full page') break;
+        }
+      }
+    }
+    console.log('[fetchPage] Content extracted via:', matchedSelector, '| length:', contentHtml.length);
+
+    // Strip non-content tags via regex
+    contentHtml = contentHtml
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[\s\S]*?<\/header>/gi, '')
+      .replace(/<devsite-toc[\s\S]*?<\/devsite-toc>/gi, '')
+      .replace(/<devsite-page-rating[\s\S]*?<\/devsite-page-rating>/gi, '')
+      .replace(/<devsite-thumbs-rating[\s\S]*?<\/devsite-thumbs-rating>/gi, '')
+      .replace(/<devsite-feedback[\s\S]*?<\/devsite-feedback>/gi, '')
+      .replace(/<devsite-bookmark[\s\S]*?<\/devsite-bookmark>/gi, '')
+      .replace(/<div[^>]*class="[^"]*(?:breadcrumb|nocontent|devsite-article-meta)[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '');
+    console.log('[fetchPage] After cleanup, length:', contentHtml.length);
+
+    // Extract title from h1
+    const h1Match = contentHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+    const titleText = h1Match ? h1Match[1].replace(/<[^>]+>/g, '').trim() : '';
+    const title = titleText || page.title;
+
+    // Convert HTML → Markdown using Turndown
     const td = createTurndownService();
     console.log('[fetchPage] Running Turndown...');
-    let markdown = td.turndown(el.innerHTML);
+    let markdown = td.turndown(contentHtml);
     console.log('[fetchPage] Turndown done, markdown length:', markdown.length);
     // Post-process: remove leaked CSS blocks (e.g. .dcc-* rules from DevSite inline styles)
     markdown = markdown
