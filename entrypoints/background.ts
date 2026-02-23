@@ -139,14 +139,16 @@ import {
 import type { MessageType, MessageResponse } from '@/lib/types';
 
 // Dev reload: allow external messages to trigger extension reload
-chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
-  if (msg?.type === 'DEV_RELOAD') {
-    console.log('[DEV] Reload triggered externally');
-    sendResponse({ ok: true });
-    setTimeout(() => chrome.runtime.reload(), 100);
-    return true;
-  }
-});
+if (chrome.runtime.onMessageExternal) {
+  chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
+    if (msg?.type === 'DEV_RELOAD') {
+      console.log('[DEV] Reload triggered externally');
+      sendResponse({ ok: true });
+      setTimeout(() => chrome.runtime.reload(), 100);
+      return true;
+    }
+  });
+}
 
 // Context menu IDs
 const MENU_ID_PAGE = 'import-page';
