@@ -15,7 +15,7 @@
 ## 项目结构
 
 ```
-notebooklm-importer/
+notebooklm-jetpack/
 ├── wxt.config.ts                  # WXT + Manifest 配置
 ├── package.json
 ├── tsconfig.json

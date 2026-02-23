@@ -48,7 +48,7 @@ export default function App() {
             <BookOpen className="w-3.5 h-3.5 text-white" />
           </div>
           <div>
-            <span className="font-semibold text-sm text-gray-900">NotebookLM Importer</span>
+            <span className="font-semibold text-sm text-gray-900">NotebookLM Jetpack</span>
             <span className="text-[9px] text-gray-400 ml-1.5" title={`Build: ${__BUILD_TIME__}`}>v{__VERSION__}</span>
           </div>
         </div>

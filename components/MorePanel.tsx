@@ -261,7 +261,7 @@ export function MorePanel({ onProgress }: Props) {
 
           {/* GitHub */}
           <a
-            href="https://github.com/crazynomad/notebooklm-importer"
+            href="https://github.com/crazynomad/notebooklm-jetpack"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-2.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors group"
@@ -270,7 +270,7 @@ export function MorePanel({ onProgress }: Props) {
               <Github className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 group-hover:text-gray-900">crazynomad/notebooklm-importer</p>
+              <p className="text-sm font-medium text-gray-800 group-hover:text-gray-900">crazynomad/notebooklm-jetpack</p>
               <p className="text-xs text-gray-500">开源项目 · 欢迎 Star ⭐</p>
             </div>
             <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />

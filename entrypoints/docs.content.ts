@@ -9,7 +9,7 @@ export default defineContentScript({
   registration: 'runtime',
 
   main() {
-    console.log('NotebookLM Importer: docs analyzer content script loaded');
+    console.log('NotebookLM Jetpack: docs analyzer content script loaded');
 
     // Listen for analyze messages from background script
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

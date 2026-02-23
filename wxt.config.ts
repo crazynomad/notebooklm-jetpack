@@ -19,7 +19,7 @@ export default defineConfig({
   },
 
   manifest: {
-    name: 'NotebookLM Importer',
+    name: 'NotebookLM Jetpack',
     description: '一键导入网页、RSS、文档站点、Claude 对话到 NotebookLM，支持批量导入，完全免费无需登录',
     version,
     version_name: `${version}+${gitHash}`,
@@ -39,7 +39,7 @@ export default defineConfig({
       'https://platform.claude.com/*',
     ],
     action: {
-      default_title: 'NotebookLM Importer',
+      default_title: 'NotebookLM Jetpack',
       default_popup: 'popup.html',
     },
     externally_connectable: {

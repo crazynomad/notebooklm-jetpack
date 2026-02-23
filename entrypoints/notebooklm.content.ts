@@ -10,7 +10,7 @@ export default defineContentScript({
     if ((window as unknown as Record<string, boolean>).__NLM_IMPORTER_LOADED__) return;
     (window as unknown as Record<string, boolean>).__NLM_IMPORTER_LOADED__ = true;
 
-    console.log('NotebookLM Importer content script loaded');
+    console.log('NotebookLM Jetpack content script loaded');
 
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (message.type === 'IMPORT_URL') {

@@ -1,10 +1,10 @@
-# NotebookLM Importer — 产品介绍
+# NotebookLM Jetpack — 产品介绍
 
 > 让 NotebookLM 吃掉互联网上的一切知识。
 
 ## 一句话介绍
 
-**NotebookLM Importer** 是一款 Chrome 扩展，解决 Google NotebookLM "喂不进去"的问题——帮你把各种来源的内容（文档站、AI 对话、播客、微信公众号……）一键导入 NotebookLM，让它真正成为你的第二大脑。
+**NotebookLM Jetpack** 是一款 Chrome 扩展，解决 Google NotebookLM "喂不进去"的问题——帮你把各种来源的内容（文档站、AI 对话、播客、微信公众号……）一键导入 NotebookLM，让它真正成为你的第二大脑。
 
 ---
 
@@ -19,7 +19,7 @@ NotebookLM 是 Google 推出的 AI 笔记工具，能对你上传的资料进行
 - 想把 Claude/ChatGPT 的对话存进去？没有官方支持。
 - 批量导入失败了？一个个重试。
 
-**NotebookLM Importer 就是来解决这些问题的。**
+**NotebookLM Jetpack 就是来解决这些问题的。**
 
 ---
 
@@ -191,8 +191,8 @@ NotebookLM 页面自动检测失败来源，弹出琥珀色横幅：
 ### 从源码安装（当前）
 
 ```bash
-git clone https://github.com/crazynomad/notebooklm-importer.git
-cd notebooklm-importer
+git clone https://github.com/crazynomad/notebooklm-jetpack.git
+cd notebooklm-jetpack
 pnpm install
 pnpm build
 ```
@@ -207,7 +207,7 @@ Chrome → `chrome://extensions/` → 开发者模式 → 加载 `dist/chrome-mv
 
 ## 🔗 链接
 
-- **GitHub**: [github.com/crazynomad/notebooklm-importer](https://github.com/crazynomad/notebooklm-importer)
+- **GitHub**: [github.com/crazynomad/notebooklm-jetpack](https://github.com/crazynomad/notebooklm-jetpack)
 - **YouTube**: [绿皮火车播客](https://www.youtube.com/@greentrainpodcast)
 
 ---

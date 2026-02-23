@@ -1,4 +1,4 @@
-# NotebookLM Importer
+# NotebookLM Jetpack
 
 一键导入网页、RSS、文档站点、Claude 对话到 NotebookLM 的 Chrome 扩展。
 
@@ -34,8 +34,8 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/crazynomad/notebooklm-importer.git
-cd notebooklm-importer
+git clone https://github.com/crazynomad/notebooklm-jetpack.git
+cd notebooklm-jetpack
 
 # 安装依赖
 pnpm install
