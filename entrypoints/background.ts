@@ -138,6 +138,15 @@ import {
   extractClaudeConversation,
   formatConversationForImport,
 } from '@/services/claude-conversation';
+import {
+  addBookmark,
+  removeBookmark,
+  removeBookmarks,
+  getBookmarks,
+  getCollections,
+  createCollection,
+  isBookmarked,
+} from '@/services/bookmarks';
 import type { MessageType, MessageResponse, ClaudeConversation } from '@/lib/types';
 
 // Dev reload: allow external messages to trigger extension reload
@@ -781,6 +790,31 @@ async function handleMessage(message: MessageType): Promise<unknown> {
     case 'DOWNLOAD_PODCAST':
       // Handled via port connection (onConnect), not onMessage
       return { success: true };
+
+    // ── Bookmarks ──
+    case 'ADD_BOOKMARK':
+      return await addBookmark(message.url, message.title, message.favicon, message.collection);
+
+    case 'REMOVE_BOOKMARK':
+      await removeBookmark(message.id);
+      return true;
+
+    case 'REMOVE_BOOKMARKS':
+      await removeBookmarks(message.ids);
+      return true;
+
+    case 'GET_BOOKMARKS':
+      return await getBookmarks();
+
+    case 'GET_COLLECTIONS':
+      return await getCollections();
+
+    case 'CREATE_COLLECTION':
+      await createCollection(message.name);
+      return true;
+
+    case 'IS_BOOKMARKED':
+      return await isBookmarked(message.url);
 
     default:
       throw new Error('Unknown message type');

@@ -75,7 +75,14 @@ export type MessageType =
   | { type: 'GET_FAILED_SOURCES'; tabId: number }
   | { type: 'RESCUE_SOURCES'; urls: string[] }
   | { type: 'GET_WECHAT_SOURCES'; tabId: number }
-  | { type: 'REPAIR_WECHAT_SOURCES'; urls: string[] };
+  | { type: 'REPAIR_WECHAT_SOURCES'; urls: string[] }
+  | { type: 'ADD_BOOKMARK'; url: string; title: string; favicon?: string; collection?: string }
+  | { type: 'REMOVE_BOOKMARK'; id: string }
+  | { type: 'REMOVE_BOOKMARKS'; ids: string[] }
+  | { type: 'GET_BOOKMARKS' }
+  | { type: 'GET_COLLECTIONS' }
+  | { type: 'CREATE_COLLECTION'; name: string }
+  | { type: 'IS_BOOKMARKED'; url: string };
 
 export type MessageResponse =
   | { success: true; data: unknown }
