@@ -512,6 +512,39 @@ function injectRescueBanner(): void {
         line-height: 1; flex-shrink: 0;
       }
       #nlm-rescue-banner .nlm-dismiss:hover { color: #92400e; }
+      #nlm-rescue-banner .nlm-rescue-footer {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid #fde68a;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #nlm-rescue-banner .nlm-rescue-footer label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #78350f;
+        cursor: pointer;
+        flex: 1;
+      }
+      #nlm-rescue-banner .nlm-rescue-footer input[type="checkbox"] {
+        accent-color: #f59e0b;
+        width: 14px; height: 14px;
+      }
+      #nlm-rescue-banner .nlm-rescue-done-btn {
+        padding: 6px 16px;
+        background: #16a34a;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      #nlm-rescue-banner .nlm-rescue-done-btn:hover { background: #15803d; }
     </style>
     <div class="nlm-rescue-header">
       <svg class="nlm-rescue-icon" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -566,17 +599,18 @@ function updateInlineBanner(results: Array<{ url: string; status: string; title?
   const successCount = results.filter((r) => r.status === 'success').length;
   const failCount = results.filter((r) => r.status === 'error').length;
 
-  if (btn) {
-    btn.innerHTML = `✓ 完成 (${successCount}/${results.length})`;
-    btn.disabled = true;
-    btn.style.background = successCount > 0 ? '#16a34a' : '#dc2626';
-  }
+  // Hide the rescue button
+  if (btn) btn.style.display = 'none';
 
   // Update text
   const textEl = document.querySelector('#nlm-rescue-banner .nlm-rescue-text');
   if (textEl) {
     textEl.innerHTML = `抢救完成：<strong>${successCount}</strong> 成功${failCount > 0 ? `，<strong>${failCount}</strong> 失败` : ''}`;
   }
+
+  // Show details
+  const details = document.getElementById('nlm-rescue-details');
+  if (details) details.style.display = 'block';
 
   // Update individual items
   for (const result of results) {
@@ -593,6 +627,60 @@ function updateInlineBanner(results: Array<{ url: string; status: string; title?
       }
     }
   }
+
+  // Add footer with done button + remove checkbox (only if at least one success)
+  if (successCount > 0) {
+    const banner = document.getElementById('nlm-rescue-banner');
+    if (banner && !document.getElementById('nlm-rescue-footer')) {
+      const footer = document.createElement('div');
+      footer.id = 'nlm-rescue-footer';
+      footer.className = 'nlm-rescue-footer';
+      footer.innerHTML = `
+        <label>
+          <input type="checkbox" id="nlm-rescue-remove-failed" checked />
+          移除已抢救的失败来源
+        </label>
+        <button class="nlm-rescue-done-btn" id="nlm-rescue-done-btn">✓ 完成</button>
+      `;
+      banner.appendChild(footer);
+
+      document.getElementById('nlm-rescue-done-btn')?.addEventListener('click', async () => {
+        const removeCheckbox = document.getElementById('nlm-rescue-remove-failed') as HTMLInputElement;
+        if (removeCheckbox?.checked) {
+          await removeFailedSources();
+        }
+        banner.remove();
+      });
+    }
+  }
+}
+
+async function removeFailedSources(): Promise<void> {
+  // Find a failed source and click its "更多" menu to access "移除所有失败的来源"
+  const errorContainers = document.querySelectorAll('.single-source-error-container');
+  if (errorContainers.length === 0) return;
+
+  // Find the "更多" (more) button inside the first error container
+  const firstError = errorContainers[0];
+  const moreBtn = firstError.querySelector('button') as HTMLElement;
+  if (!moreBtn) return;
+
+  moreBtn.click();
+  await delay(500);
+
+  // Find "移除所有失败的来源" menu item
+  const menuItems = document.querySelectorAll('[role="menuitem"], .mat-mdc-menu-item, button');
+  for (const item of menuItems) {
+    const text = item.textContent?.trim() || '';
+    if (text.includes('移除所有失败的来源') || text.includes('Remove all failed')) {
+      (item as HTMLElement).click();
+      await delay(500);
+      return;
+    }
+  }
+
+  // Fallback: press Escape to close menu if we couldn't find the option
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 }
 
 // ─── Failed Source Detection ────────────────────────────────
