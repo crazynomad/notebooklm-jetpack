@@ -4,8 +4,12 @@ import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 
 type State = 'idle' | 'loading' | 'loaded' | 'downloading' | 'done' | 'error';
 
-export function PodcastImport() {
-  const [url, setUrl] = useState('');
+interface Props {
+  initialUrl?: string;
+}
+
+export function PodcastImport({ initialUrl }: Props) {
+  const [url, setUrl] = useState(initialUrl || '');
   const [count, setCount] = useState<number | undefined>(undefined);
   const [state, setState] = useState<State>('idle');
   const [error, setError] = useState('');

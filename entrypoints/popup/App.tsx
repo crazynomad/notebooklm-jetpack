@@ -14,6 +14,19 @@ import { HistoryPanel } from '@/components/HistoryPanel';
 export default function App() {
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [defaultTab, setDefaultTab] = useState('single');
+  const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
+
+  // Auto-detect Apple Podcast URL from current tab
+  useState(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const url = tabs[0]?.url || '';
+      if (/podcasts\.apple\.com\//.test(url)) {
+        setDefaultTab('podcast');
+        setInitialPodcastUrl(url);
+      }
+    });
+  });
 
   if (showHistory) {
     return <HistoryPanel onClose={() => setShowHistory(false)} />;
@@ -64,7 +77,7 @@ export default function App() {
       )}
 
       {/* Tabs */}
-      <Tabs.Root defaultValue="single" className="flex flex-col">
+      <Tabs.Root defaultValue={defaultTab} className="flex flex-col">
         <Tabs.List className="flex border-b border-gray-100">
           {[
             { value: 'single', icon: Link, label: '单个导入' },
@@ -112,7 +125,7 @@ export default function App() {
         </Tabs.Content>
 
         <Tabs.Content value="podcast" className="p-4">
-          <PodcastImport />
+          <PodcastImport initialUrl={initialPodcastUrl} />
         </Tabs.Content>
       </Tabs.Root>
     </div>
