@@ -1,7 +1,11 @@
 import { defineConfig } from 'wxt';
 import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
 
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+const version = pkg.version as string;
 const gitHash = execSync('git rev-parse --short HEAD').toString().trim();
+const buildTime = new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
 
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
@@ -17,7 +21,8 @@ export default defineConfig({
   manifest: {
     name: 'NotebookLM Importer',
     description: '一键导入网页、RSS、文档站点、Claude 对话到 NotebookLM，支持批量导入，完全免费无需登录',
-    version: '1.0.0',
+    version,
+    version_name: `${version}+${gitHash}`,
     permissions: [
       'storage',
       'activeTab',
@@ -48,6 +53,8 @@ export default defineConfig({
       'process.env': '{}',
       'process.env.NODE_ENV': mode === 'development' ? '"development"' : '"production"',
       __GIT_HASH__: JSON.stringify(gitHash),
+      __BUILD_TIME__: JSON.stringify(buildTime),
+      __VERSION__: JSON.stringify(version),
     },
   }),
 });
