@@ -5,7 +5,7 @@ import { readFileSync } from 'fs';
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const version = pkg.version as string;
 const gitHash = execSync('git rev-parse --short HEAD').toString().trim();
-const buildTime = new Date().toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+const buildTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
 
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
