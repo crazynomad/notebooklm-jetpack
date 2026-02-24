@@ -2,29 +2,13 @@ import { useState } from 'react';
 import { BookOpen, Loader2, CheckCircle, AlertCircle, Search, ChevronRight, FileDown, Rocket } from 'lucide-react';
 import type { ImportProgress, DocSiteInfo, DocPageItem, DocFramework } from '@/lib/types';
 import type { PdfProgress } from '@/services/pdf-generator';
+import { t } from '@/lib/i18n';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
 }
 
 type State = 'idle' | 'analyzing' | 'analyzed' | 'importing' | 'success' | 'error';
-
-const FRAMEWORK_LABELS: Record<DocFramework, string> = {
-  docusaurus: 'Docusaurus',
-  mkdocs: 'MkDocs / Material',
-  gitbook: 'GitBook',
-  vitepress: 'VitePress',
-  readthedocs: 'ReadTheDocs / Sphinx',
-  sphinx: 'Sphinx',
-  mintlify: 'Mintlify',
-  devsite: 'Google DevSite',
-  anthropic: 'Anthropic Docs',
-  sitemap: 'Sitemap',
-  yuque: '语雀',
-  wechat: '微信文档',
-  huawei: '鸿蒙文档',
-  unknown: '未识别框架',
-};
 
 export function DocsImport({ onProgress }: Props) {
   const [siteInfo, setSiteInfo] = useState<DocSiteInfo | null>(null);
@@ -36,6 +20,23 @@ export function DocsImport({ onProgress }: Props) {
   const [pdfProgress, setPdfProgress] = useState<PdfProgress | null>(null);
   const [isOnNotebookLM, setIsOnNotebookLM] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
+
+  const FRAMEWORK_LABELS: Record<DocFramework, string> = {
+    docusaurus: 'Docusaurus',
+    mkdocs: 'MkDocs / Material',
+    gitbook: 'GitBook',
+    vitepress: 'VitePress',
+    readthedocs: 'ReadTheDocs / Sphinx',
+    sphinx: 'Sphinx',
+    mintlify: 'Mintlify',
+    devsite: 'Google DevSite',
+    anthropic: 'Anthropic Docs',
+    sitemap: 'Sitemap',
+    yuque: t('docs.yuque'),
+    wechat: t('docs.wechatDocs'),
+    huawei: t('docs.harmonyDocs'),
+    unknown: t('docs.unknownFramework'),
+  };
 
   // Detect if current tab is NotebookLM
   useState(() => {
@@ -56,7 +57,7 @@ export function DocsImport({ onProgress }: Props) {
     const newTab = await chrome.tabs.create({ url: targetUrl, active: false });
     if (!newTab.id) {
       setState('error');
-      setError('无法创建标签页');
+      setError(t('docs.cannotCreateTab'));
       return;
     }
 
@@ -84,7 +85,7 @@ export function DocsImport({ onProgress }: Props) {
         const info = response.data as DocSiteInfo;
         if (info.pages.length === 0) {
           setState('error');
-          setError('未能从此页面提取到文档链接，请确保该 URL 是文档站点');
+          setError(t('docs.noDocsFound'));
           return;
         }
         setSiteInfo(info);
@@ -92,7 +93,7 @@ export function DocsImport({ onProgress }: Props) {
         setState('analyzed');
       } else {
         setState('error');
-        setError(response?.error || '分析失败，请确保 URL 是文档站点');
+        setError(response?.error || t('docs.analyzeFailed'));
       }
     });
   };
@@ -102,7 +103,7 @@ export function DocsImport({ onProgress }: Props) {
       // Manual URL mode
       if (!manualUrl || !manualUrl.startsWith('http')) {
         setState('error');
-        setError('请输入有效的文档站点 URL');
+        setError(t('docs.enterDocUrl'));
         return;
       }
       await analyzeUrl(manualUrl);
@@ -118,14 +119,14 @@ export function DocsImport({ onProgress }: Props) {
 
     if (!tab.id || !tab.url) {
       setState('error');
-      setError('无法获取当前标签页信息');
+      setError(t('docs.cannotGetTab'));
       return;
     }
 
     // Check if it's a valid HTTP(S) page
     if (!tab.url.startsWith('http')) {
       setState('error');
-      setError('请在文档站点页面上使用此功能');
+      setError(t('docs.useOnDocSite'));
       return;
     }
 
@@ -135,7 +136,7 @@ export function DocsImport({ onProgress }: Props) {
 
         if (info.pages.length === 0) {
           setState('error');
-          setError('未能从此页面提取到文档链接，请确保在文档站点的侧边栏可见时使用');
+          setError(t('docs.noDocsSidebar'));
           return;
         }
 
@@ -144,7 +145,7 @@ export function DocsImport({ onProgress }: Props) {
         setState('analyzed');
       } else {
         setState('error');
-        setError(response?.error || '分析失败，请确保当前页面是文档站点');
+        setError(response?.error || t('docs.analyzeCurrentFailed'));
       }
     });
   };
@@ -177,7 +178,7 @@ export function DocsImport({ onProgress }: Props) {
     const urls = siteInfo.pages.filter((p) => selectedPages.has(p.url)).map((p) => p.url);
 
     if (urls.length === 0) {
-      setError('请至少选择一个页面');
+      setError(t('selectAtLeastOnePage'));
       setState('error');
       return;
     }
@@ -205,7 +206,7 @@ export function DocsImport({ onProgress }: Props) {
         setState(failed > 0 ? 'error' : 'success');
       } else {
         setState('error');
-        setError(response?.error || '导入失败');
+        setError(response?.error || t('importFailed'));
       }
     });
   };
@@ -215,7 +216,7 @@ export function DocsImport({ onProgress }: Props) {
 
     const pages = siteInfo.pages.filter((p) => selectedPages.has(p.url));
     if (pages.length === 0) {
-      setError('请至少选择一个页面');
+      setError(t('selectAtLeastOnePage'));
       setState('error');
       return;
     }
@@ -242,7 +243,7 @@ export function DocsImport({ onProgress }: Props) {
           port.disconnect();
         } else if (msg.phase === 'error') {
           setState('error');
-          setError(msg.error || 'PDF 生成失败');
+          setError(msg.error || t('pdfFailed'));
           setPdfState('idle');
           port.disconnect();
         }
@@ -257,7 +258,7 @@ export function DocsImport({ onProgress }: Props) {
       });
     } catch (err) {
       setState('error');
-      setError(err instanceof Error ? err.message : 'PDF 生成失败');
+      setError(err instanceof Error ? err.message : t('pdfFailed'));
       setPdfState('idle');
     }
   };
@@ -265,7 +266,7 @@ export function DocsImport({ onProgress }: Props) {
   // Group pages by section for better display
   const groupedPages = siteInfo?.pages.reduce(
     (acc, page) => {
-      const section = page.section || '未分类';
+      const section = page.section || t('docs.uncategorized');
       if (!acc[section]) {
         acc[section] = [];
       }
@@ -280,7 +281,7 @@ export function DocsImport({ onProgress }: Props) {
       {/* Analyze: URL input when on NotebookLM, button when on doc site */}
       {isOnNotebookLM ? (
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 tracking-tight">文档站点 URL</label>
+          <label className="block text-sm font-medium text-gray-700 tracking-tight">{t('docs.siteUrl')}</label>
           <div className="flex gap-2">
             <input
               type="url"
@@ -300,7 +301,7 @@ export function DocsImport({ onProgress }: Props) {
               ) : (
                 <Search className="w-4 h-4" />
               )}
-              分析
+              {t('analyze')}
             </button>
           </div>
         </div>
@@ -313,12 +314,12 @@ export function DocsImport({ onProgress }: Props) {
           {state === 'analyzing' ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              正在分析...
+              {t('docs.analyzing')}
             </>
           ) : (
             <>
               <Search className="w-4 h-4" />
-              分析当前站点
+              {t('docs.analyzeCurrent')}
             </>
           )}
         </button>
@@ -336,7 +337,7 @@ export function DocsImport({ onProgress }: Props) {
               {FRAMEWORK_LABELS[siteInfo.framework]}
             </span>
             <span className="font-mono tabular-nums">{siteInfo.pages.length}</span>
-            <span>个页面</span>
+            <span>{t('docs.pages')}</span>
           </div>
         </div>
       )}
@@ -346,14 +347,14 @@ export function DocsImport({ onProgress }: Props) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">
-              已选择 <span className="font-mono tabular-nums">{selectedPages.size}</span>/<span className="font-mono tabular-nums">{siteInfo.pages.length}</span> 个页面
+              {t('docs.selectedPages', { selected: selectedPages.size, total: siteInfo.pages.length })}
             </span>
             <div className="flex gap-2 text-xs">
               <button onClick={handleSelectAll} className="text-notebooklm-blue hover:underline transition-colors duration-150">
-                全选
+                {t('selectAll')}
               </button>
               <button onClick={handleDeselectAll} className="text-gray-400 hover:underline transition-colors duration-150">
-                取消全选
+                {t('deselectAll')}
               </button>
             </div>
           </div>
@@ -362,7 +363,7 @@ export function DocsImport({ onProgress }: Props) {
             {groupedPages &&
               Object.entries(groupedPages).map(([section, pages]) => (
                 <div key={section}>
-                  {section !== '未分类' && (
+                  {section !== t('docs.uncategorized') && (
                     <div className="sticky top-0 px-3 py-1.5 bg-surface-sunken border-b border-gray-100 text-xs font-medium text-gray-500 tracking-tight flex items-center gap-1">
                       <ChevronRight className="w-3 h-3" />
                       {section}
@@ -404,12 +405,12 @@ export function DocsImport({ onProgress }: Props) {
             {state === 'importing' ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                正在导入...
+                {t('importing')}
               </>
             ) : (
               <>
                 <BookOpen className="w-4 h-4" />
-                逐个 URL 导入 (<span className="font-mono tabular-nums">{selectedPages.size}</span>)
+                {t('docs.urlImport')} (<span className="font-mono tabular-nums">{selectedPages.size}</span>)
               </>
             )}
           </button>
@@ -424,25 +425,25 @@ export function DocsImport({ onProgress }: Props) {
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 {pdfState === 'fetching'
-                  ? <>抓取页面 <span className="font-mono tabular-nums">{pdfProgress?.current || 0}/{pdfProgress?.total || selectedPages.size}</span>...</>
-                  : <>生成 PDF <span className="font-mono tabular-nums">{pdfProgress?.current || 0}/{pdfProgress?.total || 1}</span>...</>}
+                  ? <>{t('pdfFetching', { current: pdfProgress?.current || 0, total: pdfProgress?.total || selectedPages.size })}</>
+                  : <>{t('pdfGenerating', { current: pdfProgress?.current || 0, total: pdfProgress?.total || 1 })}</>}
               </>
             ) : pdfState === 'done' ? (
               <>
                 <CheckCircle className="w-4 h-4" />
-                PDF 已下载
+                {t('pdfDownloaded')}
               </>
             ) : (
               <>
                 <FileDown className="w-4 h-4" />
-                导出为 PDF (<span className="font-mono tabular-nums">{selectedPages.size}</span> 页)
+                {t('docs.exportPdf', { count: selectedPages.size })}
               </>
             )}
           </button>
 
           {pdfState === 'done' && (
             <p className="text-xs text-emerald-600 text-center">
-              PDF 已保存，可在 NotebookLM 中上传为来源
+              {t('docs.pdfSaved')}
             </p>
           )}
         </div>
@@ -462,7 +463,7 @@ export function DocsImport({ onProgress }: Props) {
           ) : (
             <CheckCircle className="w-4 h-4" />
           )}
-          成功 <span className="font-mono tabular-nums">{results.success}</span> 个{results.failed > 0 && <>，失败 <span className="font-mono tabular-nums">{results.failed}</span> 个</>}
+          {results.failed > 0 ? t('successFailCount', { success: results.success, failed: results.failed }) : t('successCount', { success: results.success })}
         </div>
       )}
 
@@ -478,29 +479,29 @@ export function DocsImport({ onProgress }: Props) {
         <div className="text-xs text-gray-400 space-y-3 bg-surface-sunken rounded-xl p-4">
           <div className="flex items-center gap-2">
             <Rocket className="w-4 h-4 text-gray-500" />
-            <p className="font-medium text-gray-600 tracking-tight">使用说明</p>
+            <p className="font-medium text-gray-600 tracking-tight">{t('docs.instructions')}</p>
           </div>
           {isOnNotebookLM ? (
             <ol className="list-decimal list-inside space-y-1.5 text-gray-500">
-              <li>输入文档站点的任意页面 URL</li>
-              <li>点击「分析」自动提取所有页面</li>
-              <li>选择要导入的页面，批量导入到 NotebookLM</li>
+              <li>{t('docs.tipNlm1')}</li>
+              <li>{t('docs.tipNlm2')}</li>
+              <li>{t('docs.tipNlm3')}</li>
             </ol>
           ) : (
             <ol className="list-decimal list-inside space-y-1.5 text-gray-500">
-              <li>打开文档站点（如 Docusaurus、MkDocs 等）</li>
-              <li>确保侧边栏导航可见</li>
-              <li>点击「分析当前站点」提取所有页面</li>
-              <li>选择要导入的页面，批量导入到 NotebookLM</li>
+              <li>{t('docs.tipSite1')}</li>
+              <li>{t('docs.tipSite2')}</li>
+              <li>{t('docs.tipSite3')}</li>
+              <li>{t('docs.tipSite4')}</li>
             </ol>
           )}
           <div className="pt-2 border-t border-gray-200/60">
-            <p className="text-gray-600 font-medium mb-2">支持的框架</p>
+            <p className="text-gray-600 font-medium mb-2">{t('docs.supportedFrameworks')}</p>
             <ul className="list-disc list-inside space-y-1 text-gray-500">
-              <li>Docusaurus、VitePress、MkDocs</li>
-              <li>GitBook、Mintlify、Sphinx</li>
-              <li>语雀、微信开发文档</li>
-              <li>任何有 sitemap.xml 的站点</li>
+              <li>{t('docs.frameworks1')}</li>
+              <li>{t('docs.frameworks2')}</li>
+              <li>{t('docs.frameworks3')}</li>
+              <li>{t('docs.frameworks4')}</li>
             </ul>
           </div>
         </div>

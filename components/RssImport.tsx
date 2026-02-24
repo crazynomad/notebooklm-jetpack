@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Rss, Loader2, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 import type { ImportProgress, RssFeedItem } from '@/lib/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -18,7 +19,7 @@ export function RssImport({ onProgress }: Props) {
 
   const handleLoadFeed = async () => {
     if (!rssUrl) {
-      setError('请输入 RSS 订阅地址');
+      setError(t('rss.enterFeedUrl'));
       setState('error');
       return;
     }
@@ -35,7 +36,7 @@ export function RssImport({ onProgress }: Props) {
         setState('loaded');
       } else {
         setState('error');
-        setError(response?.error || '解析 RSS 失败，请检查 URL 是否正确');
+        setError(response?.error || t('rss.parseFailed'));
       }
     });
   };
@@ -64,7 +65,7 @@ export function RssImport({ onProgress }: Props) {
     const urls = articles.filter((a) => selectedArticles.has(a.url)).map((a) => a.url);
 
     if (urls.length === 0) {
-      setError('请至少选择一篇文章');
+      setError(t('selectAtLeastOneArticle'));
       setState('error');
       return;
     }
@@ -92,7 +93,7 @@ export function RssImport({ onProgress }: Props) {
         setState(failed > 0 ? 'error' : 'success');
       } else {
         setState('error');
-        setError(response?.error || '导入失败');
+        setError(response?.error || t('importFailed'));
       }
     });
   };
@@ -101,7 +102,7 @@ export function RssImport({ onProgress }: Props) {
     <div className="space-y-4">
       {/* RSS URL input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">RSS 订阅地址</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('rss.feedUrl')}</label>
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <Rss className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -123,7 +124,7 @@ export function RssImport({ onProgress }: Props) {
             ) : (
               <FileText className="w-4 h-4" />
             )}
-            加载
+            {t('load')}
           </button>
         </div>
       </div>
@@ -133,14 +134,14 @@ export function RssImport({ onProgress }: Props) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">
-              已选择 {selectedArticles.size}/{articles.length} 篇文章
+              {t('rss.selectedArticles', { selected: selectedArticles.size, total: articles.length })}
             </span>
             <div className="flex gap-2 text-xs">
               <button onClick={handleSelectAll} className="text-notebooklm-blue hover:underline">
-                全选
+                {t('selectAll')}
               </button>
               <button onClick={handleDeselectAll} className="text-gray-400 hover:underline">
-                取消全选
+                {t('deselectAll')}
               </button>
             </div>
           </div>
@@ -161,7 +162,7 @@ export function RssImport({ onProgress }: Props) {
                   <p className="text-sm text-gray-700 line-clamp-2">{article.title}</p>
                   {article.pubDate && (
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(article.pubDate).toLocaleDateString('zh-CN')}
+                      {new Date(article.pubDate).toLocaleDateString(undefined)}
                     </p>
                   )}
                 </div>
@@ -181,12 +182,12 @@ export function RssImport({ onProgress }: Props) {
           {state === 'importing' ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              正在导入...
+              {t('importing')}
             </>
           ) : (
             <>
               <Rss className="w-4 h-4" />
-              导入选中文章 ({selectedArticles.size})
+              {t('rss.importSelected', { count: selectedArticles.size })}
             </>
           )}
         </button>
@@ -204,7 +205,7 @@ export function RssImport({ onProgress }: Props) {
           ) : (
             <CheckCircle className="w-4 h-4" />
           )}
-          成功 {results.success} 篇{results.failed > 0 && `，失败 ${results.failed} 篇`}
+          {results.failed > 0 ? t('successFailArticles', { success: results.success, failed: results.failed }) : t('successArticles', { success: results.success })}
         </div>
       )}
 
@@ -218,11 +219,11 @@ export function RssImport({ onProgress }: Props) {
       {/* Tips */}
       {articles.length === 0 && state === 'idle' && (
         <div className="text-xs text-gray-400 space-y-1">
-          <p>常见 RSS 地址格式：</p>
+          <p>{t('rss.tipTitle')}</p>
           <ul className="list-disc list-inside space-y-0.5">
-            <li>博客: /feed, /rss, /atom.xml</li>
-            <li>Medium: medium.com/feed/@username</li>
-            <li>Substack: xxx.substack.com/feed</li>
+            <li>{t('rss.tipBlog')}</li>
+            <li>{t('rss.tipMedium')}</li>
+            <li>{t('rss.tipSubstack')}</li>
           </ul>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, Loader2, CheckCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { t } from '@/lib/i18n';
 
 interface RescueResult {
   url: string;
@@ -62,22 +63,22 @@ export function RescueBanner({ tabId }: Props) {
         <div className="flex-1 min-w-0">
           {state === 'scanning' && (
             <span className="text-sm text-amber-700 flex items-center gap-1.5">
-              <Loader2 className="w-3 h-3 animate-spin" />扫描失败来源...
+              <Loader2 className="w-3 h-3 animate-spin" />{t('rescue.scanning')}
             </span>
           )}
           {state === 'idle' && failedUrls.length > 0 && (
             <span className="text-sm text-amber-700">
-              发现 <strong className="font-mono tabular-nums">{failedUrls.length}</strong> 个来源导入失败
+              {t('rescue.foundFailed', { count: failedUrls.length })}
             </span>
           )}
           {state === 'rescuing' && (
             <span className="text-sm text-amber-700 flex items-center gap-1.5">
-              <Loader2 className="w-3 h-3 animate-spin" />正在抢救...
+              <Loader2 className="w-3 h-3 animate-spin" />{t('rescue.rescuing')}
             </span>
           )}
           {state === 'done' && (
             <span className="text-sm text-amber-700">
-              抢救完成：成功 <span className="font-mono tabular-nums">{successCount}</span>，失败 <span className="font-mono tabular-nums">{failCount}</span>
+              {t('rescue.done', { success: successCount, failed: failCount })}
             </span>
           )}
         </div>
@@ -88,7 +89,7 @@ export function RescueBanner({ tabId }: Props) {
             className="btn-press px-3 py-1 bg-amber-500 text-white text-xs rounded-md hover:bg-amber-600 flex items-center gap-1 flex-shrink-0 shadow-btn hover:shadow-btn-hover transition-all duration-150"
           >
             <RefreshCw className="w-3 h-3" />
-            抢救
+            {t('rescue.rescue')}
           </button>
         )}
 

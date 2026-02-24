@@ -17,6 +17,7 @@ import {
 import type { ImportProgress } from '@/lib/types';
 import type { BookmarkItem } from '@/services/bookmarks';
 import type { PdfProgress } from '@/services/pdf-generator';
+import { t } from '@/lib/i18n';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -120,7 +121,7 @@ export function BookmarkPanel({ onProgress }: Props) {
     setError('');
 
     const siteInfo = {
-      title: activeCollection === 'all' ? '收藏合集' : activeCollection,
+      title: activeCollection === 'all' ? t('bookmark.collection') : activeCollection,
       baseUrl: '',
       framework: 'unknown' as const,
       pages: items.map((b) => ({ url: b.url, title: b.title, path: b.url })),
@@ -141,7 +142,7 @@ export function BookmarkPanel({ onProgress }: Props) {
         port.disconnect();
       } else if (msg.phase === 'error') {
         setState('error');
-        setError(msg.error || 'PDF 生成失败');
+        setError(msg.error || t('pdfFailed'));
         setPdfState('idle');
         port.disconnect();
       }
@@ -169,7 +170,7 @@ export function BookmarkPanel({ onProgress }: Props) {
         setTimeout(() => setState('idle'), 3000);
       } else {
         setState('error');
-        setError(resp?.error || '导入失败');
+        setError(resp?.error || t('importFailed'));
       }
     });
   };
@@ -201,6 +202,13 @@ export function BookmarkPanel({ onProgress }: Props) {
     );
   };
 
+  const handleMoveItem = (id: string, targetCollection: string) => {
+    chrome.runtime.sendMessage(
+      { type: 'MOVE_BOOKMARK', id, collection: targetCollection },
+      () => loadData()
+    );
+  };
+
   return (
     <div className="space-y-3">
       {/* Add current page */}
@@ -214,7 +222,7 @@ export function BookmarkPanel({ onProgress }: Props) {
             {isCurrentBookmarked ? (
               <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50/80 px-2 py-1 rounded-md border border-amber-200/40">
                 <Bookmark className="w-3 h-3 fill-current" />
-                已收藏
+                {t('bookmark.bookmarked')}
               </span>
             ) : (
               <button
@@ -222,7 +230,7 @@ export function BookmarkPanel({ onProgress }: Props) {
                 className="btn-press flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white text-xs rounded-md hover:bg-amber-600 transition-colors shadow-btn hover:shadow-btn-hover transition-all duration-150"
               >
                 <BookmarkPlus className="w-3 h-3" />
-                收藏
+                {t('bookmark.addBookmark')}
               </button>
             )}
           </div>
@@ -238,7 +246,7 @@ export function BookmarkPanel({ onProgress }: Props) {
               activeCollection === 'all' ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100/60 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            全部 ({bookmarks.length})
+            {t('bookmark.all')} ({bookmarks.length})
           </button>
           {collections.map((col) => {
             const count = bookmarks.filter((b) => b.collection === col).length;
@@ -257,7 +265,7 @@ export function BookmarkPanel({ onProgress }: Props) {
           <button
             onClick={() => setShowNewCollection(!showNewCollection)}
             className="btn-press p-1 text-gray-400 hover:text-gray-600 rounded"
-            title="新建集合"
+            title={t('bookmark.newCollection')}
           >
             <FolderPlus className="w-3.5 h-3.5" />
           </button>
@@ -271,12 +279,12 @@ export function BookmarkPanel({ onProgress }: Props) {
             type="text"
             value={newCollectionName}
             onChange={(e) => setNewCollectionName(e.target.value)}
-            placeholder="集合名称"
+            placeholder={t('bookmark.collectionName')}
             className="flex-1 px-3 py-1.5 border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40"
             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCollection(); }}
           />
           <button onClick={handleCreateCollection} className="btn-press px-3 py-1.5 bg-amber-500 text-white text-xs rounded-lg hover:bg-amber-600">
-            创建
+            {t('create')}
           </button>
           <button onClick={() => setShowNewCollection(false)} className="btn-press p-1.5 text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
@@ -289,11 +297,11 @@ export function BookmarkPanel({ onProgress }: Props) {
         <>
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-500 font-mono tabular-nums">
-              {selectedIds.size > 0 ? `已选 ${selectedIds.size} 项` : `共 ${filteredBookmarks.length} 项`}
+              {selectedIds.size > 0 ? t('bookmark.selectedItems', { count: selectedIds.size }) : t('bookmark.totalItems', { count: filteredBookmarks.length })}
             </span>
             <div className="flex gap-2 text-xs">
-              <button onClick={selectAll} className="btn-press text-amber-600 hover:underline">全选</button>
-              <button onClick={deselectAll} className="btn-press text-gray-400 hover:underline">取消</button>
+              <button onClick={selectAll} className="btn-press text-amber-600 hover:underline">{t('selectAll')}</button>
+              <button onClick={deselectAll} className="btn-press text-gray-400 hover:underline">{t('cancel')}</button>
               {selectedIds.size > 0 && (
                 <>
                   {collections.length > 0 && (
@@ -302,13 +310,13 @@ export function BookmarkPanel({ onProgress }: Props) {
                       className="text-xs text-gray-500 bg-transparent border border-gray-200 rounded px-1 py-0.5 cursor-pointer hover:border-gray-300"
                       defaultValue=""
                     >
-                      <option value="" disabled>移至…</option>
+                      <option value="" disabled>{t('bookmark.moveTo')}</option>
                       {collections.filter((c) => c !== activeCollection || activeCollection === 'all').map((col) => (
                         <option key={col} value={col}>{col}</option>
                       ))}
                     </select>
                   )}
-                  <button onClick={handleRemoveSelected} className="btn-press text-red-400 hover:text-red-600">删除</button>
+                  <button onClick={handleRemoveSelected} className="btn-press text-red-400 hover:text-red-600">{t('delete')}</button>
                 </>
               )}
             </div>
@@ -331,10 +339,23 @@ export function BookmarkPanel({ onProgress }: Props) {
                   <p className="text-xs text-gray-700 truncate">{item.title}</p>
                   <p className="text-[10px] text-gray-400 truncate">{item.url}</p>
                 </div>
+                {collections.length > 1 && (
+                  <select
+                    value=""
+                    onChange={(e) => { e.preventDefault(); e.stopPropagation(); if (e.target.value) { handleMoveItem(item.id, e.target.value); e.target.value = ''; } }}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    className="text-[10px] text-gray-400 bg-transparent border border-gray-200/60 rounded px-1 py-0.5 cursor-pointer hover:border-gray-300 flex-shrink-0 max-w-[60px]"
+                  >
+                    <option value="" disabled>{t('bookmark.moveToCollection')}</option>
+                    {collections.filter((c) => c !== item.collection).map((col) => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                )}
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemove(item.id); }}
                   className="btn-press p-1 text-gray-300 hover:text-red-500 flex-shrink-0"
-                  title="删除"
+                  title={t('delete')}
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
@@ -351,13 +372,13 @@ export function BookmarkPanel({ onProgress }: Props) {
                 className="btn-press w-full py-2 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
               >
                 {pdfState === 'fetching' ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />抓取页面 {pdfProgress?.current || 0}/{pdfProgress?.total || selectedIds.size}...</>
+                  <><Loader2 className="w-4 h-4 animate-spin" />{t('pdfFetching', { current: pdfProgress?.current || 0, total: pdfProgress?.total || selectedIds.size })}</>
                 ) : pdfState === 'generating' ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />生成 PDF...</>
+                  <><Loader2 className="w-4 h-4 animate-spin" />{t('pdfGeneratingSimple')}</>
                 ) : pdfState === 'done' ? (
-                  <><CheckCircle className="w-4 h-4" />PDF 已下载</>
+                  <><CheckCircle className="w-4 h-4" />{t('pdfDownloaded')}</>
                 ) : (
-                  <><FileDown className="w-4 h-4" />聚合导出 PDF ({selectedIds.size} 篇)</>
+                  <><FileDown className="w-4 h-4" />{t('bookmark.exportPdf', { count: selectedIds.size })}</>
                 )}
               </button>
 
@@ -367,9 +388,9 @@ export function BookmarkPanel({ onProgress }: Props) {
                 className="btn-press w-full py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
               >
                 {state === 'importing' ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />导入中...</>
+                  <><Loader2 className="w-4 h-4 animate-spin" />{t('importing')}</>
                 ) : (
-                  <><BookOpen className="w-4 h-4" />导入 NotebookLM ({selectedIds.size} 篇)</>
+                  <><BookOpen className="w-4 h-4" />{t('bookmark.importToNlm', { count: selectedIds.size })}</>
                 )}
               </button>
             </div>

@@ -15,6 +15,7 @@ import {
   Info,
 } from 'lucide-react';
 import type { ImportProgress, ImportItem, RssFeedItem } from '@/lib/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -40,7 +41,7 @@ export function MorePanel({ onProgress }: Props) {
 
   // ── RSS ──
   const handleRssLoad = () => {
-    if (!rssUrl) { setError('请输入 RSS 链接'); setState('error'); return; }
+    if (!rssUrl) { setError(t('more.enterRssLink')); setState('error'); return; }
     setState('loading');
     setError('');
     setRssArticles([]);
@@ -53,7 +54,7 @@ export function MorePanel({ onProgress }: Props) {
         setState('idle');
       } else {
         setState('error');
-        setError(response?.error || 'RSS 解析失败');
+        setError(response?.error || t('more.rssFailed'));
       }
     });
   };
@@ -75,7 +76,7 @@ export function MorePanel({ onProgress }: Props) {
           setState('success');
         } else {
           setState('error');
-          setError(response?.error || '导入失败');
+          setError(response?.error || t('importFailed'));
         }
       }
     );
@@ -83,7 +84,7 @@ export function MorePanel({ onProgress }: Props) {
 
   const handleRssImport = () => {
     const urls = rssArticles.filter((a) => selectedArticles.has(a.url)).map((a) => a.url);
-    if (urls.length === 0) { setError('请至少选择一篇文章'); setState('error'); return; }
+    if (urls.length === 0) { setError(t('selectAtLeastOneArticle')); setState('error'); return; }
     handleBatchImport(urls);
   };
 
@@ -106,7 +107,7 @@ export function MorePanel({ onProgress }: Props) {
         >
           <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
             <Rss className="w-4 h-4 text-orange-500" />
-            RSS 导入
+            {t('more.rssImport')}
           </div>
           {showRss ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
         </button>
@@ -130,7 +131,7 @@ export function MorePanel({ onProgress }: Props) {
                 className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
               >
                 {state === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                加载
+                {t('load')}
               </button>
             </div>
 
@@ -138,10 +139,10 @@ export function MorePanel({ onProgress }: Props) {
               <>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">已选择 <span className="font-mono tabular-nums">{selectedArticles.size}/{rssArticles.length}</span> 篇</span>
+                    <span className="text-sm text-gray-600">{t('more.selectedArticles', { selected: selectedArticles.size, total: rssArticles.length })}</span>
                     <div className="flex gap-2 text-xs">
-                      <button onClick={() => setSelectedArticles(new Set(rssArticles.map((a) => a.url)))} className="text-notebooklm-blue hover:underline">全选</button>
-                      <button onClick={() => setSelectedArticles(new Set())} className="text-gray-400 hover:underline">取消全选</button>
+                      <button onClick={() => setSelectedArticles(new Set(rssArticles.map((a) => a.url)))} className="text-notebooklm-blue hover:underline">{t('selectAll')}</button>
+                      <button onClick={() => setSelectedArticles(new Set())} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
                     </div>
                   </div>
                   <div className="max-h-48 overflow-y-auto border border-border-strong rounded-lg shadow-soft">
@@ -162,7 +163,7 @@ export function MorePanel({ onProgress }: Props) {
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-gray-700 line-clamp-2">{article.title}</p>
-                          {article.pubDate && <p className="text-xs text-gray-400 mt-0.5">{new Date(article.pubDate).toLocaleDateString('zh-CN')}</p>}
+                          {article.pubDate && <p className="text-xs text-gray-400 mt-0.5">{new Date(article.pubDate).toLocaleDateString(undefined)}</p>}
                         </div>
                       </label>
                     ))}
@@ -173,14 +174,14 @@ export function MorePanel({ onProgress }: Props) {
                   disabled={selectedArticles.size === 0 || state === 'importing'}
                   className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
                 >
-                  {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />正在导入...</> : <><Rss className="w-4 h-4" />导入选中文章 (<span className="font-mono tabular-nums">{selectedArticles.size}</span>)</>}
+                  {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />{t('importing')}</> : <><Rss className="w-4 h-4" />{t('more.importSelected')} (<span className="font-mono tabular-nums">{selectedArticles.size}</span>)</>}
                 </button>
               </>
             )}
 
             {rssArticles.length === 0 && state === 'idle' && (
               <div className="bg-surface-sunken rounded-lg p-3">
-                <p className="text-xs text-gray-400">常见格式：/feed, /rss, /atom.xml, medium.com/feed/@user</p>
+                <p className="text-xs text-gray-400">{t('more.rssFormats')}</p>
               </div>
             )}
 
@@ -201,17 +202,17 @@ export function MorePanel({ onProgress }: Props) {
             <div className="flex items-center gap-2">
               {failedCount > 0 ? <AlertCircle className="w-4 h-4 text-yellow-600" /> : <CheckCircle className="w-4 h-4 text-green-600" />}
               <span className={failedCount > 0 ? 'text-yellow-700' : 'text-green-600'}>
-                成功 <span className="font-mono tabular-nums">{successCount}</span> 个{failedCount > 0 && `，失败 `}<span className="font-mono tabular-nums">{failedCount > 0 ? failedCount : ''}</span>{failedCount > 0 && ` 个`}
+                {failedCount > 0 ? t('successFailCount', { success: successCount, failed: failedCount }) : t('successCount', { success: successCount })}
               </span>
             </div>
             <div className="flex items-center gap-2">
               {failedCount > 0 && (
                 <button onClick={handleRetryFailed} disabled={state === 'importing'} className="text-xs text-yellow-700 hover:text-yellow-800 flex items-center gap-1">
-                  <RotateCcw className="w-3 h-3" />重试失败
+                  <RotateCcw className="w-3 h-3" />{t('retryFailed')}
                 </button>
               )}
               <button onClick={() => setShowDetails(!showDetails)} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
-                {showDetails ? <><ChevronUp className="w-3 h-3" />收起</> : <><ChevronDown className="w-3 h-3" />详情</>}
+                {showDetails ? <><ChevronUp className="w-3 h-3" />{t('collapse')}</> : <><ChevronDown className="w-3 h-3" />{t('details')}</>}
               </button>
             </div>
           </div>
@@ -224,7 +225,7 @@ export function MorePanel({ onProgress }: Props) {
                     : <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />}
                   <span className="flex-1 truncate text-gray-600" title={item.url}>{item.url}</span>
                   {item.status === 'error' && (
-                    <button onClick={() => handleBatchImport([item.url])} disabled={state === 'importing'} className="text-gray-400 hover:text-notebooklm-blue flex-shrink-0" title="重试">
+                    <button onClick={() => handleBatchImport([item.url])} disabled={state === 'importing'} className="text-gray-400 hover:text-notebooklm-blue flex-shrink-0" title={t('retry')}>
                       <RotateCcw className="w-3 h-3" />
                     </button>
                   )}
@@ -240,7 +241,7 @@ export function MorePanel({ onProgress }: Props) {
         <div className="px-3 py-2.5 bg-surface-sunken">
           <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
             <Info className="w-4 h-4 text-blue-500" />
-            关于
+            {t('more.about')}
           </div>
         </div>
         <div className="p-3 space-y-3">
@@ -255,8 +256,8 @@ export function MorePanel({ onProgress }: Props) {
               <Youtube className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 group-hover:text-red-700">绿皮火车播客</p>
-              <p className="text-xs text-gray-500">YouTube 频道 · 教程与分享</p>
+              <p className="text-sm font-medium text-gray-800 group-hover:text-red-700">{t('more.ytChannel')}</p>
+              <p className="text-xs text-gray-500">{t('more.ytDesc')}</p>
             </div>
             <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-red-500 flex-shrink-0" />
           </a>
@@ -273,7 +274,7 @@ export function MorePanel({ onProgress }: Props) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-800 group-hover:text-gray-900">crazynomad/notebooklm-jetpack</p>
-              <p className="text-xs text-gray-500">开源项目 · 欢迎 Star ⭐</p>
+              <p className="text-xs text-gray-500">{t('more.ghDesc')} ⭐</p>
             </div>
             <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
           </a>
@@ -284,7 +285,7 @@ export function MorePanel({ onProgress }: Props) {
               v{__VERSION__}+{__GIT_HASH__}
             </p>
             <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
-              Made with <Heart className="w-3 h-3 text-red-400 inline" /> by 绿皮火车播客
+              Made with <Heart className="w-3 h-3 text-red-400 inline" /> by {t('more.madeBy')}
             </p>
           </div>
         </div>

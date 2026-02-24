@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { History, Trash2, CheckCircle, XCircle, ExternalLink, Loader2 } from 'lucide-react';
 import type { HistoryItem } from '@/lib/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
   onClose: () => void;
@@ -25,7 +26,7 @@ export function HistoryPanel({ onClose }: Props) {
   };
 
   const handleClearHistory = () => {
-    if (!confirm('确定要清除所有导入历史吗？')) return;
+    if (!confirm(t('history.confirmClear'))) return;
 
     chrome.runtime.sendMessage({ type: 'CLEAR_HISTORY' }, (response) => {
       if (response?.success) {
@@ -41,18 +42,18 @@ export function HistoryPanel({ onClose }: Props) {
 
     // Less than 1 minute
     if (diff < 60 * 1000) {
-      return '刚刚';
+      return t('history.justNow');
     }
     // Less than 1 hour
     if (diff < 60 * 60 * 1000) {
-      return `${Math.floor(diff / (60 * 1000))} 分钟前`;
+      return t('history.minutesAgo', { count: Math.floor(diff / (60 * 1000)) });
     }
     // Less than 24 hours
     if (diff < 24 * 60 * 60 * 1000) {
-      return `${Math.floor(diff / (60 * 60 * 1000))} 小时前`;
+      return t('history.hoursAgo', { count: Math.floor(diff / (60 * 60 * 1000)) });
     }
     // Otherwise show date
-    return date.toLocaleDateString('zh-CN', {
+    return date.toLocaleDateString(undefined, {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -74,7 +75,7 @@ export function HistoryPanel({ onClose }: Props) {
       <div className="glass px-4 py-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <History className="w-5 h-5 text-notebooklm-blue" />
-          <span className="font-medium text-gray-900 tracking-tight">导入历史</span>
+          <span className="font-medium text-gray-900 tracking-tight">{t('history.title')}</span>
           <span className="text-xs text-gray-400">({history.length})</span>
         </div>
         <div className="flex items-center gap-2">
@@ -82,7 +83,7 @@ export function HistoryPanel({ onClose }: Props) {
             <button
               onClick={handleClearHistory}
               className="btn-press p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-150"
-              title="清除历史"
+              title={t('history.clearHistory')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -91,7 +92,7 @@ export function HistoryPanel({ onClose }: Props) {
             onClick={onClose}
             className="btn-press px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-150"
           >
-            关闭
+            {t('close')}
           </button>
         </div>
       </div>
@@ -105,8 +106,8 @@ export function HistoryPanel({ onClose }: Props) {
         ) : history.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <History className="w-12 h-12 text-gray-300/40 mb-4" />
-            <p className="text-sm text-gray-500 font-medium">暂无导入记录</p>
-            <p className="text-xs text-gray-400 mt-1">导入内容后，记录会出现在这里</p>
+            <p className="text-sm text-gray-500 font-medium">{t('history.noRecords')}</p>
+            <p className="text-xs text-gray-400 mt-1">{t('history.recordsHint')}</p>
           </div>
         ) : (
           <div className="divide-y divide-border-subtle">

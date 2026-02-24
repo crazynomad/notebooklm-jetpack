@@ -7,6 +7,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import type { ClaudeConversation, QAPair, ImportProgress } from '@/lib/types';
+import { t } from '@/lib/i18n';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -76,7 +77,7 @@ export function ClaudeImport({ onProgress }: Props) {
           setState('ready');
         } else {
           setState('error');
-          setError(response?.error || '提取对话失败');
+          setError(response?.error || t('claude.extractFailed'));
         }
       }
     );
@@ -95,7 +96,7 @@ export function ClaudeImport({ onProgress }: Props) {
     const nlmTabs = await chrome.tabs.query({ url: 'https://notebooklm.google.com/*' });
     if (nlmTabs.length === 0) {
       setState('error');
-      setError('请先打开 NotebookLM 笔记本页面，然后再导入');
+      setError(t('claude.openNotebook'));
       return;
     }
 
@@ -103,14 +104,14 @@ export function ClaudeImport({ onProgress }: Props) {
     const nlmTab = nlmTabs[0];
     if (!nlmTab.id) {
       setState('error');
-      setError('无法获取 NotebookLM 标签页');
+      setError(t('claude.cannotGetNlmTab'));
       return;
     }
 
     // Check if it's a notebook page (has notebook ID in URL)
     if (!/\/notebook\//.test(nlmTab.url || '')) {
       setState('error');
-      setError('请先打开一个 NotebookLM 笔记本（而非首页），然后再导入');
+      setError(t('claude.openNotebookNotHome'));
       return;
     }
 
@@ -140,7 +141,7 @@ export function ClaudeImport({ onProgress }: Props) {
           setTimeout(() => setState('ready'), 3000);
         } else {
           setState('error');
-          setError(response?.error || '导入失败');
+          setError(response?.error || t('importFailed'));
         }
       }
     );
@@ -164,8 +165,8 @@ export function ClaudeImport({ onProgress }: Props) {
       <div className="space-y-4">
         <div className="bg-amber-50/60 border border-amber-200/40 rounded-xl p-4 shadow-soft text-center">
           <MessageCircle className="w-10 h-10 text-amber-500 opacity-80 mx-auto mb-2" />
-          <p className="text-sm text-amber-700 leading-relaxed">请先打开 AI 对话页面</p>
-          <p className="text-xs text-amber-600/70 mt-2">支持：Claude · ChatGPT · Gemini</p>
+          <p className="text-sm text-amber-700 leading-relaxed">{t('claude.openAiPage')}</p>
+          <p className="text-xs text-amber-600/70 mt-2">{t('claude.supported')}</p>
         </div>
       </div>
     );
@@ -181,9 +182,9 @@ export function ClaudeImport({ onProgress }: Props) {
           className="w-full py-3 bg-notebooklm-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
         >
           {state === 'extracting' ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />正在提取对话...</>
+            <><Loader2 className="w-4 h-4 animate-spin" />{t('claude.extracting')}</>
           ) : (
-            <><MessageCircle className="w-4 h-4" />提取当前对话</>
+            <><MessageCircle className="w-4 h-4" />{t('claude.extractCurrent')}</>
           )}
         </button>
 
@@ -195,13 +196,13 @@ export function ClaudeImport({ onProgress }: Props) {
         )}
 
         <div className="text-xs text-gray-400 space-y-1 bg-surface-sunken rounded-xl p-3.5">
-          <p>当前平台：{platformInfo.icon} {platformInfo.name}</p>
-          <p className="mt-1">使用说明：</p>
+          <p>{t('claude.currentPlatform')}{platformInfo.icon} {platformInfo.name}</p>
+          <p className="mt-1">{t('claude.instructions')}</p>
           <ol className="list-decimal list-inside space-y-0.5">
-            <li>在 {platformInfo.name} 打开对话页面</li>
-            <li>点击「提取当前对话」</li>
-            <li>选择要导入的问答对</li>
-            <li>点击导入到 NotebookLM</li>
+            <li>{t('claude.step1', { platform: platformInfo.name })}</li>
+            <li>{t('claude.step2')}</li>
+            <li>{t('claude.step3')}</li>
+            <li>{t('claude.step4')}</li>
           </ol>
         </div>
       </div>
@@ -221,13 +222,13 @@ export function ClaudeImport({ onProgress }: Props) {
           <button
             onClick={handleExtract}
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded"
-            title="重新提取"
+            title={t('claude.reExtract')}
           >
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
         <p className="text-xs text-gray-500">
-          共 {pairs.length} 个问答对，已选择 <span className="font-mono tabular-nums">{selectedPairIds.size}</span> 个
+          {t('claude.qaPairs', { total: pairs.length, selected: selectedPairIds.size })}
         </p>
       </div>
 
@@ -238,14 +239,14 @@ export function ClaudeImport({ onProgress }: Props) {
           disabled={allSelected}
           className="flex-1 px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors duration-150 btn-press"
         >
-          全选
+          {t('selectAll')}
         </button>
         <button
           onClick={() => setSelectedPairIds(new Set())}
           disabled={selectedPairIds.size === 0}
           className="flex-1 px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors duration-150 btn-press"
         >
-          取消全选
+          {t('deselectAll')}
         </button>
       </div>
 
@@ -266,11 +267,11 @@ export function ClaudeImport({ onProgress }: Props) {
                 <p className="text-xs text-gray-700 line-clamp-2">
                   <span className="text-xs font-mono tabular-nums text-gray-400 mr-1">#{index + 1}</span>
                   <span className="text-gray-400">Q：</span>
-                  {pair.question || '(无问题)'}
+                  {pair.question || t('claude.noQuestion')}
                 </p>
                 <p className="text-xs text-gray-500 line-clamp-2">
                   <span className="text-gray-400">A：</span>
-                  {pair.answer.slice(0, 100) || '(无回答)'}
+                  {pair.answer.slice(0, 100) || t('claude.noAnswer')}
                   {pair.answer.length > 100 && '...'}
                 </p>
             </div>
@@ -285,9 +286,9 @@ export function ClaudeImport({ onProgress }: Props) {
         className="w-full py-2.5 bg-notebooklm-blue text-white rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
       >
         {state === 'importing' ? (
-          <><Loader2 className="w-4 h-4 animate-spin" />导入中...</>
+          <><Loader2 className="w-4 h-4 animate-spin" />{t('claude.importingBtn')}</>
         ) : (
-          <>导入选中的 <span className="font-mono tabular-nums">{selectedPairIds.size}</span> 个问答对</>
+          <>{t('claude.importSelected', { count: selectedPairIds.size })}</>
         )}
       </button>
 
@@ -295,7 +296,7 @@ export function ClaudeImport({ onProgress }: Props) {
       {state === 'success' && (
         <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 border border-green-100/60 rounded-lg p-3 shadow-soft">
           <CheckCircle className="w-4 h-4" />
-          导入成功！
+          {t('importSuccess')}
         </div>
       )}
       {state === 'error' && (
@@ -318,7 +319,7 @@ function formatPairsForImport(
   const lines: string[] = [];
   lines.push(`# ${title}`);
   lines.push('');
-  lines.push(`**来源**: ${platform} 对话`);
+  lines.push(`**${t('claude.source')}**: ${platform} ${t('claude.conversation')}`);
   lines.push(`**URL**: ${url}`);
   lines.push('');
   lines.push('---');

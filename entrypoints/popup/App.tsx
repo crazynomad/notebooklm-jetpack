@@ -3,6 +3,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { BookOpen, History, MessageCircle, Headphones, MoreHorizontal, Bookmark } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 import { DocsImport } from '@/components/DocsImport';
 import { PodcastImport } from '@/components/PodcastImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
@@ -55,7 +56,7 @@ export default function App() {
         <button
           onClick={() => setShowHistory(true)}
           className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
-          title="导入历史"
+          title={t('app.importHistory')}
         >
           <History className="w-4 h-4" />
         </button>
@@ -66,7 +67,7 @@ export default function App() {
         <div className="px-4 py-2.5 bg-notebooklm-light/60 border-b border-notebooklm-blue/10">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-notebooklm-blue font-medium text-xs">
-              正在导入 <span className="font-mono tabular-nums">{importProgress.completed}/{importProgress.total}</span>
+              {t('app.importingProgress', { completed: importProgress.completed, total: importProgress.total })}
             </span>
             {importProgress.current && (
               <span className="text-blue-400/70 truncate max-w-[200px] text-xs font-mono">
@@ -94,11 +95,11 @@ export default function App() {
       <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
         <Tabs.List className="flex glass border-b border-border px-2 gap-0.5">
           {[
-            { value: 'bookmark', icon: Bookmark, label: '收藏夹' },
-            { value: 'docs', icon: BookOpen, label: '文档站' },
-            { value: 'podcast', icon: Headphones, label: '播客' },
-            { value: 'claude', icon: MessageCircle, label: 'AI 对话' },
-            { value: 'more', icon: MoreHorizontal, label: '更多' },
+            { value: 'bookmark', icon: Bookmark, label: t('app.tabBookmarks') },
+            { value: 'docs', icon: BookOpen, label: t('app.tabDocs') },
+            { value: 'podcast', icon: Headphones, label: t('app.tabPodcast') },
+            { value: 'claude', icon: MessageCircle, label: t('app.tabAI') },
+            { value: 'more', icon: MoreHorizontal, label: t('app.tabMore') },
           ].map(({ value, icon: Icon, label }) => (
             <Tabs.Trigger
               key={value}

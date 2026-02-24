@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Headphones, Loader2, CheckCircle, AlertCircle, Download, Music, Radio } from 'lucide-react';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
+import { t } from '@/lib/i18n';
 
 type State = 'idle' | 'loading' | 'loaded' | 'downloading' | 'done' | 'error';
 type Platform = 'unknown' | 'apple' | 'xiaoyuzhou';
@@ -35,8 +36,8 @@ export function PodcastImport({ initialUrl }: Props) {
   const theme = platformConfig[platform];
 
   const handleFetch = () => {
-    if (!url) { setError('请输入播客链接'); setState('error'); return; }
-    if (platform === 'unknown') { setError('无法识别链接，支持 Apple Podcasts 和小宇宙'); setState('error'); return; }
+    if (!url) { setError(t('podcast.enterLink')); setState('error'); return; }
+    if (platform === 'unknown') { setError(t('podcast.unrecognized')); setState('error'); return; }
     setState('loading');
     setError('');
     setPodcast(null);
@@ -53,7 +54,7 @@ export function PodcastImport({ initialUrl }: Props) {
           setState('loaded');
         } else {
           setState('error');
-          setError(resp?.error || '获取失败');
+          setError(resp?.error || t('podcast.fetchFailed'));
         }
       },
     );
@@ -61,7 +62,7 @@ export function PodcastImport({ initialUrl }: Props) {
 
   const handleDownload = () => {
     const toDownload = episodes.filter((e) => selected.has(e.id));
-    if (toDownload.length === 0) { setError('请至少选择一集'); setState('error'); return; }
+    if (toDownload.length === 0) { setError(t('podcast.selectAtLeastOne')); setState('error'); return; }
 
     setState('downloading');
     setProgress({ current: 0, total: toDownload.length });
@@ -81,7 +82,7 @@ export function PodcastImport({ initialUrl }: Props) {
         port.disconnect();
       } else if (msg.phase === 'error') {
         setState('error');
-        setError(msg.error || '下载失败');
+        setError(msg.error || t('podcast.downloadFailed'));
         port.disconnect();
       }
     });
@@ -109,7 +110,7 @@ export function PodcastImport({ initialUrl }: Props) {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
           {platform === 'xiaoyuzhou' ? <Radio className="w-4 h-4 text-emerald-500" /> : <Headphones className="w-4 h-4 text-purple-500" />}
-          {platform === 'unknown' ? '播客链接' : theme.name}
+          {platform === 'unknown' ? t('podcast.link') : theme.name}
         </label>
         <div className="flex gap-2">
           <div className="flex-1 relative">
@@ -118,23 +119,23 @@ export function PodcastImport({ initialUrl }: Props) {
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="粘贴 Apple Podcasts 或小宇宙链接..."
+              placeholder={t('podcast.placeholder')}
               className="w-full pl-10 pr-3 py-2 border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/40 focus:border-transparent placeholder:text-gray-400/70"
             />
           </div>
         </div>
         <div className="flex items-center gap-2 mt-2">
-          <label className="text-xs text-gray-500">最新</label>
+          <label className="text-xs text-gray-500">{t('podcast.latest')}</label>
           <input
             type="number"
             value={count || ''}
             onChange={(e) => setCount(e.target.value ? parseInt(e.target.value) : undefined)}
-            placeholder="全部"
+            placeholder={t('podcast.all')}
             min={1}
             max={500}
             className="w-16 px-2 py-1 border border-gray-200/60 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-notebooklm-blue/40 placeholder:text-gray-400/70"
           />
-          <label className="text-xs text-gray-500">集</label>
+          <label className="text-xs text-gray-500">{t('podcast.episodes')}</label>
           <div className="flex-1" />
           <button
             onClick={handleFetch}
@@ -142,9 +143,9 @@ export function PodcastImport({ initialUrl }: Props) {
             className={`px-4 py-1.5 ${theme.accent} text-white text-xs rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press`}
           >
             {state === 'loading' ? (
-              <><Loader2 className="w-3 h-3 animate-spin" />查询中...</>
+              <><Loader2 className="w-3 h-3 animate-spin" />{t('podcast.querying')}</>
             ) : (
-              <><Music className="w-3 h-3" />查询</>
+              <><Music className="w-3 h-3" />{t('podcast.query')}</>
             )}
           </button>
         </div>
@@ -159,7 +160,7 @@ export function PodcastImport({ initialUrl }: Props) {
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-medium ${theme.textDark} truncate`}>{podcast.name}</p>
             <p className={`text-xs ${theme.textAccent}`}>
-              {podcast.artist}{podcast.artist && ' · '}<span className="font-mono tabular-nums">{episodes.length}</span> 集
+              {podcast.artist}{podcast.artist && ' · '}<span className="font-mono tabular-nums">{episodes.length}</span> {t('podcast.episodes')}
               <span className="text-gray-400 ml-1">via {theme.name}</span>
             </p>
           </div>
@@ -171,11 +172,11 @@ export function PodcastImport({ initialUrl }: Props) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">
-              已选 <span className="font-mono tabular-nums">{selected.size}</span>/<span className="font-mono tabular-nums">{episodes.length}</span> 集
+              {t('podcast.selectedEpisodes', { selected: selected.size, total: episodes.length })}
             </span>
             <div className="flex gap-2 text-xs">
-              <button onClick={selectAll} className="text-notebooklm-blue hover:underline">全选</button>
-              <button onClick={selectNone} className="text-gray-400 hover:underline">取消全选</button>
+              <button onClick={selectAll} className="text-notebooklm-blue hover:underline">{t('selectAll')}</button>
+              <button onClick={selectNone} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
             </div>
           </div>
           <div className="max-h-48 overflow-y-auto border border-border-strong rounded-lg shadow-soft">
@@ -193,7 +194,7 @@ export function PodcastImport({ initialUrl }: Props) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-700 line-clamp-1">{ep.title}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {ep.releaseDate} {ep.durationMinutes > 0 && `· ${ep.durationMinutes} 分钟`}
+                    {ep.releaseDate} {ep.durationMinutes > 0 && `· ${ep.durationMinutes} ${t('podcast.minutes')}`}
                   </p>
                 </div>
               </label>
@@ -212,18 +213,18 @@ export function PodcastImport({ initialUrl }: Props) {
           {state === 'downloading' ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              下载中 <span className="font-mono tabular-nums">{progress.current}/{progress.total}</span>
+              {t('podcast.downloading', { current: progress.current, total: progress.total })}
               {progress.title && <span className="text-white/60 text-xs truncate max-w-[150px]">· {progress.title}</span>}
             </>
           ) : state === 'done' ? (
             <>
               <CheckCircle className="w-4 h-4" />
-              下载完成
+              {t('podcast.downloadDone')}
             </>
           ) : (
             <>
               <Download className="w-4 h-4" />
-              下载选中 (<span className="font-mono tabular-nums">{selected.size}</span> 集)
+              {t('podcast.downloadSelected', { count: selected.size })}
             </>
           )}
         </button>
@@ -240,11 +241,11 @@ export function PodcastImport({ initialUrl }: Props) {
       {/* Help */}
       {!podcast && state === 'idle' && (
         <div className="text-xs text-gray-400 space-y-1 bg-surface-sunken rounded-xl p-3.5">
-          <p>支持的链接格式：</p>
+          <p>{t('podcast.supportedFormats')}</p>
           <ul className="list-disc list-inside space-y-0.5">
-            <li>Apple Podcasts：podcasts.apple.com/.../id123456</li>
-            <li>小宇宙单集：xiaoyuzhoufm.com/episode/...</li>
-            <li>小宇宙节目：xiaoyuzhoufm.com/podcast/...</li>
+            <li>{t('podcast.formatApple')}</li>
+            <li>{t('podcast.formatXyz1')}</li>
+            <li>{t('podcast.formatXyz2')}</li>
           </ul>
         </div>
       )}

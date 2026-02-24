@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Loader2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { isValidUrl, isYouTubeUrl } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -26,7 +27,7 @@ export function SingleImport({ onProgress }: Props) {
 
   const handleImport = async (targetUrl: string) => {
     if (!isValidUrl(targetUrl)) {
-      setError('请输入有效的 URL');
+      setError(t('invalidUrl'));
       setState('error');
       return;
     }
@@ -48,7 +49,7 @@ export function SingleImport({ onProgress }: Props) {
         setTimeout(() => setState('idle'), 3000);
       } else {
         setState('error');
-        setError(response?.error || '导入失败，请确保 NotebookLM 页面已打开');
+        setError(response?.error || t('single.importFailedHint'));
       }
     });
   };
@@ -65,7 +66,7 @@ export function SingleImport({ onProgress }: Props) {
       {/* Current tab quick import */}
       {currentTabUrl && (
         <div className="bg-gray-50 rounded-lg p-3">
-          <p className="text-xs text-gray-500 mb-2">当前标签页</p>
+          <p className="text-xs text-gray-500 mb-2">{t('single.currentTab')}</p>
           <div className="flex items-center gap-2">
             <span className="flex-1 text-sm text-gray-700 truncate">{currentTabUrl}</span>
             <button
@@ -78,7 +79,7 @@ export function SingleImport({ onProgress }: Props) {
               ) : (
                 <ExternalLink className="w-3 h-3" />
               )}
-              导入
+              {t('import')}
             </button>
           </div>
         </div>
@@ -86,7 +87,7 @@ export function SingleImport({ onProgress }: Props) {
 
       {/* Manual URL input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">输入 URL</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t('single.enterUrl')}</label>
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -106,10 +107,10 @@ export function SingleImport({ onProgress }: Props) {
             {state === 'importing' ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                导入中
+                {t('single.importingBtn')}
               </>
             ) : (
-              '导入'
+              t('import')
             )}
           </button>
         </div>
@@ -119,7 +120,7 @@ export function SingleImport({ onProgress }: Props) {
       {state === 'success' && (
         <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-lg p-3">
           <CheckCircle className="w-4 h-4" />
-          导入成功！
+          {t('importSuccess')}
         </div>
       )}
 
@@ -132,11 +133,11 @@ export function SingleImport({ onProgress }: Props) {
 
       {/* Tips */}
       <div className="text-xs text-gray-400 space-y-1">
-        <p>支持导入：</p>
+        <p>{t('single.supportedImports')}</p>
         <ul className="list-disc list-inside space-y-0.5 text-gray-400">
-          <li>普通网页文章</li>
-          <li>YouTube 视频（自动提取字幕）</li>
-          <li>PDF 文件链接</li>
+          <li>{t('single.webArticles')}</li>
+          <li>{t('single.youtubeVideos')}</li>
+          <li>{t('single.pdfLinks')}</li>
         </ul>
       </div>
     </div>
