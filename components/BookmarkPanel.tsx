@@ -9,6 +9,7 @@ import {
   FileDown,
   BookOpen,
   FolderPlus,
+  FolderInput,
   ChevronDown,
   ChevronUp,
   X,
@@ -189,6 +190,17 @@ export function BookmarkPanel({ onProgress }: Props) {
   const selectAll = () => setSelectedIds(new Set(filteredBookmarks.map((b) => b.id)));
   const deselectAll = () => setSelectedIds(new Set());
 
+  const handleMoveSelected = (targetCollection: string) => {
+    if (selectedIds.size === 0) return;
+    chrome.runtime.sendMessage(
+      { type: 'MOVE_BOOKMARKS', ids: Array.from(selectedIds), collection: targetCollection },
+      () => {
+        setSelectedIds(new Set());
+        loadData();
+      }
+    );
+  };
+
   return (
     <div className="space-y-3">
       {/* Add current page */}
@@ -283,7 +295,21 @@ export function BookmarkPanel({ onProgress }: Props) {
               <button onClick={selectAll} className="btn-press text-amber-600 hover:underline">全选</button>
               <button onClick={deselectAll} className="btn-press text-gray-400 hover:underline">取消</button>
               {selectedIds.size > 0 && (
-                <button onClick={handleRemoveSelected} className="btn-press text-red-400 hover:text-red-600">删除选中</button>
+                <>
+                  {collections.length > 0 && (
+                    <select
+                      onChange={(e) => { if (e.target.value) { handleMoveSelected(e.target.value); e.target.value = ''; } }}
+                      className="text-xs text-gray-500 bg-transparent border border-gray-200 rounded px-1 py-0.5 cursor-pointer hover:border-gray-300"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>移至…</option>
+                      {collections.filter((c) => c !== activeCollection || activeCollection === 'all').map((col) => (
+                        <option key={col} value={col}>{col}</option>
+                      ))}
+                    </select>
+                  )}
+                  <button onClick={handleRemoveSelected} className="btn-press text-red-400 hover:text-red-600">删除</button>
+                </>
               )}
             </div>
           </div>

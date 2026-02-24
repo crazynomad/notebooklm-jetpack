@@ -142,6 +142,7 @@ import {
   addBookmark,
   removeBookmark,
   removeBookmarks,
+  moveBookmark,
   getBookmarks,
   getCollections,
   createCollection,
@@ -811,6 +812,16 @@ async function handleMessage(message: MessageType): Promise<unknown> {
 
     case 'CREATE_COLLECTION':
       await createCollection(message.name);
+      return true;
+
+    case 'MOVE_BOOKMARK':
+      await moveBookmark(message.id, message.collection);
+      return true;
+
+    case 'MOVE_BOOKMARKS':
+      for (const id of message.ids) {
+        await moveBookmark(id, message.collection);
+      }
       return true;
 
     case 'IS_BOOKMARKED':

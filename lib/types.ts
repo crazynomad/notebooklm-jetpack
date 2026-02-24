@@ -79,6 +79,8 @@ export type MessageType =
   | { type: 'ADD_BOOKMARK'; url: string; title: string; favicon?: string; collection?: string }
   | { type: 'REMOVE_BOOKMARK'; id: string }
   | { type: 'REMOVE_BOOKMARKS'; ids: string[] }
+  | { type: 'MOVE_BOOKMARK'; id: string; collection: string }
+  | { type: 'MOVE_BOOKMARKS'; ids: string[]; collection: string }
   | { type: 'GET_BOOKMARKS' }
   | { type: 'GET_COLLECTIONS' }
   | { type: 'CREATE_COLLECTION'; name: string }
