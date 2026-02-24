@@ -106,7 +106,9 @@ async function importUrlToNotebookLM(url: string): Promise<boolean> {
 
     if (!urlTextarea) {
       // Not at URL input step yet — click "网站" (Website) button
-      const websiteButton = await findButtonByText(['网站', 'Website', 'Websites', 'Link'], 3000);
+      // Icon-first: the Websites button has "link" icon; fallback to text
+      const websiteButton = await findDialogButtonByIcon(['link'], 500)
+        || await findButtonByText(['网站', 'Website', 'Websites', 'Link'], 3000);
       if (!websiteButton) {
         throw new Error('Website button not found in dialog');
       }
@@ -157,17 +159,17 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     if (!textArea) {
       // Need to navigate to copied text sub-page first
       // First go back to main dialog if on another sub-page (e.g. URL input)
-      const backButton = await findButtonByText(['arrow_back', '返回', 'Back'], 300);
+      const backButton = await findDialogButtonByIcon(['arrow_back'], 200)
+        || await findButtonByText(['返回', 'Back'], 300);
       if (backButton) {
         backButton.click();
         await delay(500);
       }
 
       // Click "复制的文字" (Copied text) button
-      const textButton = await findButtonByText(
-        ['复制的文字', '复制的文本', 'Copied text', 'Text'],
-        3000
-      );
+      // Icon-first: the Copied text button has "content_paste" icon; fallback to text
+      const textButton = await findDialogButtonByIcon(['content_paste'], 500)
+        || await findButtonByText(['复制的文字', '复制的文本', 'Copied text', 'Text'], 3000);
       if (!textButton) {
         throw new Error('Copied text button not found in dialog');
       }
@@ -282,20 +284,35 @@ async function openAddSourceDialog(): Promise<void> {
 }
 
 function findAddSourceButton(): HTMLElement | null {
-  // Try aria-label selectors (works for both EN and CN)
+  // Strategy 1: aria-label (works for both EN and CN)
   const ariaSelectors = [
     'button[aria-label*="Add source"]',
     'button[aria-label*="添加来源"]',
   ];
-
   for (const selector of ariaSelectors) {
     const el = document.querySelector<HTMLElement>(selector);
     if (el) return el;
   }
 
-  // Fallback: find by text content
-  const buttons = document.querySelectorAll('button');
+  // Strategy 2: Find button with "add" icon in the source panel (language-independent)
+  const sourcePanel = document.querySelector('.source-panel, [class*="source"]');
+  const searchRoot = sourcePanel || document;
+  const buttons = searchRoot.querySelectorAll('button');
   for (const button of buttons) {
+    const icons = button.querySelectorAll('img, .material-symbols-outlined, .material-icons, mat-icon');
+    for (const icon of icons) {
+      if (icon.textContent?.trim() === 'add') {
+        const btnText = button.textContent?.trim() || '';
+        // Make sure it's the "Add source" button, not "Create notebook" etc.
+        if (btnText.includes('source') || btnText.includes('来源') || btnText.includes('Add')) {
+          return button;
+        }
+      }
+    }
+  }
+
+  // Strategy 3: Fallback to text content
+  for (const button of document.querySelectorAll('button')) {
     const text = button.textContent?.trim() || '';
     if (text.includes('添加来源') || text.includes('Add source')) {
       return button;
@@ -463,6 +480,36 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Find a button inside the current dialog by its Material icon text content.
+ * Material icons render as <img> or <span> with text like "link", "content_paste", "upload".
+ * This is language-independent — icons don't change with locale.
+ */
+async function findDialogButtonByIcon(
+  iconNames: string[],
+  timeout: number = 3000
+): Promise<HTMLElement | null> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeout) {
+    const dialog = getMainDialog() || document.querySelector('[role="dialog"]');
+    if (dialog) {
+      const buttons = dialog.querySelectorAll('button');
+      for (const button of buttons) {
+        // Check <img> children with Material icon text (NotebookLM uses <img> with text content for icons)
+        const icons = button.querySelectorAll('img, .material-symbols-outlined, .material-icons, mat-icon');
+        for (const icon of icons) {
+          const iconText = icon.textContent?.trim() || '';
+          if (iconNames.includes(iconText)) {
+            return button;
+          }
+        }
+      }
+    }
+    await delay(100);
+  }
+  return null;
+}
+
 // ─── Source Rename ──────────────────────────────────────────
 
 /**
@@ -504,7 +551,7 @@ async function renameSource(oldName: string, newName: string): Promise<void> {
     const waitMs = 600 + attempt * 400; // 600, 1000, 1400, 1800, 2200, 2600
     await delay(waitMs);
 
-    renameItem = await findMenuItemByText(['重命名来源', 'Rename source', 'Rename'], 3000);
+    renameItem = await findMenuItemByIconOrText(['edit', 'drive_file_rename_outline'], ['重命名来源', 'Rename source', 'Rename'], 3000);
     if (renameItem) break;
 
     // Menu didn't open — dismiss any stale overlay and retry
@@ -544,15 +591,30 @@ async function renameSource(oldName: string, newName: string): Promise<void> {
 }
 
 /**
- * Find a menu item by text (inside mat-menu-panel or similar menu).
+ * Find a menu item by icon name or text (inside mat-menu-panel or similar menu).
+ * Tries icon matching first (language-independent), then falls back to text.
  */
-async function findMenuItemByText(
+async function findMenuItemByIconOrText(
+  iconNames: string[],
   texts: string[],
   timeout: number = 3000
 ): Promise<HTMLElement | null> {
   const startTime = Date.now();
   while (Date.now() - startTime < timeout) {
     const items = document.querySelectorAll('[role="menuitem"], .mat-menu-item, .mat-mdc-menu-item, button[mat-menu-item]');
+
+    // Try icon match first
+    for (const item of items) {
+      const icons = item.querySelectorAll('img, .material-symbols-outlined, .material-icons, mat-icon');
+      for (const icon of icons) {
+        const iconText = icon.textContent?.trim() || '';
+        if (iconNames.includes(iconText)) {
+          return item as HTMLElement;
+        }
+      }
+    }
+
+    // Fallback: text match
     for (const item of items) {
       const itemText = item.textContent?.trim() || '';
       for (const text of texts) {
@@ -564,6 +626,14 @@ async function findMenuItemByText(
     await delay(100);
   }
   return null;
+}
+
+// Keep backward-compatible alias
+async function findMenuItemByText(
+  texts: string[],
+  timeout: number = 3000
+): Promise<HTMLElement | null> {
+  return findMenuItemByIconOrText([], texts, timeout);
 }
 
 /**
