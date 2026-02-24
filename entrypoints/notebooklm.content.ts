@@ -100,13 +100,13 @@ async function importUrlToNotebookLM(url: string): Promise<boolean> {
 
     // Step 2: Check if we're already on the URL input step (dialog may already be at website sub-page)
     let urlTextarea = await findTextareaByPlaceholder(
-      ['粘贴任何链接', '粘贴', 'Paste any link', 'Paste'],
+      ['粘贴任何链接', '粘贴', 'Paste any link', 'Paste any links', 'Paste'],
       500
     );
 
     if (!urlTextarea) {
       // Not at URL input step yet — click "网站" (Website) button
-      const websiteButton = await findButtonByText(['网站', 'Website', 'Link'], 3000);
+      const websiteButton = await findButtonByText(['网站', 'Website', 'Websites', 'Link'], 3000);
       if (!websiteButton) {
         throw new Error('Website button not found in dialog');
       }
@@ -115,7 +115,7 @@ async function importUrlToNotebookLM(url: string): Promise<boolean> {
 
       // Now find the URL textarea
       urlTextarea = await findTextareaByPlaceholder(
-        ['粘贴任何链接', '粘贴', 'Paste any link', 'Paste'],
+        ['粘贴任何链接', '粘贴', 'Paste any link', 'Paste any links', 'Paste'],
         3000
       );
     }
