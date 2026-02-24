@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { ImportProgress, ImportItem, RssFeedItem } from '@/lib/types';
 import { isValidUrl } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -61,12 +62,12 @@ export function ImportPanel({ onProgress }: Props) {
   // ── Single Import ──
   const handleSingleImport = (targetUrl: string) => {
     if (!isValidUrl(targetUrl)) {
-      setError('请输入有效的 URL');
+      setError(t('invalidUrl'));
       setState('error');
       return;
     }
     if (isNotebookLMUrl(targetUrl)) {
-      setError('不能导入 NotebookLM 自身的页面');
+      setError(t('panel.cannotImportNlm'));
       setState('error');
       return;
     }
@@ -87,7 +88,7 @@ export function ImportPanel({ onProgress }: Props) {
         setTimeout(() => setState('idle'), 3000);
       } else {
         setState('error');
-        setError(response?.error || '导入失败，请确保 NotebookLM 页面已打开');
+        setError(response?.error || t('single.importFailedHint'));
       }
     });
   };
@@ -103,7 +104,7 @@ export function ImportPanel({ onProgress }: Props) {
   const handleBatchImport = (urls?: string[]) => {
     const urlsToImport = urls || parseUrls(urlsText);
     if (urlsToImport.length === 0) {
-      setError('请输入有效的 URL');
+      setError(t('invalidUrl'));
       setState('error');
       return;
     }
@@ -135,7 +136,7 @@ export function ImportPanel({ onProgress }: Props) {
         setState(hasErrors ? 'error' : 'success');
       } else {
         setState('error');
-        setError(response?.error || '批量导入失败');
+        setError(response?.error || t('batch.batchFailed'));
       }
     });
   };
@@ -148,14 +149,14 @@ export function ImportPanel({ onProgress }: Props) {
         setState('idle');
       } else {
         setState('error');
-        setError('获取标签页失败');
+        setError(t('batch.getTabsFailed'));
       }
     });
   };
 
   // ── RSS Import ──
   const handleRssLoad = () => {
-    if (!rssUrl) { setError('请输入 RSS 链接'); setState('error'); return; }
+    if (!rssUrl) { setError(t('more.enterRssLink')); setState('error'); return; }
     setState('loading');
     setError('');
     setRssArticles([]);
@@ -168,14 +169,14 @@ export function ImportPanel({ onProgress }: Props) {
         setState('idle');
       } else {
         setState('error');
-        setError(response?.error || 'RSS 解析失败');
+        setError(response?.error || t('more.rssFailed'));
       }
     });
   };
 
   const handleRssImport = () => {
     const urls = rssArticles.filter((a) => selectedArticles.has(a.url)).map((a) => a.url);
-    if (urls.length === 0) { setError('请至少选择一篇文章'); setState('error'); return; }
+    if (urls.length === 0) { setError(t('selectAtLeastOneArticle')); setState('error'); return; }
     // Reuse batch import logic
     setUrlsText(urls.join('\n'));
     handleBatchImport(urls);
@@ -196,8 +197,8 @@ export function ImportPanel({ onProgress }: Props) {
   const failedCount = importResults?.filter((i) => i.status === 'error').length || 0;
 
   const modes: { key: Mode; label: string; icon: typeof Link }[] = [
-    { key: 'single', label: '单个', icon: Link },
-    { key: 'batch', label: '批量', icon: List },
+    { key: 'single', label: t('panel.single'), icon: Link },
+    { key: 'batch', label: t('panel.batch'), icon: List },
     { key: 'rss', label: 'RSS', icon: Rss },
   ];
 
@@ -226,7 +227,7 @@ export function ImportPanel({ onProgress }: Props) {
         <>
           {currentTabUrl && (
             <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs text-gray-500 mb-2">当前标签页</p>
+              <p className="text-xs text-gray-500 mb-2">{t('single.currentTab')}</p>
               <div className="flex items-center gap-2">
                 <span className="flex-1 text-sm text-gray-700 truncate">{currentTabUrl}</span>
                 <button
@@ -235,13 +236,13 @@ export function ImportPanel({ onProgress }: Props) {
                   className="px-3 py-1.5 bg-notebooklm-blue text-white text-xs rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                 >
                   {state === 'importing' ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
-                  导入
+                  {t('import')}
                 </button>
               </div>
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">输入 URL</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('single.enterUrl')}</label>
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -258,12 +259,12 @@ export function ImportPanel({ onProgress }: Props) {
                 disabled={!url || state === 'importing'}
                 className="px-4 py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />导入中</> : '导入'}
+                {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />{t('single.importingBtn')}</> : t('import')}
               </button>
             </div>
           </div>
           <div className="text-xs text-gray-400 space-y-1">
-            <p>支持导入：网页文章、YouTube 视频（自动提取字幕）、PDF 链接</p>
+            <p>{t('panel.supportedFormats')}</p>
           </div>
         </>
       )}
@@ -277,16 +278,16 @@ export function ImportPanel({ onProgress }: Props) {
             className="w-full py-2 px-3 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {state === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <LayoutGrid className="w-4 h-4" />}
-            导入所有打开的标签页
+            {t('batch.importAllTabs')}
           </button>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL 列表 {urlCount > 0 && <span className="text-gray-400">({urlCount} 个)</span>}
+              {t('batch.urlList')} {urlCount > 0 && <span className="text-gray-400">({urlCount})</span>}
             </label>
             <textarea
               value={urlsText}
               onChange={(e) => setUrlsText(e.target.value)}
-              placeholder={'每行一个 URL，或用逗号分隔\nhttps://example.com/article1\nhttps://example.com/article2'}
+              placeholder={`${t('batch.placeholder')}\nhttps://example.com/article1\nhttps://example.com/article2`}
               rows={6}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-notebooklm-blue focus:border-transparent font-mono"
             />
@@ -296,7 +297,7 @@ export function ImportPanel({ onProgress }: Props) {
             disabled={urlCount === 0 || state === 'importing'}
             className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />正在导入...</> : <><List className="w-4 h-4" />批量导入 {urlCount > 0 && `(${urlCount})`}</>}
+            {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />{t('importing')}</> : <><List className="w-4 h-4" />{t('batch.batchImport')} {urlCount > 0 && `(${urlCount})`}</>}
           </button>
         </>
       )}
@@ -305,7 +306,7 @@ export function ImportPanel({ onProgress }: Props) {
       {mode === 'rss' && (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">RSS / Atom 链接</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('panel.rssAtomLink')}</label>
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <Rss className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -323,7 +324,7 @@ export function ImportPanel({ onProgress }: Props) {
                 className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {state === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                加载
+                {t('load')}
               </button>
             </div>
           </div>
@@ -332,10 +333,10 @@ export function ImportPanel({ onProgress }: Props) {
             <>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">已选择 {selectedArticles.size}/{rssArticles.length} 篇</span>
+                  <span className="text-sm text-gray-600">{t('more.selectedArticles', { selected: selectedArticles.size, total: rssArticles.length })}</span>
                   <div className="flex gap-2 text-xs">
-                    <button onClick={() => setSelectedArticles(new Set(rssArticles.map((a) => a.url)))} className="text-notebooklm-blue hover:underline">全选</button>
-                    <button onClick={() => setSelectedArticles(new Set())} className="text-gray-400 hover:underline">取消全选</button>
+                    <button onClick={() => setSelectedArticles(new Set(rssArticles.map((a) => a.url)))} className="text-notebooklm-blue hover:underline">{t('selectAll')}</button>
+                    <button onClick={() => setSelectedArticles(new Set())} className="text-gray-400 hover:underline">{t('deselectAll')}</button>
                   </div>
                 </div>
                 <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
@@ -367,14 +368,14 @@ export function ImportPanel({ onProgress }: Props) {
                 disabled={selectedArticles.size === 0 || state === 'importing'}
                 className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />正在导入...</> : <><Rss className="w-4 h-4" />导入选中文章 ({selectedArticles.size})</>}
+                {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />{t('importing')}</> : <><Rss className="w-4 h-4" />{t('more.importSelected')} ({selectedArticles.size})</>}
               </button>
             </>
           )}
 
           {rssArticles.length === 0 && state === 'idle' && (
             <div className="text-xs text-gray-400 space-y-1">
-              <p>常见 RSS 格式：/feed, /rss, /atom.xml, medium.com/feed/@user</p>
+              <p>{t('more.rssFormats')}</p>
             </div>
           )}
         </>
@@ -384,7 +385,7 @@ export function ImportPanel({ onProgress }: Props) {
       {state === 'success' && !importResults && (
         <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-lg p-3">
           <CheckCircle className="w-4 h-4" />
-          导入成功！
+          {t('importSuccess')}
         </div>
       )}
 
@@ -394,17 +395,17 @@ export function ImportPanel({ onProgress }: Props) {
             <div className="flex items-center gap-2">
               {failedCount > 0 ? <AlertCircle className="w-4 h-4 text-yellow-600" /> : <CheckCircle className="w-4 h-4 text-green-600" />}
               <span className={failedCount > 0 ? 'text-yellow-700' : 'text-green-600'}>
-                成功 {successCount} 个{failedCount > 0 && `，失败 ${failedCount} 个`}
+                {failedCount > 0 ? t('successFailCount', { success: successCount, failed: failedCount }) : t('successCount', { success: successCount })}
               </span>
             </div>
             <div className="flex items-center gap-2">
               {failedCount > 0 && (
                 <button onClick={handleRetryFailed} disabled={state === 'importing'} className="text-xs text-yellow-700 hover:text-yellow-800 flex items-center gap-1">
-                  <RotateCcw className="w-3 h-3" />重试失败
+                  <RotateCcw className="w-3 h-3" />{t('retryFailed')}
                 </button>
               )}
               <button onClick={() => setShowDetails(!showDetails)} className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1">
-                {showDetails ? <><ChevronUp className="w-3 h-3" />收起</> : <><ChevronDown className="w-3 h-3" />详情</>}
+                {showDetails ? <><ChevronUp className="w-3 h-3" />{t('collapse')}</> : <><ChevronDown className="w-3 h-3" />{t('details')}</>}
               </button>
             </div>
           </div>
@@ -417,7 +418,7 @@ export function ImportPanel({ onProgress }: Props) {
                     : <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />}
                   <span className="flex-1 truncate text-gray-600" title={item.url}>{item.url}</span>
                   {item.status === 'error' && (
-                    <button onClick={() => handleRetrySingle(item.url)} disabled={state === 'importing'} className="text-gray-400 hover:text-notebooklm-blue flex-shrink-0" title="重试">
+                    <button onClick={() => handleRetrySingle(item.url)} disabled={state === 'importing'} className="text-gray-400 hover:text-notebooklm-blue flex-shrink-0" title={t('retry')}>
                       <RotateCcw className="w-3 h-3" />
                     </button>
                   )}

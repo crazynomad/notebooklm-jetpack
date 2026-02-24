@@ -3,7 +3,8 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { BookOpen, History, MessageCircle, Headphones, MoreHorizontal, Bookmark } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { t } from '@/lib/i18n';
+import { useI18n } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
 import { DocsImport } from '@/components/DocsImport';
 import { PodcastImport } from '@/components/PodcastImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
@@ -13,6 +14,7 @@ import { HistoryPanel } from '@/components/HistoryPanel';
 import { RescueBanner } from '@/components/RescueBanner';
 
 export default function App() {
+  const { t, locale, setLocale } = useI18n();
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [activeTab, setActiveTab] = useState('bookmark');
@@ -45,21 +47,28 @@ export default function App() {
       {/* Header — frosted glass */}
       <div className="glass px-3.5 py-2.5 border-b border-border flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-notebooklm-blue to-blue-600 flex items-center justify-center shadow-sm">
-            <BookOpen className="w-3.5 h-3.5 text-white" />
-          </div>
+          <img src="/icons/icon-128.png" alt="NotebookLM Jetpack" className="w-7 h-7" />
           <div className="flex items-baseline gap-1.5">
             <span className="font-semibold text-[13px] text-gray-900 tracking-tight">NotebookLM Jetpack</span>
             <span className="font-mono text-[9px] text-gray-400/80 tabular-nums" title={`Build: ${__BUILD_TIME__}`}>v{__VERSION__}</span>
           </div>
         </div>
-        <button
-          onClick={() => setShowHistory(true)}
-          className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
-          title={t('app.importHistory')}
-        >
-          <History className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
+            className="px-1.5 py-1 text-[10px] font-medium text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-md transition-all duration-150 btn-press"
+            title={locale === 'zh' ? 'Switch to English' : '切换到中文'}
+          >
+            {locale === 'zh' ? 'EN' : '中'}
+          </button>
+          <button
+            onClick={() => setShowHistory(true)}
+            className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
+            title={t('app.importHistory')}
+          >
+            <History className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Progress indicator */}

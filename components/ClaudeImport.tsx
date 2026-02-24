@@ -159,14 +159,38 @@ export function ClaudeImport({ onProgress }: Props) {
   const pairs = conversation?.pairs || [];
   const allSelected = pairs.length > 0 && selectedPairIds.size === pairs.length;
 
-  // Not on a supported AI platform
+  // Not on a supported AI platform — show onboarding guide
   if (!platformInfo) {
     return (
       <div className="space-y-4">
         <div className="bg-amber-50/60 border border-amber-200/40 rounded-xl p-4 shadow-soft text-center">
           <MessageCircle className="w-10 h-10 text-amber-500 opacity-80 mx-auto mb-2" />
-          <p className="text-sm text-amber-700 leading-relaxed">{t('claude.openAiPage')}</p>
-          <p className="text-xs text-amber-600/70 mt-2">{t('claude.supported')}</p>
+          <p className="text-sm font-medium text-amber-700">{t('claude.openAiPage')}</p>
+          <p className="text-xs text-amber-600/70 mt-1">{t('claude.supported')}</p>
+        </div>
+        <div className="bg-surface-sunken rounded-xl p-4 space-y-3">
+          <p className="text-xs font-medium text-gray-600">{t('claude.guideTitle')}</p>
+          <ol className="text-xs text-gray-500 space-y-2 list-none">
+            <li className="flex gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-notebooklm-blue/10 text-notebooklm-blue text-[10px] font-semibold flex items-center justify-center flex-shrink-0">1</span>
+              <span>{t('claude.guideStep1')}</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-notebooklm-blue/10 text-notebooklm-blue text-[10px] font-semibold flex items-center justify-center flex-shrink-0">2</span>
+              <span>{t('claude.guideStep2')}</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-notebooklm-blue/10 text-notebooklm-blue text-[10px] font-semibold flex items-center justify-center flex-shrink-0">3</span>
+              <span>{t('claude.guideStep3')}</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-notebooklm-blue/10 text-notebooklm-blue text-[10px] font-semibold flex items-center justify-center flex-shrink-0">4</span>
+              <span>{t('claude.guideStep4')}</span>
+            </li>
+          </ol>
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-[10px] text-gray-400">{t('claude.guideTip')}</p>
+          </div>
         </div>
       </div>
     );

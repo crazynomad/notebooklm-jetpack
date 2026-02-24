@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 
-type Locale = 'zh' | 'en';
+export type Locale = 'zh' | 'en';
 
 const zh = {
   // ── Common ──
@@ -144,6 +144,12 @@ const zh = {
   'claude.importSelected': '导入选中的 {count} 个问答对',
   'claude.source': '来源',
   'claude.conversation': '对话',
+  'claude.guideTitle': '如何使用',
+  'claude.guideStep1': '打开 Claude、ChatGPT 或 Gemini 的对话页面',
+  'claude.guideStep2': '点击浏览器工具栏中的 Jetpack 图标打开本面板',
+  'claude.guideStep3': '点击「提取当前对话」，选择要导入的问答对',
+  'claude.guideStep4': '一键导入到 NotebookLM，AI 对话秒变知识来源',
+  'claude.guideTip': '💡 导入前请确保已打开一个 NotebookLM 笔记本（非首页）',
 
   // ── BookmarkPanel ──
   'bookmark.collection': '收藏合集',
@@ -354,6 +360,12 @@ const en: Record<keyof typeof zh, string> = {
   'claude.importSelected': 'Import {count} Q&A pairs',
   'claude.source': 'Source',
   'claude.conversation': 'Conversation',
+  'claude.guideTitle': 'How to use',
+  'claude.guideStep1': 'Open a conversation on Claude, ChatGPT, or Gemini',
+  'claude.guideStep2': 'Click the Jetpack icon in the toolbar to open this panel',
+  'claude.guideStep3': 'Click "Extract Current Conversation" and select Q&A pairs',
+  'claude.guideStep4': 'Import to NotebookLM — turn AI chats into knowledge sources',
+  'claude.guideTip': '💡 Make sure a NotebookLM notebook (not homepage) is open before importing',
 
   // ── BookmarkPanel ──
   'bookmark.collection': 'Bookmark Collection',
@@ -434,13 +446,39 @@ function detectLocale(): Locale {
   }
 }
 
+const STORAGE_KEY = 'jetpack_locale';
+
 let currentLocale: Locale | null = null;
+const listeners = new Set<() => void>();
+
+function loadLocale(): Locale {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'zh' || stored === 'en') return stored;
+  } catch { /* ignore */ }
+  return detectLocale();
+}
 
 function getLocale(): Locale {
   if (!currentLocale) {
-    currentLocale = detectLocale();
+    currentLocale = loadLocale();
   }
   return currentLocale;
+}
+
+export function setLocale(locale: Locale): void {
+  currentLocale = locale;
+  try { localStorage.setItem(STORAGE_KEY, locale); } catch { /* ignore */ }
+  listeners.forEach((fn) => fn());
+}
+
+function subscribe(fn: () => void) {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
+}
+
+function getSnapshot(): Locale {
+  return getLocale();
 }
 
 export function t(key: TranslationKey, params?: Record<string, string | number>): string {
@@ -456,6 +494,10 @@ export function t(key: TranslationKey, params?: Record<string, string | number>)
 }
 
 export function useI18n() {
-  const locale = useMemo(() => getLocale(), []);
-  return { t, locale };
+  const locale = useSyncExternalStore(subscribe, getSnapshot);
+  const boundT = useMemo(() => {
+    // Re-create t reference when locale changes so components re-render
+    return (key: TranslationKey, params?: Record<string, string | number>) => t(key, params);
+  }, [locale]);
+  return { t: boundT, locale, setLocale };
 }
