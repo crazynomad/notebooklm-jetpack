@@ -29,3 +29,7 @@ coverage/
 # Misc
 *.zip
 dist-dev/
+
+# Screenshot build artifacts
+docs/screenshots/raw/
+docs/screenshots/*.png

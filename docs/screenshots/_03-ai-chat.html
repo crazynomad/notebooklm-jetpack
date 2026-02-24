@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap');
+
+  body {
+    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+    background: linear-gradient(135deg, #EBF3FE 0%, #F8FAFF 100%);
+    width: 1280px;
+    height: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .badge {
+    position: absolute;
+    top: 32px;
+    left: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0.7;
+  }
+  .badge img { width: 28px; height: 28px; }
+  .badge span { font-size: 13px; font-weight: 600; color: #444; }
+
+  .watermark {
+    position: absolute;
+    bottom: 20px;
+    right: 32px;
+    font-size: 11px;
+    color: #aaa;
+  }
+
+  .title {
+    font-size: 36px;
+    font-weight: 700;
+    color: #1A1A1A;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    font-size: 17px;
+    font-weight: 400;
+    color: #666;
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .screenshot {
+    border-radius: 16px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 2px 12px rgba(0,0,0,0.06);
+    overflow: hidden;
+    max-height: 520px;
+  }
+  .screenshot img {
+    display: block;
+    height: 520px;
+    width: auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="badge">
+  <img src="../../public/icons/icon-128.png" alt="">
+  <span>NotebookLM Jetpack</span>
+</div>
+
+<div class="title" id="title">AI 对话，秒变知识来源</div>
+<div class="subtitle" id="subtitle">支持 Claude · ChatGPT · Gemini，按问答对选择性导入</div>
+
+<div class="screenshot">
+  <img id="screenshot" src="raw/03-ai-chat.jpg" alt="">
+</div>
+
+<div class="watermark">github.com/crazynomad/notebooklm-jetpack</div>
+
+</body>
+</html>
