@@ -1,0 +1,64 @@
+---
+title: 'AI 对话导入'
+description: '从 Claude、ChatGPT、Gemini 提取对话，导入 NotebookLM'
+---
+
+## 问题
+
+你和 ChatGPT 讨论了技术方案，和 Claude 深入分析了论文，和 Gemini 做了头脑风暴。这些对话就是知识，但 NotebookLM 不能直接导入 AI 对话。
+
+## 解决方案
+
+<Steps>
+  <Step title="打开 AI 对话页面">
+    在浏览器中打开 Claude、ChatGPT 或 Gemini 的一个对话。
+  </Step>
+  <Step title="提取对话">
+    点击 Jetpack 图标 → 切到「AI 对话」tab。扩展会自动识别当前平台。
+
+    点击「提取当前对话」，扩展从页面 DOM 中提取所有问答对。
+  </Step>
+  <Step title="选择问答对">
+    以问答对为单位勾选，只导入有价值的部分。每个问答对显示问题摘要和回答预览。
+  </Step>
+  <Step title="导入">
+    点击「导入选中的 N 个问答对」。扩展将对话格式化为结构化 Markdown，以「复制文本」方式导入 NotebookLM。
+  </Step>
+</Steps>
+
+## 支持的平台
+
+| 平台 | 域名 | 状态 |
+|---|---|---|
+| Claude | `claude.ai` | ✅ 完整支持 |
+| ChatGPT | `chatgpt.com` | ✅ 完整支持 |
+| Gemini | `gemini.google.com` | ✅ 完整支持 |
+
+## 导入格式
+
+导入到 NotebookLM 的内容格式：
+
+```markdown
+# 对话标题
+
+**来源**: Claude 对话
+**URL**: https://claude.ai/chat/xxx
+
+---
+
+## 👤 Human
+你的问题内容...
+
+## 🤖 Claude
+AI 的回答内容...
+
+---
+```
+
+<Tip>
+  **选择性导入**：一段长对话中往往只有部分有价值。利用勾选功能过滤掉闲聊，只保留精华。
+</Tip>
+
+<Note>
+  导入前请确保已打开一个 NotebookLM 笔记本页面。
+</Note>

@@ -1,0 +1,50 @@
+---
+title: '播客下载'
+description: '从 Apple Podcasts 和小宇宙下载音频，导入 NotebookLM'
+---
+
+## 问题
+
+两小时的播客，靠手动总结太累。想让 NotebookLM 帮你生成笔记，但它不支持直接输入播客链接。
+
+## 解决方案
+
+<Steps>
+  <Step title="获取播客链接">
+    复制 Apple Podcasts 或小宇宙的节目/单集链接。
+  </Step>
+  <Step title="粘贴到 Jetpack">
+    点击 Jetpack 图标 → 切到「播客」tab → 粘贴链接 → 点击「查询」。
+  </Step>
+  <Step title="选择单集">
+    扩展会显示节目信息和单集列表。勾选要下载的单集。
+  </Step>
+  <Step title="下载音频">
+    点击「下载选中」，音频文件会保存到本地。
+  </Step>
+  <Step title="导入 NotebookLM">
+    将下载的音频文件拖入 NotebookLM 笔记本 → AI 自动生成完整笔记。
+  </Step>
+</Steps>
+
+## 支持的平台
+
+| 平台 | 链接格式 | 说明 |
+|---|---|---|
+| Apple Podcasts | `podcasts.apple.com/.../id123456` | 支持节目和单集链接 |
+| 小宇宙 | `xiaoyuzhoufm.com/episode/...` | 支持单集链接 |
+| 小宇宙 | `xiaoyuzhoufm.com/podcast/...` | 支持节目链接 |
+
+## 查询模式
+
+- **最新** — 显示最新发布的单集
+- **全部** — 显示所有单集（可能较多）
+- **集** — 按季度/专辑筛选
+
+<Tip>
+  下载后的音频文件通常是 `.m4a` 或 `.mp3` 格式，NotebookLM 都支持。
+</Tip>
+
+<Warning>
+  音频文件可能较大（一集 50-100MB），请确保有足够的磁盘空间和网络带宽。
+</Warning>

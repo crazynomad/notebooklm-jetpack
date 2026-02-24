@@ -1,0 +1,61 @@
+---
+title: '文档站导入'
+description: '一键分析整个文档站，批量导入或导出 PDF'
+---
+
+## 问题
+
+你想学一个新框架，想把官方文档 200 页全丢进 NotebookLM 用 AI 问答学习。手动复制粘贴？太痛苦了。
+
+## 解决方案
+
+<Steps>
+  <Step title="打开文档站">
+    在浏览器中打开文档站的任意页面（如 `https://vitepress.dev`）。
+  </Step>
+  <Step title="分析站点">
+    点击 Jetpack 图标 → 切到「文档站」tab → 点击「分析当前站点」。
+
+    扩展会自动：
+    - 识别文档框架类型
+    - 提取侧边栏导航或 sitemap
+    - 列出全站所有页面
+  </Step>
+  <Step title="选择并导入">
+    勾选需要的章节或页面，然后选择：
+    - **逐个 URL 导入** — 每个页面作为独立来源
+    - **导出为 PDF** — 全部合并为一个 PDF（节省来源配额）
+  </Step>
+</Steps>
+
+## 支持的文档框架
+
+<CardGroup cols={3}>
+  <Card title="Docusaurus" icon="d" />
+  <Card title="VitePress" icon="v" />
+  <Card title="MkDocs" icon="m" />
+  <Card title="GitBook" icon="book" />
+  <Card title="Mintlify" icon="leaf" />
+  <Card title="Sphinx / ReadTheDocs" icon="scroll" />
+  <Card title="Google DevSite" icon="google" />
+  <Card title="Anthropic Docs" icon="robot" />
+  <Card title="语雀" icon="feather" />
+  <Card title="微信开发文档" icon="message" />
+  <Card title="鸿蒙文档" icon="mobile" />
+  <Card title="sitemap.xml" icon="sitemap" />
+  <Card title="llms.txt" icon="brain" />
+  <Card title="llms-full.txt" icon="brain-circuit" />
+</CardGroup>
+
+## 检测优先级
+
+扩展按以下顺序检测站点结构：
+
+1. **llms.txt / llms-full.txt** — AI 原生标准，优先使用
+2. **sitemap.xml** — 最通用的方式
+3. **侧边栏导航** — 基于框架特定的 DOM 结构
+4. **页面内链接** — 兜底方案
+
+<Tip>
+  如果某个文档站分析结果不理想，可以尝试手动访问 `站点域名/sitemap.xml` 确认是否存在。
+</Tip>

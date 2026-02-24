@@ -1,0 +1,47 @@
+---
+title: '更新日志'
+description: 'NotebookLM Jetpack 版本更新记录'
+---
+
+## v1.1.43 — 2025-02-24
+
+- 🧹 移除 YouTube 相关死代码
+- 🎨 新增商店宣传图素材
+- 📊 测试：84 个测试全部通过
+
+## v1.1.42 — 2025-02-24
+
+- 🌐 完成全部组件 i18n 国际化（ImportPanel 为最后一个）
+- 🔄 新增手动语言切换按钮（EN/中），支持 localStorage 持久化
+- 🤖 AI 对话 tab 新增引导说明（4 步 onboarding）
+- 🎨 更新扩展图标：蓝色圆形 + 白色 jetpack 小人
+- 🧪 新增 37 个测试（bookmarks 21 + i18n 11 + podcast 6），总计 99 个
+- 📄 新增商店描述文档和隐私政策
+
+## v1.1.41 — 2025-02-24
+
+- 🌐 创建 i18n 系统（`lib/i18n.ts`），`t()` 翻译函数
+- 🔄 11 个组件完成国际化转换
+- 🌍 自动检测 `navigator.language`
+
+## v1.1.40 — 2025-02-24
+
+- 📚 验证英文 NotebookLM DOM 匹配
+- 🔧 修复 "Websites"（复数）、"Paste any links"（复数）等英文文本匹配
+
+## v1.1.39 — 2025-02-24
+
+- 📑 收藏夹 tab 移至第一位（默认 tab）
+- 📖 新增收藏夹 onboarding 引导页
+- 📂 分离开发/发布构建目录：`dist-dev/` vs `dist/`
+
+## v1.1.38 — 2025-02-24
+
+- 🔍 语言无关的按钮匹配：基于 Material Icons 而非文本
+- 🎯 `findDialogButtonByIcon()` 支持 `link`、`content_paste`、`arrow_back`、`add`、`edit`
+- 📝 文本匹配作为 fallback 保留
+
+## v1.1.37 — 2025-02-24
+
+- ⏱️ 改进重命名可靠性：初始等待 4s，6 次重试，递增延迟（600ms→2600ms）
+- 🌍 多语言默认来源名称匹配

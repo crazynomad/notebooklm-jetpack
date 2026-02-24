@@ -1,0 +1,81 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "NotebookLM Jetpack",
+  "logo": {
+    "dark": "/logo/icon-128.png",
+    "light": "/logo/icon-128.png"
+  },
+  "favicon": "/logo/icon-128.png",
+  "colors": {
+    "primary": "#4285F4",
+    "light": "#EBF3FE",
+    "dark": "#1A73E8",
+    "anchors": {
+      "from": "#4285F4",
+      "to": "#1A73E8"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/crazynomad/notebooklm-jetpack"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "安装扩展",
+    "url": "https://chrome.google.com/webstore"
+  },
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/crazynomad/notebooklm-jetpack"
+    },
+    {
+      "name": "更新日志",
+      "icon": "clock-rotate-left",
+      "url": "/changelog"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "开始使用",
+      "pages": [
+        "introduction",
+        "getting-started/install",
+        "getting-started/first-import"
+      ]
+    },
+    {
+      "group": "核心功能",
+      "pages": [
+        "features/bookmarks",
+        "features/web-import",
+        "features/docs-import",
+        "features/podcast",
+        "features/ai-chat",
+        "features/rss",
+        "features/rescue"
+      ]
+    },
+    {
+      "group": "使用指南",
+      "pages": [
+        "guides/substack",
+        "guides/wechat",
+        "guides/source-limit"
+      ]
+    },
+    {
+      "group": "其他",
+      "pages": [
+        "faq",
+        "changelog",
+        "privacy"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/crazynomad/notebooklm-jetpack"
+  }
+}

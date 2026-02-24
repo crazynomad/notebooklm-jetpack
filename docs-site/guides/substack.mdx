@@ -1,0 +1,44 @@
+---
+title: 'Substack 导入技巧'
+description: '如何干净地导入 Substack 文章到 NotebookLM'
+---
+
+## 为什么 NotebookLM 直接导入 Substack 不好用？
+
+直接用 NotebookLM 导入 Substack 链接，通常会遇到：
+- 反爬机制拦截，导入失败
+- 导入成功但包含大量噪音：Subscribe 按钮、评论区、推荐文章、页脚
+
+## Jetpack 的处理方式
+
+Jetpack 对 Substack 文章做了专门优化：
+
+### 14 种噪音过滤
+
+自动过滤以下元素：
+- Subscribe / 订阅按钮和弹窗
+- 评论区
+- 推荐文章列表
+- 作者简介卡片
+- 社交分享按钮
+- 页头页脚导航
+- Paywall 遮罩（提取免费部分）
+- 广告和赞助内容
+
+### 导入方式
+
+<AccordionGroup>
+  <Accordion title="方式一：单个导入">
+    粘贴 Substack 文章链接到 Jetpack → 点击导入。扩展自动提取正文。
+  </Accordion>
+  <Accordion title="方式二：RSS 批量导入">
+    Substack 天然支持 RSS。将 `yourname.substack.com/feed` 粘贴到 RSS 导入 → 选择文章 → 批量导入。
+  </Accordion>
+  <Accordion title="方式三：收藏后聚合">
+    逐个收藏感兴趣的 Substack 文章 → 聚合导出 PDF → 上传到 NotebookLM。适合整理某个作者的系列文章。
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  **Paywall 文章**：Jetpack 只能提取免费可见的部分。如果你是付费订阅者，在浏览器中登录后再导入，可以获取完整内容。
+</Tip>

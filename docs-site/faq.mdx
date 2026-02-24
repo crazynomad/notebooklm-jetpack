@@ -1,0 +1,66 @@
+---
+title: '常见问题'
+description: '使用 NotebookLM Jetpack 的常见问题解答'
+---
+
+<AccordionGroup>
+  <Accordion title="导入按钮点击后没有反应？">
+    请确保：
+    1. 已打开一个 NotebookLM **笔记本内部页面**（不是首页）
+    2. NotebookLM 页面已完全加载
+    3. 尝试刷新 NotebookLM 页面后重试
+  </Accordion>
+
+  <Accordion title="支持哪些浏览器？">
+    目前仅支持 **Google Chrome** 和基于 Chromium 的浏览器（如 Edge、Brave、Arc）。暂不支持 Firefox 和 Safari。
+  </Accordion>
+
+  <Accordion title="导入的内容和原文不一样？">
+    Jetpack 会提取网页的**正文内容**并转为纯文本/Markdown。以下内容会被过滤：
+    - 导航栏、页脚、侧边栏
+    - 广告和推荐
+    - 评论区
+    - 订阅弹窗
+
+    这是设计如此 — 保留知识，去除噪音。
+  </Accordion>
+
+  <Accordion title="聚合导出的 PDF 有大小限制吗？">
+    Jetpack 本身没有限制，但 NotebookLM 对单个来源有大小限制（约 500KB 文本或 200MB 文件）。建议每次聚合 10-20 篇文章。
+  </Accordion>
+
+  <Accordion title="扩展会上传我的数据吗？">
+    **不会。** 所有处理都在你的浏览器本地完成。没有任何数据发送到第三方服务器。详见 [隐私政策](/privacy)。
+  </Accordion>
+
+  <Accordion title="如何切换中英文界面？">
+    点击扩展面板右上角的 **EN** 或 **中** 按钮即可切换。扩展也会根据浏览器语言自动选择。
+  </Accordion>
+
+  <Accordion title="收藏的书签数据存在哪里？">
+    存储在 Chrome 的本地存储中（`chrome.storage.local`）。卸载扩展时会清除。如果需要备份，可以先聚合导出为 PDF。
+  </Accordion>
+
+  <Accordion title="为什么需要 debugger 权限？">
+    仅用于 PDF 导出功能。扩展通过 Chrome DevTools Protocol 的 `Page.printToPDF` 命令将 HTML 内容渲染为 PDF。这是 Chrome 扩展唯一的编程式 PDF 生成方式。该权限仅用于处理空白标签页，不会访问你的浏览内容。
+  </Accordion>
+
+  <Accordion title="文档站分析后显示 0 个页面？">
+    可能原因：
+    - 文档站没有 sitemap.xml 且侧边栏结构不在支持列表中
+    - 页面尚未完全加载就点击了分析
+    - 试试在文档站的首页或有侧边栏导航的页面重新分析
+  </Accordion>
+
+  <Accordion title="播客下载速度很慢？">
+    播客音频文件通常较大（50-100MB），下载速度取决于你的网络和音频托管方的带宽。扩展本身不限速。
+  </Accordion>
+
+  <Accordion title="可以导入需要登录的页面吗？">
+    如果你已经在浏览器中登录了该网站，Jetpack 可以提取你能看到的内容。但无法绕过付费墙或权限限制 — 它只能提取你作为已登录用户可以看到的部分。
+  </Accordion>
+
+  <Accordion title="如何反馈问题或建议？">
+    在 GitHub 上提 Issue：[github.com/crazynomad/notebooklm-jetpack/issues](https://github.com/crazynomad/notebooklm-jetpack/issues)
+  </Accordion>
+</AccordionGroup>

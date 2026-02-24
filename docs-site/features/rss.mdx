@@ -1,0 +1,40 @@
+---
+title: 'RSS 导入'
+description: '从 RSS/Atom 源批量导入文章到 NotebookLM'
+---
+
+## 适用场景
+
+关注某个博客或 Newsletter，想把最近的文章批量导入 NotebookLM 做知识整理。
+
+## 使用步骤
+
+<Steps>
+  <Step title="获取 RSS 链接">
+    找到博客的 RSS 源地址。常见格式：
+    - `/feed` — WordPress 博客
+    - `/rss` — 通用
+    - `/atom.xml` — Atom 格式
+    - `medium.com/feed/@user` — Medium
+    - Substack Newsletter 通常在 `/feed` 下
+  </Step>
+  <Step title="粘贴到 Jetpack">
+    点击 Jetpack 图标 → 切到「更多」tab → RSS 导入 → 粘贴链接 → 点击「加载」。
+  </Step>
+  <Step title="选择文章">
+    加载完成后显示文章列表。可以全选或逐个勾选。每篇文章显示标题和发布日期。
+  </Step>
+  <Step title="导入">
+    点击「导入选中文章」，扩展逐个将文章链接导入到 NotebookLM。
+  </Step>
+</Steps>
+
+## 支持的格式
+
+- RSS 2.0
+- RSS 1.0
+- Atom
+
+<Tip>
+  **找不到 RSS 链接？** 试试在域名后加 `/feed`、`/rss`、`/atom.xml`。也可以用浏览器扩展如 RSSHub Radar 自动发现 RSS 源。
+</Tip>

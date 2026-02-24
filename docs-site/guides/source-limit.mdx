@@ -1,0 +1,58 @@
+---
+title: '突破 50 来源限制'
+description: '用 Jetpack 的聚合功能最大化 NotebookLM 的来源配额'
+---
+
+## 免费版限制
+
+NotebookLM 免费版每个笔记本限制 **50 个来源**。对于认真做研究的用户来说，这远远不够。
+
+## 策略：聚合为 PDF
+
+核心思路：**多篇文章 → 1 个 PDF → 1 个来源配额**。
+
+### 实际效果
+
+| 方式 | 文章数 | 占用来源 |
+|---|---|---|
+| 逐个导入 | 20 篇 | 20 个 |
+| PDF 聚合 | 20 篇 | **1 个** |
+| 混合策略 | 100 篇 | **5 个** |
+
+### 操作流程
+
+<Steps>
+  <Step title="日常收藏">
+    浏览中看到好文章就点 Jetpack 收藏按钮。不需要立即导入。
+  </Step>
+  <Step title="分主题管理">
+    创建不同的集合：「AI 论文」「产品设计」「技术博客」等。
+  </Step>
+  <Step title="定期聚合">
+    每个集合积累 10-20 篇时，全选 → 聚合导出 PDF。
+  </Step>
+  <Step title="上传 PDF">
+    将 PDF 拖入 NotebookLM 笔记本。一个 PDF = 一个来源。
+  </Step>
+</Steps>
+
+## 最佳实践
+
+<AccordionGroup>
+  <Accordion title="每个 PDF 多少篇合适？">
+    建议 10-20 篇。太少浪费聚合的意义，太多会导致 PDF 过大（NotebookLM 有单个来源大小限制）。
+  </Accordion>
+  <Accordion title="按什么维度分组？">
+    按**研究主题**分组效果最好。比如做一个项目时，把相关参考资料聚合为一个 PDF。NotebookLM 对同主题内容的问答效果更好。
+  </Accordion>
+  <Accordion title="聚合后还能追加文章吗？">
+    不能修改已上传的 PDF。但你可以创建新的聚合 PDF 上传。建议把持续更新的内容单独一个集合。
+  </Accordion>
+  <Accordion title="文档站怎么处理？">
+    文档站可以直接用「导出为 PDF」功能，一个 200 页的文档站只占 1 个来源。
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  **Pro tip**：把 NotebookLM 的 50 个来源想象成 50 个"文件夹"。每个文件夹里可以放 20 篇文章（通过 PDF 聚合）。理论上你可以在一个笔记本里存 **1000 篇** 文章的知识。
+</Tip>
