@@ -28,3 +28,4 @@ coverage/
 
 # Misc
 *.zip
+dist-dev/
