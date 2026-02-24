@@ -3,83 +3,254 @@
 <head>
 <meta charset="utf-8">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
 
-  body {
-    font-family: 'Inter', 'Noto Sans SC', sans-serif;
-    background: linear-gradient(135deg, #EBF3FE 0%, #F8FAFF 100%);
-    width: 1280px;
-    height: 800px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
+  :root {
+    --accent: #7C3AED;
+    --accent-light: rgba(124, 58, 237, 0.08);
+    --accent-glow: rgba(124, 58, 237, 0.15);
   }
 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', 'Noto Sans SC', sans-serif;
+    width: 1280px;
+    height: 800px;
+    position: relative;
+    overflow: hidden;
+    background: #FAFBFD;
+  }
+
+  /* Subtle dot grid pattern */
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Large number watermark */
+  .num {
+    position: absolute;
+    top: -30px;
+    right: 40px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 280px;
+    font-weight: 400;
+    color: var(--accent);
+    opacity: 0.05;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 0;
+    letter-spacing: -8px;
+  }
+
+  /* Top accent bar */
+  .accent-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--accent);
+    z-index: 10;
+  }
+
+  /* Brand badge */
   .badge {
     position: absolute;
-    top: 32px;
+    top: 28px;
     left: 40px;
     display: flex;
     align-items: center;
     gap: 10px;
-    opacity: 0.7;
+    z-index: 5;
   }
-  .badge img { width: 28px; height: 28px; }
-  .badge span { font-size: 13px; font-weight: 600; color: #444; }
+  .badge-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+  .badge-icon img { width: 100%; height: 100%; display: block; }
+  .badge-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    letter-spacing: 0.02em;
+  }
 
-  .watermark {
+  /* Feature pill */
+  .pill {
     position: absolute;
-    bottom: 20px;
-    right: 32px;
-    font-size: 11px;
-    color: #aaa;
+    top: 32px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: var(--accent-light);
+    border: 1px solid var(--accent-glow);
+    z-index: 5;
+  }
+  .pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .pill-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
-  .title {
-    font-size: 36px;
-    font-weight: 700;
-    color: #1A1A1A;
+  /* Title block */
+  .title-block {
+    position: relative;
+    z-index: 2;
     text-align: center;
-    margin-bottom: 10px;
+    padding-top: 88px;
+    margin-bottom: 24px;
+  }
+  .title {
+    font-family: 'Instrument Serif', 'Noto Sans SC', serif;
+    font-size: 44px;
+    font-weight: 400;
+    color: #111;
+    line-height: 1.15;
     letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+  .title em {
+    font-style: italic;
+    color: var(--accent);
   }
   .subtitle {
+    font-family: 'DM Sans', 'Noto Sans SC', sans-serif;
     font-size: 17px;
     font-weight: 400;
-    color: #666;
-    text-align: center;
-    margin-bottom: 36px;
+    color: #888;
+    letter-spacing: 0.01em;
   }
 
-  .screenshot {
-    border-radius: 16px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 2px 12px rgba(0,0,0,0.06);
-    overflow: hidden;
-    max-height: 520px;
+  /* Screenshot area: full base + highlight overlay */
+  .screenshot-wrap {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
   }
-  .screenshot img {
+  .screenshot {
+    position: relative;
+  }
+
+  /* Full original screenshot (base layer, dimmed) */
+  .screenshot-base {
+    width: 700px;
+    height: 438px;
+    background-size: cover;
+    background-position: center top;
+    border-radius: 10px;
+    box-shadow:
+      0 4px 16px rgba(0,0,0,0.06),
+      0 12px 48px rgba(0,0,0,0.10),
+      0 0 0 1px rgba(0,0,0,0.04);
+  }
+  /* Dim overlay so highlight pops */
+  .screenshot-base::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.25);
+    pointer-events: none;
+  }
+
+  /* Highlight foreground (pre-cropped image) */
+  .screenshot-highlight {
+    position: absolute;
+    bottom: -12px;
+    right: -72px;
+    height: 440px;
+    border-radius: 12px;
+    border: 3px solid rgba(255,255,255,0.9);
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.14),
+      0 2px 8px rgba(0,0,0,0.06);
+    z-index: 2;
+    overflow: hidden;
+  }
+  .screenshot-highlight img {
     display: block;
-    height: 520px;
+    height: 100%;
     width: auto;
+  }
+
+  /* Watermark */
+  .watermark {
+    position: absolute;
+    bottom: 16px;
+    right: 32px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #bbb;
+    letter-spacing: 0.02em;
+    z-index: 5;
+  }
+
+  /* Corner accent shape */
+  .corner-accent {
+    position: absolute;
+    bottom: -60px;
+    left: -60px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.03;
+    z-index: 0;
   }
 </style>
 </head>
 <body>
 
+<div class="accent-bar"></div>
+<div class="num" id="num">02</div>
+<div class="corner-accent"></div>
+
 <div class="badge">
-  <img src="../../public/icons/icon-128.png" alt="">
-  <span>NotebookLM Jetpack</span>
+  <div class="badge-icon">
+    <img src="../../public/icons/icon-128.png" alt="">
+  </div>
+  <span class="badge-name">NotebookLM Jetpack</span>
 </div>
 
-<div class="title" id="title">整个文档站，一键导入</div>
-<div class="subtitle" id="subtitle">自动识别 14+ 框架，提取全站页面树</div>
+<div class="pill">
+  <div class="pill-dot"></div>
+  <span class="pill-text" id="pill">Doc Sites</span>
+</div>
 
-<div class="screenshot">
-  <img id="screenshot" src="raw/02-docs.jpg" alt="">
+<div class="title-block">
+  <div class="title" id="title">整个文档站，一键导入</div>
+  <div class="subtitle" id="subtitle">自动识别 14+ 框架，提取全站页面树</div>
+</div>
+
+<div class="screenshot-wrap">
+  <div class="screenshot">
+    <div class="screenshot-base" id="base" style="background-image: url('raw/02-docs.png')"></div>
+    <div class="screenshot-highlight">
+      <img id="highlight" src="raw/02-docs-highlight.png" alt="">
+    </div>
+  </div>
 </div>
 
 <div class="watermark">github.com/crazynomad/notebooklm-jetpack</div>
