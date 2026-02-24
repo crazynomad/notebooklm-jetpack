@@ -193,21 +193,21 @@ export function BookmarkPanel({ onProgress }: Props) {
     <div className="space-y-3">
       {/* Add current page */}
       {currentTabInfo && (
-        <div className="bg-gray-50/80 rounded-lg p-3 shadow-soft">
+        <div className="bg-surface-sunken rounded-xl p-3 shadow-soft">
           <div className="flex items-center gap-2">
             {currentTabInfo.favicon && (
               <img src={currentTabInfo.favicon} className="w-4 h-4 flex-shrink-0" alt="" />
             )}
             <span className="flex-1 text-sm text-gray-700 truncate">{currentTabInfo.title}</span>
             {isCurrentBookmarked ? (
-              <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50/80 px-2 py-1 rounded-md">
+              <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50/80 px-2 py-1 rounded-md border border-amber-200/40">
                 <Bookmark className="w-3 h-3 fill-current" />
                 已收藏
               </span>
             ) : (
               <button
                 onClick={() => handleAddBookmark()}
-                className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white text-xs rounded-md hover:bg-amber-600 transition-colors shadow-btn hover:shadow-btn-hover transition-all duration-150"
+                className="btn-press flex items-center gap-1 px-3 py-1.5 bg-amber-500 text-white text-xs rounded-md hover:bg-amber-600 transition-colors shadow-btn hover:shadow-btn-hover transition-all duration-150"
               >
                 <BookmarkPlus className="w-3 h-3" />
                 收藏
@@ -222,8 +222,8 @@ export function BookmarkPanel({ onProgress }: Props) {
         <div className="flex items-center gap-1 overflow-x-auto">
           <button
             onClick={() => { setActiveCollection('all'); deselectAll(); }}
-            className={`px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors ${
-              activeCollection === 'all' ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200'
+            className={`btn-press px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors ${
+              activeCollection === 'all' ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100/60 text-gray-600 hover:bg-gray-200'
             }`}
           >
             全部 ({bookmarks.length})
@@ -234,8 +234,8 @@ export function BookmarkPanel({ onProgress }: Props) {
               <button
                 key={col}
                 onClick={() => { setActiveCollection(col); deselectAll(); }}
-                className={`px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors ${
-                  activeCollection === col ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200'
+                className={`btn-press px-2.5 py-1 text-xs rounded-full whitespace-nowrap transition-colors ${
+                  activeCollection === col ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100/60 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {col} ({count})
@@ -244,7 +244,7 @@ export function BookmarkPanel({ onProgress }: Props) {
           })}
           <button
             onClick={() => setShowNewCollection(!showNewCollection)}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            className="btn-press p-1 text-gray-400 hover:text-gray-600 rounded"
             title="新建集合"
           >
             <FolderPlus className="w-3.5 h-3.5" />
@@ -260,13 +260,13 @@ export function BookmarkPanel({ onProgress }: Props) {
             value={newCollectionName}
             onChange={(e) => setNewCollectionName(e.target.value)}
             placeholder="集合名称"
-            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            className="flex-1 px-3 py-1.5 border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40"
             onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCollection(); }}
           />
-          <button onClick={handleCreateCollection} className="px-3 py-1.5 bg-amber-500 text-white text-xs rounded-lg hover:bg-amber-600">
+          <button onClick={handleCreateCollection} className="btn-press px-3 py-1.5 bg-amber-500 text-white text-xs rounded-lg hover:bg-amber-600">
             创建
           </button>
-          <button onClick={() => setShowNewCollection(false)} className="p-1.5 text-gray-400 hover:text-gray-600">
+          <button onClick={() => setShowNewCollection(false)} className="btn-press p-1.5 text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -276,23 +276,23 @@ export function BookmarkPanel({ onProgress }: Props) {
       {filteredBookmarks.length > 0 ? (
         <>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 font-mono tabular-nums">
               {selectedIds.size > 0 ? `已选 ${selectedIds.size} 项` : `共 ${filteredBookmarks.length} 项`}
             </span>
             <div className="flex gap-2 text-xs">
-              <button onClick={selectAll} className="text-amber-600 hover:underline">全选</button>
-              <button onClick={deselectAll} className="text-gray-400 hover:underline">取消</button>
+              <button onClick={selectAll} className="btn-press text-amber-600 hover:underline">全选</button>
+              <button onClick={deselectAll} className="btn-press text-gray-400 hover:underline">取消</button>
               {selectedIds.size > 0 && (
-                <button onClick={handleRemoveSelected} className="text-red-400 hover:text-red-600">删除选中</button>
+                <button onClick={handleRemoveSelected} className="btn-press text-red-400 hover:text-red-600">删除选中</button>
               )}
             </div>
           </div>
 
-          <div className="max-h-[200px] overflow-y-auto border border-gray-200/80 rounded-lg shadow-soft">
+          <div className="max-h-[200px] overflow-y-auto border border-border-strong rounded-lg shadow-soft">
             {filteredBookmarks.map((item) => (
               <label
                 key={item.id}
-                className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0"
+                className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100/60 last:border-b-0 transition-colors"
               >
                 <input
                   type="checkbox"
@@ -307,7 +307,7 @@ export function BookmarkPanel({ onProgress }: Props) {
                 </div>
                 <button
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemove(item.id); }}
-                  className="p-1 text-gray-300 hover:text-red-500 flex-shrink-0"
+                  className="btn-press p-1 text-gray-300 hover:text-red-500 flex-shrink-0"
                   title="删除"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -322,7 +322,7 @@ export function BookmarkPanel({ onProgress }: Props) {
               <button
                 onClick={handleExportPdf}
                 disabled={pdfState === 'fetching' || pdfState === 'generating' || state === 'importing'}
-                className="w-full py-2 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
+                className="btn-press w-full py-2 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
               >
                 {pdfState === 'fetching' ? (
                   <><Loader2 className="w-4 h-4 animate-spin" />抓取页面 {pdfProgress?.current || 0}/{pdfProgress?.total || selectedIds.size}...</>
@@ -338,7 +338,7 @@ export function BookmarkPanel({ onProgress }: Props) {
               <button
                 onClick={handleImportToNotebookLM}
                 disabled={state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
-                className="w-full py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
+                className="btn-press w-full py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
               >
                 {state === 'importing' ? (
                   <><Loader2 className="w-4 h-4 animate-spin" />导入中...</>
@@ -350,21 +350,21 @@ export function BookmarkPanel({ onProgress }: Props) {
           )}
         </>
       ) : (
-        <div className="text-center py-8 bg-gray-50/30 rounded-lg">
-          <Bookmark className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">暂无收藏</p>
-          <p className="text-xs text-gray-300 mt-1">浏览网页时点击「收藏」按钮添加</p>
+        <div className="flex flex-col items-center justify-center py-10 bg-surface-sunken rounded-xl">
+          <Bookmark className="w-10 h-10 text-gray-300/60 mb-3" />
+          <p className="text-sm text-gray-500 font-medium">还没有收藏内容</p>
+          <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">浏览时随手收藏，稍后批量导入</p>
         </div>
       )}
 
       {/* Status messages */}
       {state === 'success' && (
-        <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-lg p-3 shadow-soft">
+        <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-lg p-3 shadow-soft border border-green-100">
           <CheckCircle className="w-4 h-4" />导入成功！
         </div>
       )}
       {state === 'error' && (
-        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft">
+        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft border border-red-100">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
         </div>
       )}

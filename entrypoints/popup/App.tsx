@@ -40,21 +40,21 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-[480px] bg-gray-50/40">
-      {/* Header */}
-      <div className="px-3.5 py-2.5 bg-white border-b border-gray-100/80 flex items-center justify-between">
+    <div className="min-h-[480px] bg-surface">
+      {/* Header — frosted glass */}
+      <div className="glass px-3.5 py-2.5 border-b border-border flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-notebooklm-blue to-blue-600 flex items-center justify-center shadow-sm">
             <BookOpen className="w-3.5 h-3.5 text-white" />
           </div>
-          <div>
+          <div className="flex items-baseline gap-1.5">
             <span className="font-semibold text-[13px] text-gray-900 tracking-tight">NotebookLM Jetpack</span>
-            <span className="text-[9px] text-gray-400 ml-1.5" title={`Build: ${__BUILD_TIME__}`}>v{__VERSION__}</span>
+            <span className="font-mono text-[9px] text-gray-400/80 tabular-nums" title={`Build: ${__BUILD_TIME__}`}>v{__VERSION__}</span>
           </div>
         </div>
         <button
           onClick={() => setShowHistory(true)}
-          className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-blue-50 rounded-lg transition-all duration-150"
+          className="p-1.5 text-gray-400 hover:text-notebooklm-blue hover:bg-notebooklm-light rounded-lg transition-all duration-150 btn-press"
           title="导入历史"
         >
           <History className="w-4 h-4" />
@@ -63,24 +63,26 @@ export default function App() {
 
       {/* Progress indicator */}
       {importProgress && (
-        <div className="px-4 py-2.5 bg-blue-50/80 border-b border-blue-100/60">
-          <div className="flex items-center justify-between text-sm mb-1.5">
-            <span className="text-blue-700 font-medium text-xs">
-              正在导入 {importProgress.completed}/{importProgress.total}
+        <div className="px-4 py-2.5 bg-notebooklm-light/60 border-b border-notebooklm-blue/10">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-notebooklm-blue font-medium text-xs">
+              正在导入 <span className="font-mono tabular-nums">{importProgress.completed}/{importProgress.total}</span>
             </span>
             {importProgress.current && (
-              <span className="text-blue-400 truncate max-w-[200px] text-xs">
+              <span className="text-blue-400/70 truncate max-w-[200px] text-xs font-mono">
                 {importProgress.current.url}
               </span>
             )}
           </div>
-          <div className="w-full bg-blue-100/80 rounded-full h-1">
+          <div className="w-full bg-notebooklm-blue/10 rounded-full h-1 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-notebooklm-blue to-blue-500 h-1 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-notebooklm-blue to-blue-500 h-1 rounded-full transition-all duration-500 ease-spring relative"
               style={{
                 width: `${(importProgress.completed / importProgress.total) * 100}%`,
               }}
-            />
+            >
+              <div className="absolute inset-0 progress-shimmer rounded-full" />
+            </div>
           </div>
         </div>
       )}
@@ -90,7 +92,7 @@ export default function App() {
 
       {/* Tabs */}
       <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
-        <Tabs.List className="flex bg-white border-b border-gray-100/80 px-1.5 gap-0.5">
+        <Tabs.List className="flex glass border-b border-border px-2 gap-0.5">
           {[
             { value: 'docs', icon: BookOpen, label: '文档站' },
             { value: 'podcast', icon: Headphones, label: '播客' },
@@ -105,8 +107,8 @@ export default function App() {
                 'flex-1 py-2 text-[11px] font-medium text-gray-400',
                 'flex flex-col items-center gap-0.5 relative',
                 'border-b-2 border-transparent',
-                'hover:text-gray-500 rounded-t',
-                'transition-all duration-150',
+                'hover:text-gray-500',
+                'transition-all duration-200 ease-spring',
                 'data-[state=active]:text-notebooklm-blue data-[state=active]:border-notebooklm-blue',
               )}
             >

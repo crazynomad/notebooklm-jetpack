@@ -69,19 +69,19 @@ export function HistoryPanel({ onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col animate-fade-in">
+    <div className="fixed inset-0 bg-surface z-50 flex flex-col animate-fade-in">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100/80 flex items-center justify-between">
+      <div className="glass px-4 py-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <History className="w-5 h-5 text-notebooklm-blue" />
-          <span className="font-medium text-gray-900">导入历史</span>
+          <span className="font-medium text-gray-900 tracking-tight">导入历史</span>
           <span className="text-xs text-gray-400">({history.length})</span>
         </div>
         <div className="flex items-center gap-2">
           {history.length > 0 && (
             <button
               onClick={handleClearHistory}
-              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-150"
+              className="btn-press p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-150"
               title="清除历史"
             >
               <Trash2 className="w-4 h-4" />
@@ -89,7 +89,7 @@ export function HistoryPanel({ onClose }: Props) {
           )}
           <button
             onClick={onClose}
-            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-150"
+            className="btn-press px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-150"
           >
             关闭
           </button>
@@ -100,19 +100,20 @@ export function HistoryPanel({ onClose }: Props) {
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+            <Loader2 className="w-6 h-6 text-notebooklm-blue/60 animate-spin" />
           </div>
         ) : history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <History className="w-10 h-10 mb-3 opacity-30" />
-            <p className="text-sm text-gray-400">暂无导入记录</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <History className="w-12 h-12 text-gray-300/40 mb-4" />
+            <p className="text-sm text-gray-500 font-medium">暂无导入记录</p>
+            <p className="text-xs text-gray-400 mt-1">导入内容后，记录会出现在这里</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-border-subtle">
             {history.map((item) => (
               <div
                 key={item.id}
-                className="px-4 py-3 hover:bg-gray-50 flex items-start gap-3"
+                className="px-4 py-3 hover:bg-surface-sunken flex items-start gap-3"
               >
                 {item.status === 'success' ? (
                   <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -121,7 +122,7 @@ export function HistoryPanel({ onClose }: Props) {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{getDomain(item.url)}</span>
+                    <span className="text-xs text-gray-400 font-mono">{getDomain(item.url)}</span>
                     <a
                       href={item.url}
                       target="_blank"
@@ -138,7 +139,7 @@ export function HistoryPanel({ onClose }: Props) {
                     <p className="text-xs text-red-500 mt-0.5">{item.error}</p>
                   )}
                 </div>
-                <span className="text-xs text-gray-400 flex-shrink-0">
+                <span className="text-xs text-gray-400 flex-shrink-0 font-mono tabular-nums">
                   {formatTime(item.importedAt)}
                 </span>
               </div>

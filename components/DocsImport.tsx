@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, Loader2, CheckCircle, AlertCircle, Search, ChevronRight, FileDown } from 'lucide-react';
+import { BookOpen, Loader2, CheckCircle, AlertCircle, Search, ChevronRight, FileDown, Rocket } from 'lucide-react';
 import type { ImportProgress, DocSiteInfo, DocPageItem, DocFramework } from '@/lib/types';
 import type { PdfProgress } from '@/services/pdf-generator';
 
@@ -280,20 +280,20 @@ export function DocsImport({ onProgress }: Props) {
       {/* Analyze: URL input when on NotebookLM, button when on doc site */}
       {isOnNotebookLM ? (
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">文档站点 URL</label>
+          <label className="block text-sm font-medium text-gray-700 tracking-tight">文档站点 URL</label>
           <div className="flex gap-2">
             <input
               type="url"
               value={manualUrl}
               onChange={(e) => setManualUrl(e.target.value)}
               placeholder="https://docs.openclaw.ai/"
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/40 focus:border-transparent"
+              className="flex-1 px-3.5 py-2.5 border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/40 focus:border-transparent"
               onKeyDown={(e) => { if (e.key === 'Enter') handleAnalyze(); }}
             />
             <button
               onClick={handleAnalyze}
               disabled={state === 'analyzing' || !manualUrl}
-              className="px-4 py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
+              className="px-4 py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
             >
               {state === 'analyzing' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -308,7 +308,7 @@ export function DocsImport({ onProgress }: Props) {
         <button
           onClick={handleAnalyze}
           disabled={state === 'analyzing'}
-          className="w-full py-3 px-4 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
+          className="w-full py-3 px-4 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
         >
           {state === 'analyzing' ? (
             <>
@@ -326,16 +326,17 @@ export function DocsImport({ onProgress }: Props) {
 
       {/* Site info */}
       {siteInfo && (
-        <div className="bg-blue-50/80 rounded-lg p-3 shadow-soft">
+        <div className="bg-notebooklm-light/50 border border-notebooklm-blue/10 rounded-lg p-3 shadow-soft">
           <div className="flex items-center gap-2 mb-1">
             <BookOpen className="w-4 h-4 text-notebooklm-blue" />
-            <span className="text-sm font-medium text-blue-900 truncate">{siteInfo.title}</span>
+            <span className="text-sm font-medium text-blue-900 truncate tracking-tight">{siteInfo.title}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-notebooklm-blue">
-            <span className="bg-blue-100 px-2 py-0.5 rounded">
+            <span className="bg-notebooklm-blue/10 text-notebooklm-blue px-2 py-0.5 rounded">
               {FRAMEWORK_LABELS[siteInfo.framework]}
             </span>
-            <span>{siteInfo.pages.length} 个页面</span>
+            <span className="font-mono tabular-nums">{siteInfo.pages.length}</span>
+            <span>个页面</span>
           </div>
         </div>
       )}
@@ -345,24 +346,24 @@ export function DocsImport({ onProgress }: Props) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">
-              已选择 {selectedPages.size}/{siteInfo.pages.length} 个页面
+              已选择 <span className="font-mono tabular-nums">{selectedPages.size}</span>/<span className="font-mono tabular-nums">{siteInfo.pages.length}</span> 个页面
             </span>
             <div className="flex gap-2 text-xs">
-              <button onClick={handleSelectAll} className="text-notebooklm-blue hover:underline">
+              <button onClick={handleSelectAll} className="text-notebooklm-blue hover:underline transition-colors duration-150">
                 全选
               </button>
-              <button onClick={handleDeselectAll} className="text-gray-400 hover:underline">
+              <button onClick={handleDeselectAll} className="text-gray-400 hover:underline transition-colors duration-150">
                 取消全选
               </button>
             </div>
           </div>
 
-          <div className="max-h-40 overflow-y-auto border border-gray-200/80 rounded-lg shadow-soft">
+          <div className="max-h-40 overflow-y-auto border border-border-strong rounded-lg shadow-soft">
             {groupedPages &&
               Object.entries(groupedPages).map(([section, pages]) => (
                 <div key={section}>
                   {section !== '未分类' && (
-                    <div className="sticky top-0 px-3 py-1.5 bg-gray-50/80 border-b border-gray-100 text-xs font-medium text-gray-500 flex items-center gap-1">
+                    <div className="sticky top-0 px-3 py-1.5 bg-surface-sunken border-b border-gray-100 text-xs font-medium text-gray-500 tracking-tight flex items-center gap-1">
                       <ChevronRight className="w-3 h-3" />
                       {section}
                     </div>
@@ -370,7 +371,7 @@ export function DocsImport({ onProgress }: Props) {
                   {pages.map((page) => (
                     <label
                       key={page.url}
-                      className="flex items-start gap-3 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      className="flex items-start gap-3 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
                       style={{ paddingLeft: `${(page.level || 0) * 12 + 8}px` }}
                     >
                       <input
@@ -398,7 +399,7 @@ export function DocsImport({ onProgress }: Props) {
           <button
             onClick={handleImport}
             disabled={selectedPages.size === 0 || state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
-            className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
+            className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
           >
             {state === 'importing' ? (
               <>
@@ -408,7 +409,7 @@ export function DocsImport({ onProgress }: Props) {
             ) : (
               <>
                 <BookOpen className="w-4 h-4" />
-                逐个 URL 导入 ({selectedPages.size})
+                逐个 URL 导入 (<span className="font-mono tabular-nums">{selectedPages.size}</span>)
               </>
             )}
           </button>
@@ -417,14 +418,14 @@ export function DocsImport({ onProgress }: Props) {
           <button
             onClick={handleExportPdf}
             disabled={selectedPages.size === 0 || state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
-            className="w-full py-2.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
+            className="w-full py-2.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
           >
             {pdfState === 'fetching' || pdfState === 'generating' ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 {pdfState === 'fetching'
-                  ? `抓取页面 ${pdfProgress?.current || 0}/${pdfProgress?.total || selectedPages.size}...`
-                  : `生成 PDF ${pdfProgress?.current || 0}/${pdfProgress?.total || 1}...`}
+                  ? <>抓取页面 <span className="font-mono tabular-nums">{pdfProgress?.current || 0}/{pdfProgress?.total || selectedPages.size}</span>...</>
+                  : <>生成 PDF <span className="font-mono tabular-nums">{pdfProgress?.current || 0}/{pdfProgress?.total || 1}</span>...</>}
               </>
             ) : pdfState === 'done' ? (
               <>
@@ -434,7 +435,7 @@ export function DocsImport({ onProgress }: Props) {
             ) : (
               <>
                 <FileDown className="w-4 h-4" />
-                导出为 PDF ({selectedPages.size} 页)
+                导出为 PDF (<span className="font-mono tabular-nums">{selectedPages.size}</span> 页)
               </>
             )}
           </button>
@@ -451,7 +452,9 @@ export function DocsImport({ onProgress }: Props) {
       {results && (
         <div
           className={`flex items-center gap-2 text-sm rounded-lg p-3 shadow-soft ${
-            results.failed > 0 ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-600'
+            results.failed > 0
+              ? 'bg-yellow-50/80 border border-yellow-100/60 text-yellow-700'
+              : 'bg-green-50/80 border border-green-100/60 text-green-600'
           }`}
         >
           {results.failed > 0 ? (
@@ -459,12 +462,12 @@ export function DocsImport({ onProgress }: Props) {
           ) : (
             <CheckCircle className="w-4 h-4" />
           )}
-          成功 {results.success} 个{results.failed > 0 && `，失败 ${results.failed} 个`}
+          成功 <span className="font-mono tabular-nums">{results.success}</span> 个{results.failed > 0 && <>，失败 <span className="font-mono tabular-nums">{results.failed}</span> 个</>}
         </div>
       )}
 
       {state === 'error' && !results && (
-        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft">
+        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50/80 border border-red-100/60 rounded-lg p-3 shadow-soft">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -472,29 +475,34 @@ export function DocsImport({ onProgress }: Props) {
 
       {/* Tips */}
       {!siteInfo && state === 'idle' && (
-        <div className="text-xs text-gray-400 space-y-2 bg-gray-50/50 rounded-lg p-3">
-          <p className="font-medium text-gray-500">使用说明：</p>
+        <div className="text-xs text-gray-400 space-y-3 bg-surface-sunken rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <Rocket className="w-4 h-4 text-gray-500" />
+            <p className="font-medium text-gray-600 tracking-tight">使用说明</p>
+          </div>
           {isOnNotebookLM ? (
-            <ol className="list-decimal list-inside space-y-1">
+            <ol className="list-decimal list-inside space-y-1.5 text-gray-500">
               <li>输入文档站点的任意页面 URL</li>
               <li>点击「分析」自动提取所有页面</li>
               <li>选择要导入的页面，批量导入到 NotebookLM</li>
             </ol>
           ) : (
-            <ol className="list-decimal list-inside space-y-1">
+            <ol className="list-decimal list-inside space-y-1.5 text-gray-500">
               <li>打开文档站点（如 Docusaurus、MkDocs 等）</li>
               <li>确保侧边栏导航可见</li>
               <li>点击「分析当前站点」提取所有页面</li>
               <li>选择要导入的页面，批量导入到 NotebookLM</li>
             </ol>
           )}
-          <p className="mt-2">支持的框架：</p>
-          <ul className="list-disc list-inside space-y-0.5">
-            <li>Docusaurus、VitePress、MkDocs</li>
-            <li>GitBook、Mintlify、Sphinx</li>
-            <li>语雀、微信开发文档</li>
-            <li>任何有 sitemap.xml 的站点</li>
-          </ul>
+          <div className="pt-2 border-t border-gray-200/60">
+            <p className="text-gray-600 font-medium mb-2">支持的框架</p>
+            <ul className="list-disc list-inside space-y-1 text-gray-500">
+              <li>Docusaurus、VitePress、MkDocs</li>
+              <li>GitBook、Mintlify、Sphinx</li>
+              <li>语雀、微信开发文档</li>
+              <li>任何有 sitemap.xml 的站点</li>
+            </ul>
+          </div>
         </div>
       )}
     </div>

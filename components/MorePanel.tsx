@@ -99,10 +99,10 @@ export function MorePanel({ onProgress }: Props) {
   return (
     <div className="space-y-4">
       {/* RSS Import — collapsible section */}
-      <div className="border border-gray-200/80 rounded-lg overflow-hidden shadow-soft">
+      <div className="border border-border rounded-lg overflow-hidden shadow-soft">
         <button
           onClick={() => { setShowRss(!showRss); resetState(); }}
-          className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50/80 hover:bg-gray-100/80 transition-colors"
+          className="w-full flex items-center justify-between px-3 py-2.5 bg-surface-sunken hover:bg-gray-100/80 transition-colors"
         >
           <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
             <Rss className="w-4 h-4 text-orange-500" />
@@ -121,13 +121,13 @@ export function MorePanel({ onProgress }: Props) {
                   value={rssUrl}
                   onChange={(e) => setRssUrl(e.target.value)}
                   placeholder="https://example.com/feed.xml"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/40 focus:border-transparent"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-200/60 rounded-lg text-sm placeholder:text-gray-400/70 focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/40 focus:border-transparent"
                 />
               </div>
               <button
                 onClick={handleRssLoad}
                 disabled={!rssUrl || state === 'loading'}
-                className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
+                className="px-4 py-2 bg-orange-500 text-white text-sm rounded-lg hover:bg-orange-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
               >
                 {state === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 加载
@@ -138,13 +138,13 @@ export function MorePanel({ onProgress }: Props) {
               <>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">已选择 {selectedArticles.size}/{rssArticles.length} 篇</span>
+                    <span className="text-sm text-gray-600">已选择 <span className="font-mono tabular-nums">{selectedArticles.size}/{rssArticles.length}</span> 篇</span>
                     <div className="flex gap-2 text-xs">
                       <button onClick={() => setSelectedArticles(new Set(rssArticles.map((a) => a.url)))} className="text-notebooklm-blue hover:underline">全选</button>
                       <button onClick={() => setSelectedArticles(new Set())} className="text-gray-400 hover:underline">取消全选</button>
                     </div>
                   </div>
-                  <div className="max-h-48 overflow-y-auto border border-gray-200/80 rounded-lg shadow-soft">
+                  <div className="max-h-48 overflow-y-auto border border-border-strong rounded-lg shadow-soft">
                     {rssArticles.map((article) => (
                       <label key={article.url} className="flex items-start gap-3 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0">
                         <input
@@ -171,19 +171,21 @@ export function MorePanel({ onProgress }: Props) {
                 <button
                   onClick={handleRssImport}
                   disabled={selectedArticles.size === 0 || state === 'importing'}
-                  className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
+                  className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
                 >
-                  {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />正在导入...</> : <><Rss className="w-4 h-4" />导入选中文章 ({selectedArticles.size})</>}
+                  {state === 'importing' ? <><Loader2 className="w-4 h-4 animate-spin" />正在导入...</> : <><Rss className="w-4 h-4" />导入选中文章 (<span className="font-mono tabular-nums">{selectedArticles.size}</span>)</>}
                 </button>
               </>
             )}
 
             {rssArticles.length === 0 && state === 'idle' && (
-              <p className="text-xs text-gray-400">常见格式：/feed, /rss, /atom.xml, medium.com/feed/@user</p>
+              <div className="bg-surface-sunken rounded-lg p-3">
+                <p className="text-xs text-gray-400">常见格式：/feed, /rss, /atom.xml, medium.com/feed/@user</p>
+              </div>
             )}
 
             {state === 'error' && !importResults && (
-              <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft">
+              <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft border border-red-100/60">
                 <AlertCircle className="w-4 h-4" />
                 {error}
               </div>
@@ -195,11 +197,11 @@ export function MorePanel({ onProgress }: Props) {
       {/* Import Results */}
       {importResults && importResults.length > 0 && (
         <div className="space-y-2">
-          <div className={`flex items-center justify-between text-sm rounded-lg p-3 shadow-soft ${failedCount > 0 ? 'bg-yellow-50' : 'bg-green-50'}`}>
+          <div className={`flex items-center justify-between text-sm rounded-lg p-3 shadow-soft ${failedCount > 0 ? 'bg-yellow-50 border border-yellow-100/60' : 'bg-green-50 border border-green-100/60'}`}>
             <div className="flex items-center gap-2">
               {failedCount > 0 ? <AlertCircle className="w-4 h-4 text-yellow-600" /> : <CheckCircle className="w-4 h-4 text-green-600" />}
               <span className={failedCount > 0 ? 'text-yellow-700' : 'text-green-600'}>
-                成功 {successCount} 个{failedCount > 0 && `，失败 ${failedCount} 个`}
+                成功 <span className="font-mono tabular-nums">{successCount}</span> 个{failedCount > 0 && `，失败 `}<span className="font-mono tabular-nums">{failedCount > 0 ? failedCount : ''}</span>{failedCount > 0 && ` 个`}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -214,7 +216,7 @@ export function MorePanel({ onProgress }: Props) {
             </div>
           </div>
           {showDetails && (
-            <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+            <div className="max-h-40 overflow-y-auto border border-border rounded-lg divide-y divide-gray-100">
               {importResults.map((item, index) => (
                 <div key={index} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50">
                   {item.status === 'success'
@@ -234,8 +236,8 @@ export function MorePanel({ onProgress }: Props) {
       )}
 
       {/* About Section */}
-      <div className="border border-gray-200/80 rounded-lg overflow-hidden shadow-soft">
-        <div className="px-3 py-2.5 bg-gray-50/80">
+      <div className="border border-border rounded-lg overflow-hidden shadow-soft">
+        <div className="px-3 py-2.5 bg-surface-sunken">
           <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
             <Info className="w-4 h-4 text-blue-500" />
             关于
@@ -247,7 +249,7 @@ export function MorePanel({ onProgress }: Props) {
             href="https://www.youtube.com/@greentrainpodcast"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 p-2.5 bg-red-50/80 rounded-lg hover:bg-red-100/80 transition-colors group"
+            className="flex items-center gap-3 p-2.5 bg-red-50/60 border border-red-100/40 rounded-xl hover:bg-red-100/80 transition-colors group"
           >
             <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
               <Youtube className="w-4 h-4 text-white" />
@@ -264,7 +266,7 @@ export function MorePanel({ onProgress }: Props) {
             href="https://github.com/crazynomad/notebooklm-jetpack"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 p-2.5 bg-gray-100/80 rounded-lg hover:bg-gray-200/80 transition-colors group"
+            className="flex items-center gap-3 p-2.5 bg-gray-100/60 border border-gray-200/40 rounded-xl hover:bg-gray-200/80 transition-colors group"
           >
             <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
               <Github className="w-4 h-4 text-white" />
@@ -277,11 +279,11 @@ export function MorePanel({ onProgress }: Props) {
           </a>
 
           {/* Version & Copyright */}
-          <div className="pt-2 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-400">
+          <div className="pt-2.5 border-t border-gray-100 text-center space-y-1.5">
+            <p className="text-xs text-gray-400 font-mono tabular-nums">
               v{__VERSION__}+{__GIT_HASH__}
             </p>
-            <p className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1">
+            <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
               Made with <Heart className="w-3 h-3 text-red-400 inline" /> by 绿皮火车播客
             </p>
           </div>
