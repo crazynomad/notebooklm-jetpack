@@ -119,7 +119,7 @@ export function PodcastImport({ initialUrl }: Props) {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="粘贴 Apple Podcasts 或小宇宙链接..."
-              className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue focus:border-transparent"
+              className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/40 focus:border-transparent"
             />
           </div>
         </div>
@@ -132,14 +132,14 @@ export function PodcastImport({ initialUrl }: Props) {
             placeholder="全部"
             min={1}
             max={500}
-            className="w-16 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-notebooklm-blue"
+            className="w-16 px-2 py-1 border border-gray-200 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-notebooklm-blue/40"
           />
           <label className="text-xs text-gray-500">集</label>
           <div className="flex-1" />
           <button
             onClick={handleFetch}
             disabled={!url || state === 'loading'}
-            className={`px-4 py-1.5 ${theme.accent} text-white text-xs rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1`}
+            className={`px-4 py-1.5 ${theme.accent} text-white text-xs rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-btn hover:shadow-btn-hover transition-all duration-150`}
           >
             {state === 'loading' ? (
               <><Loader2 className="w-3 h-3 animate-spin" />查询中...</>
@@ -152,7 +152,7 @@ export function PodcastImport({ initialUrl }: Props) {
 
       {/* Podcast Info */}
       {podcast && (
-        <div className={`${theme.accentLight} rounded-lg p-3 flex items-center gap-3`}>
+        <div className={`${theme.accentLight} rounded-lg p-3 flex items-center gap-3 shadow-soft`}>
           {podcast.artworkUrl && (
             <img src={podcast.artworkUrl} alt="" className="w-12 h-12 rounded-lg object-cover" />
           )}
@@ -178,7 +178,7 @@ export function PodcastImport({ initialUrl }: Props) {
               <button onClick={selectNone} className="text-gray-400 hover:underline">取消全选</button>
             </div>
           </div>
-          <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+          <div className="max-h-48 overflow-y-auto border border-gray-200/80 rounded-lg shadow-soft">
             {episodes.map((ep) => (
               <label
                 key={ep.id}
@@ -207,7 +207,7 @@ export function PodcastImport({ initialUrl }: Props) {
         <button
           onClick={handleDownload}
           disabled={selected.size === 0 || state === 'downloading'}
-          className={`w-full py-2.5 ${theme.accent} text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+          className={`w-full py-2.5 ${theme.accent} text-white text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150`}
         >
           {state === 'downloading' ? (
             <>
@@ -231,7 +231,7 @@ export function PodcastImport({ initialUrl }: Props) {
 
       {/* Error */}
       {state === 'error' && (
-        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3">
+        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -239,7 +239,7 @@ export function PodcastImport({ initialUrl }: Props) {
 
       {/* Help */}
       {!podcast && state === 'idle' && (
-        <div className="text-xs text-gray-400 space-y-1">
+        <div className="text-xs text-gray-400 space-y-1 bg-gray-50/50 rounded-lg p-3">
           <p>支持的链接格式：</p>
           <ul className="list-disc list-inside space-y-0.5">
             <li>Apple Podcasts：podcasts.apple.com/.../id123456</li>

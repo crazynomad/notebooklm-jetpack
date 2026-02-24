@@ -287,13 +287,13 @@ export function DocsImport({ onProgress }: Props) {
               value={manualUrl}
               onChange={(e) => setManualUrl(e.target.value)}
               placeholder="https://docs.openclaw.ai/"
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-notebooklm-blue/40 focus:border-transparent"
               onKeyDown={(e) => { if (e.key === 'Enter') handleAnalyze(); }}
             />
             <button
               onClick={handleAnalyze}
               disabled={state === 'analyzing' || !manualUrl}
-              className="px-4 py-2 bg-indigo-500 text-white text-sm rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
             >
               {state === 'analyzing' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -308,7 +308,7 @@ export function DocsImport({ onProgress }: Props) {
         <button
           onClick={handleAnalyze}
           disabled={state === 'analyzing'}
-          className="w-full py-3 px-4 bg-indigo-500 text-white text-sm rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-3 px-4 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
         >
           {state === 'analyzing' ? (
             <>
@@ -326,13 +326,13 @@ export function DocsImport({ onProgress }: Props) {
 
       {/* Site info */}
       {siteInfo && (
-        <div className="bg-indigo-50 rounded-lg p-3">
+        <div className="bg-blue-50/80 rounded-lg p-3 shadow-soft">
           <div className="flex items-center gap-2 mb-1">
-            <BookOpen className="w-4 h-4 text-indigo-600" />
-            <span className="text-sm font-medium text-indigo-900 truncate">{siteInfo.title}</span>
+            <BookOpen className="w-4 h-4 text-notebooklm-blue" />
+            <span className="text-sm font-medium text-blue-900 truncate">{siteInfo.title}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-indigo-600">
-            <span className="bg-indigo-100 px-2 py-0.5 rounded">
+          <div className="flex items-center gap-2 text-xs text-notebooklm-blue">
+            <span className="bg-blue-100 px-2 py-0.5 rounded">
               {FRAMEWORK_LABELS[siteInfo.framework]}
             </span>
             <span>{siteInfo.pages.length} 个页面</span>
@@ -357,12 +357,12 @@ export function DocsImport({ onProgress }: Props) {
             </div>
           </div>
 
-          <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg">
+          <div className="max-h-40 overflow-y-auto border border-gray-200/80 rounded-lg shadow-soft">
             {groupedPages &&
               Object.entries(groupedPages).map(([section, pages]) => (
                 <div key={section}>
                   {section !== '未分类' && (
-                    <div className="sticky top-0 px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-500 flex items-center gap-1">
+                    <div className="sticky top-0 px-3 py-1.5 bg-gray-50/80 border-b border-gray-100 text-xs font-medium text-gray-500 flex items-center gap-1">
                       <ChevronRight className="w-3 h-3" />
                       {section}
                     </div>
@@ -398,7 +398,7 @@ export function DocsImport({ onProgress }: Props) {
           <button
             onClick={handleImport}
             disabled={selectedPages.size === 0 || state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
-            className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
           >
             {state === 'importing' ? (
               <>
@@ -417,7 +417,7 @@ export function DocsImport({ onProgress }: Props) {
           <button
             onClick={handleExportPdf}
             disabled={selectedPages.size === 0 || state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
-            className="w-full py-2.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
           >
             {pdfState === 'fetching' || pdfState === 'generating' ? (
               <>
@@ -450,7 +450,7 @@ export function DocsImport({ onProgress }: Props) {
       {/* Results */}
       {results && (
         <div
-          className={`flex items-center gap-2 text-sm rounded-lg p-3 ${
+          className={`flex items-center gap-2 text-sm rounded-lg p-3 shadow-soft ${
             results.failed > 0 ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-600'
           }`}
         >
@@ -464,7 +464,7 @@ export function DocsImport({ onProgress }: Props) {
       )}
 
       {state === 'error' && !results && (
-        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3">
+        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -472,7 +472,7 @@ export function DocsImport({ onProgress }: Props) {
 
       {/* Tips */}
       {!siteInfo && state === 'idle' && (
-        <div className="text-xs text-gray-400 space-y-2">
+        <div className="text-xs text-gray-400 space-y-2 bg-gray-50/50 rounded-lg p-3">
           <p className="font-medium text-gray-500">使用说明：</p>
           {isOnNotebookLM ? (
             <ol className="list-decimal list-inside space-y-1">

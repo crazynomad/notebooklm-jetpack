@@ -162,7 +162,7 @@ export function ClaudeImport({ onProgress }: Props) {
   if (!platformInfo) {
     return (
       <div className="space-y-4">
-        <div className="bg-yellow-50 rounded-lg p-4 text-center">
+        <div className="bg-yellow-50/80 rounded-lg p-4 shadow-soft text-center">
           <MessageCircle className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
           <p className="text-sm text-yellow-700">请先打开 AI 对话页面</p>
           <p className="text-xs text-yellow-600 mt-2">支持：Claude · ChatGPT · Gemini</p>
@@ -178,7 +178,7 @@ export function ClaudeImport({ onProgress }: Props) {
         <button
           onClick={handleExtract}
           disabled={state === 'extracting'}
-          className="w-full py-3 bg-notebooklm-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-3 bg-notebooklm-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
         >
           {state === 'extracting' ? (
             <><Loader2 className="w-4 h-4 animate-spin" />正在提取对话...</>
@@ -188,13 +188,13 @@ export function ClaudeImport({ onProgress }: Props) {
         </button>
 
         {state === 'error' && (
-          <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {error}
           </div>
         )}
 
-        <div className="text-xs text-gray-400 space-y-1">
+        <div className="text-xs text-gray-400 space-y-1 bg-gray-50/50 rounded-lg p-3">
           <p>当前平台：{platformInfo.icon} {platformInfo.name}</p>
           <p className="mt-1">使用说明：</p>
           <ol className="list-decimal list-inside space-y-0.5">
@@ -212,7 +212,7 @@ export function ClaudeImport({ onProgress }: Props) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-gray-50 rounded-lg p-3">
+      <div className="bg-gray-50/80 rounded-lg p-3 shadow-soft">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-medium text-gray-900 truncate flex items-center gap-2">
             <span>{platformInfo.icon}</span>
@@ -236,21 +236,21 @@ export function ClaudeImport({ onProgress }: Props) {
         <button
           onClick={() => setSelectedPairIds(new Set(pairs.map((p) => p.id)))}
           disabled={allSelected}
-          className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          className="flex-1 px-3 py-1.5 text-xs border border-gray-200/80 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors duration-150"
         >
           全选
         </button>
         <button
           onClick={() => setSelectedPairIds(new Set())}
           disabled={selectedPairIds.size === 0}
-          className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-50"
+          className="flex-1 px-3 py-1.5 text-xs border border-gray-200/80 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors duration-150"
         >
           取消全选
         </button>
       </div>
 
       {/* Q&A pair list */}
-      <div className="max-h-[240px] overflow-y-auto border border-gray-100 rounded-lg">
+      <div className="max-h-[240px] overflow-y-auto border border-gray-200/80 rounded-lg shadow-soft">
         {pairs.map((pair, index) => (
           <label
             key={pair.id}
@@ -286,7 +286,7 @@ export function ClaudeImport({ onProgress }: Props) {
       <button
         onClick={handleImport}
         disabled={state === 'importing' || selectedPairIds.size === 0}
-        className="w-full py-2.5 bg-notebooklm-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full py-2.5 bg-notebooklm-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150"
       >
         {state === 'importing' ? (
           <><Loader2 className="w-4 h-4 animate-spin" />导入中...</>
@@ -297,13 +297,13 @@ export function ClaudeImport({ onProgress }: Props) {
 
       {/* Status */}
       {state === 'success' && (
-        <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-lg p-3">
+        <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-lg p-3 shadow-soft">
           <CheckCircle className="w-4 h-4" />
           导入成功！
         </div>
       )}
       {state === 'error' && (
-        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3">
+        <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 rounded-lg p-3 shadow-soft">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>

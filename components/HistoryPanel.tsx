@@ -69,11 +69,11 @@ export function HistoryPanel({ onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
+    <div className="fixed inset-0 bg-white z-50 flex flex-col animate-fade-in">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <History className="w-5 h-5 text-gray-600" />
+      <div className="px-4 py-3 border-b border-gray-100/80 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <History className="w-5 h-5 text-notebooklm-blue" />
           <span className="font-medium text-gray-900">导入历史</span>
           <span className="text-xs text-gray-400">({history.length})</span>
         </div>
@@ -81,7 +81,7 @@ export function HistoryPanel({ onClose }: Props) {
           {history.length > 0 && (
             <button
               onClick={handleClearHistory}
-              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-150"
               title="清除历史"
             >
               <Trash2 className="w-4 h-4" />
@@ -89,7 +89,7 @@ export function HistoryPanel({ onClose }: Props) {
           )}
           <button
             onClick={onClose}
-            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-150"
           >
             关闭
           </button>
@@ -103,9 +103,9 @@ export function HistoryPanel({ onClose }: Props) {
             <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
           </div>
         ) : history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-            <History className="w-12 h-12 mb-3 opacity-50" />
-            <p className="text-sm">暂无导入记录</p>
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <History className="w-10 h-10 mb-3 opacity-30" />
+            <p className="text-sm text-gray-400">暂无导入记录</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
