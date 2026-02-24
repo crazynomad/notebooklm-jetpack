@@ -262,12 +262,9 @@ export function ClaudeImport({ onProgress }: Props) {
               onChange={() => togglePair(pair.id)}
               className="mt-1 rounded border-gray-300 text-notebooklm-blue focus:ring-notebooklm-blue"
             />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-xs font-mono tabular-nums text-gray-400">#{index + 1}</span>
-              </div>
-              <div className="space-y-1">
+            <div className="flex-1 min-w-0 space-y-1">
                 <p className="text-xs text-gray-700 line-clamp-2">
+                  <span className="text-xs font-mono tabular-nums text-gray-400 mr-1">#{index + 1}</span>
                   <span className="text-gray-400">Q：</span>
                   {pair.question || '(无问题)'}
                 </p>
@@ -276,7 +273,6 @@ export function ClaudeImport({ onProgress }: Props) {
                   {pair.answer.slice(0, 100) || '(无回答)'}
                   {pair.answer.length > 100 && '...'}
                 </p>
-              </div>
             </div>
           </label>
         ))}
