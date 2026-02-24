@@ -223,12 +223,23 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
       if (!getMainDialog()) break;
     }
 
-    // Step 6: Rename the newly created source (NotebookLM defaults to "粘贴的文字")
+    // Step 6: Rename the newly created source (NotebookLM defaults to "粘贴的文字" or "Copied text")
     if (title) {
-      await delay(2500); // Wait for source list to fully update after dialog closes
+      await delay(4000); // Wait longer for source list to fully update (large pastes take time)
       try {
-        await renameSource('粘贴的文字', title);
-        console.log(`[rename] Renamed source to: ${title}`);
+        // Try both Chinese and English default names
+        let renamed = false;
+        for (const defaultName of ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text']) {
+          try {
+            await renameSource(defaultName, title);
+            renamed = true;
+            break;
+          } catch {
+            // Try next default name
+          }
+        }
+        if (!renamed) throw new Error('Source with default name not found');
+        else console.log(`[rename] Renamed source to: ${title}`);
       } catch (e) {
         console.warn('[rename] Failed to rename source:', e);
         // Non-fatal: import succeeded even if rename fails
@@ -485,23 +496,25 @@ async function renameSource(oldName: string, newName: string): Promise<void> {
   targetMoreBtn.scrollIntoView({ block: 'center', behavior: 'instant' });
   await delay(500);
 
-  // Click the more button to open context menu, with retry
+  // Click the more button to open context menu, with retry (progressive delays for large pastes)
+  const maxAttempts = 6;
   let renameItem: HTMLElement | null = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     targetMoreBtn.click();
-    await delay(600);
+    const waitMs = 600 + attempt * 400; // 600, 1000, 1400, 1800, 2200, 2600
+    await delay(waitMs);
 
     renameItem = await findMenuItemByText(['重命名来源', 'Rename source', 'Rename'], 3000);
     if (renameItem) break;
 
     // Menu didn't open — dismiss any stale overlay and retry
-    console.warn(`[rename] Attempt ${attempt + 1}: menu not found, retrying...`);
+    console.warn(`[rename] Attempt ${attempt + 1}/${maxAttempts}: menu not found, retrying...`);
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-    await delay(500);
+    await delay(800 + attempt * 300);
   }
 
   if (!renameItem) {
-    throw new Error('Rename menu item not found after 3 attempts');
+    throw new Error(`Rename menu item not found after ${maxAttempts} attempts`);
   }
   renameItem.click();
   await delay(800);
