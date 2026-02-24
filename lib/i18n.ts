@@ -118,7 +118,7 @@ const zh = {
   'single.importingBtn': '导入中',
   'single.supportedImports': '支持导入：',
   'single.webArticles': '普通网页文章',
-  'single.youtubeVideos': 'YouTube 视频（自动提取字幕）',
+  'single.substackWechat': 'Substack / 微信公众号（智能提取正文）',
   'single.pdfLinks': 'PDF 文件链接',
 
   // ── ClaudeImport ──
@@ -215,7 +215,7 @@ const zh = {
   'panel.batch': '批量',
   'panel.cannotImportNlm': '不能导入 NotebookLM 自身的页面',
   'panel.rssAtomLink': 'RSS / Atom 链接',
-  'panel.supportedFormats': '支持导入：网页文章、YouTube 视频（自动提取字幕）、PDF 链接',
+  'panel.supportedFormats': '支持导入：网页文章、Substack、微信公众号、PDF 链接（自动修复导入失败的来源）',
 } as const;
 
 const en: Record<keyof typeof zh, string> = {
@@ -334,7 +334,7 @@ const en: Record<keyof typeof zh, string> = {
   'single.importingBtn': 'Importing',
   'single.supportedImports': 'Supported imports:',
   'single.webArticles': 'Web articles',
-  'single.youtubeVideos': 'YouTube videos (auto-extract subtitles)',
+  'single.substackWechat': 'Substack / WeChat articles (smart extraction)',
   'single.pdfLinks': 'PDF file links',
 
   // ── ClaudeImport ──
@@ -431,7 +431,7 @@ const en: Record<keyof typeof zh, string> = {
   'panel.batch': 'Batch',
   'panel.cannotImportNlm': 'Cannot import NotebookLM pages',
   'panel.rssAtomLink': 'RSS / Atom Link',
-  'panel.supportedFormats': 'Supports: web articles, YouTube videos (auto subtitles), PDF links',
+  'panel.supportedFormats': 'Supports: web articles, Substack, WeChat, PDF links (auto-rescue failed imports)',
 };
 
 export type TranslationKey = keyof typeof zh;

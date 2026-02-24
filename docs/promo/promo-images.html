@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NotebookLM Jetpack — Chrome Web Store Promotional Images</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #e5e7eb;
+    font-family: 'Inter', 'Noto Sans SC', -apple-system, sans-serif;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 60px;
+  }
+
+  h2.section-label {
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: -40px;
+    align-self: flex-start;
+    max-width: 1400px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ========== SHARED PROMO STYLES ========== */
+  .promo {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1A73E8 0%, #1557B0 40%, #0D47A1 100%);
+  }
+
+  /* Radial glow behind the icon */
+  .promo::before {
+    content: '';
+    position: absolute;
+    width: 140%;
+    height: 140%;
+    top: -20%;
+    left: -20%;
+    background: radial-gradient(ellipse at 38% 50%, rgba(100, 181, 255, 0.25) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Subtle grid pattern overlay */
+  .promo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  .promo-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Speed lines */
+  .speed-lines {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .speed-line {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    border-radius: 2px;
+  }
+
+  /* Particles / dots */
+  .particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+  }
+
+  /* Flame trail from jetpack */
+  .flame-trail {
+    position: absolute;
+    z-index: 0;
+  }
+  .flame-trail .flame {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(8px);
+  }
+
+  /* Jetpack person SVG */
+  .jetpack-icon {
+    flex-shrink: 0;
+  }
+
+  /* Text styles */
+  .promo-title {
+    color: #FFFFFF;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .promo-tagline {
+    color: rgba(255,255,255,0.85);
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  /* Feature icons */
+  .feature-icons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .feature-icon svg {
+    color: rgba(255,255,255,0.9);
+  }
+
+  /* ========== SMALL TILE 440×280 ========== */
+  .small-tile {
+    width: 440px;
+    height: 280px;
+  }
+  .small-tile .promo-content {
+    flex-direction: column;
+    gap: 16px;
+    padding: 32px;
+  }
+  .small-tile .jetpack-icon {
+    width: 80px;
+    height: 80px;
+  }
+  .small-tile .text-group {
+    text-align: center;
+  }
+  .small-tile .promo-title {
+    font-size: 26px;
+    margin-bottom: 6px;
+  }
+  .small-tile .promo-tagline {
+    font-size: 14px;
+  }
+  .small-tile .feature-icons {
+    margin-top: 4px;
+  }
+  .small-tile .feature-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+  .small-tile .feature-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ========== MARQUEE 1400×560 ========== */
+  .marquee {
+    width: 1400px;
+    height: 560px;
+  }
+  .marquee .promo-content {
+    padding: 60px 80px;
+    gap: 60px;
+  }
+  .marquee .left-section {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    flex: 1;
+  }
+  .marquee .jetpack-icon {
+    width: 160px;
+    height: 160px;
+  }
+  .marquee .text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .marquee .promo-title {
+    font-size: 52px;
+  }
+  .marquee .promo-tagline {
+    font-size: 22px;
+    max-width: 460px;
+  }
+  .marquee .right-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-end;
+  }
+  .marquee .feature-row {
+    display: flex;
+    gap: 16px;
+  }
+  .marquee .feature-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .marquee .feature-card svg {
+    width: 24px;
+    height: 24px;
+    color: rgba(255,255,255,0.9);
+    flex-shrink: 0;
+  }
+  .marquee .feature-card span {
+    color: rgba(255,255,255,0.9);
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* ========== SCREENSHOT 1280×800 ========== */
+  .screenshot {
+    width: 1280px;
+    height: 800px;
+  }
+  .screenshot .promo-content {
+    flex-direction: column;
+    gap: 32px;
+    padding: 60px 80px;
+  }
+  .screenshot .top-section {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    width: 100%;
+  }
+  .screenshot .jetpack-icon {
+    width: 120px;
+    height: 120px;
+  }
+  .screenshot .text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .screenshot .promo-title {
+    font-size: 48px;
+  }
+  .screenshot .promo-tagline {
+    font-size: 20px;
+  }
+  .screenshot .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+    margin-top: 12px;
+  }
+  .screenshot .feature-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 28px 20px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.12);
+    text-align: center;
+  }
+  .screenshot .feature-block .icon-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .screenshot .feature-block .icon-circle svg {
+    width: 28px;
+    height: 28px;
+    color: #fff;
+  }
+  .screenshot .feature-block h3 {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+  }
+  .screenshot .feature-block p {
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Bottom branding bar */
+  .screenshot .bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-top: auto;
+    width: 100%;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+  .screenshot .bottom-bar span {
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .screenshot .bottom-bar .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- SMALL TILE — ENGLISH 440×280 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Small Promotional Tile — English (440×280)</h2>
+<div class="promo small-tile" id="small-tile-en">
+  <!-- Speed lines -->
+  <div class="speed-lines">
+    <div class="speed-line" style="top:18%; left:5%; width:120px; opacity:0.6;"></div>
+    <div class="speed-line" style="top:35%; left:0; width:80px; opacity:0.4;"></div>
+    <div class="speed-line" style="top:72%; left:8%; width:100px; opacity:0.5;"></div>
+    <div class="speed-line" style="top:85%; left:2%; width:60px; opacity:0.3;"></div>
+    <div class="speed-line" style="top:50%; right:0; left:auto; width:70px; opacity:0.3;"></div>
+  </div>
+  <!-- Particles -->
+  <div class="particles">
+    <div class="particle" style="width:4px;height:4px;top:20%;left:80%;opacity:0.4;"></div>
+    <div class="particle" style="width:6px;height:6px;top:65%;left:85%;opacity:0.3;"></div>
+    <div class="particle" style="width:3px;height:3px;top:40%;left:15%;opacity:0.5;"></div>
+    <div class="particle" style="width:5px;height:5px;top:80%;left:70%;opacity:0.25;"></div>
+  </div>
+  <div class="promo-content">
+    <!-- Jetpack icon -->
+    <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="64" cy="64" r="64" fill="rgba(255,255,255,0.12)"/>
+      <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="white" stroke="white" stroke-width="3" stroke-linejoin="round">
+        <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+        <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+        <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+        <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+        <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+      </g>
+    </svg>
+    <div class="text-group">
+      <div class="promo-title">NotebookLM Jetpack</div>
+      <div class="promo-tagline">Supercharge NotebookLM</div>
+    </div>
+    <div class="feature-icons">
+      <!-- Doc site -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></div>
+      <!-- Podcast -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
+      <!-- AI Chat -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <!-- Bookmark -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+      <!-- RSS -->
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SMALL TILE — CHINESE 440×280 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Small Promotional Tile — Chinese (440×280)</h2>
+<div class="promo small-tile" id="small-tile-cn">
+  <div class="speed-lines">
+    <div class="speed-line" style="top:18%; left:5%; width:120px; opacity:0.6;"></div>
+    <div class="speed-line" style="top:35%; left:0; width:80px; opacity:0.4;"></div>
+    <div class="speed-line" style="top:72%; left:8%; width:100px; opacity:0.5;"></div>
+    <div class="speed-line" style="top:85%; left:2%; width:60px; opacity:0.3;"></div>
+    <div class="speed-line" style="top:50%; right:0; left:auto; width:70px; opacity:0.3;"></div>
+  </div>
+  <div class="particles">
+    <div class="particle" style="width:4px;height:4px;top:20%;left:80%;opacity:0.4;"></div>
+    <div class="particle" style="width:6px;height:6px;top:65%;left:85%;opacity:0.3;"></div>
+    <div class="particle" style="width:3px;height:3px;top:40%;left:15%;opacity:0.5;"></div>
+    <div class="particle" style="width:5px;height:5px;top:80%;left:70%;opacity:0.25;"></div>
+  </div>
+  <div class="promo-content">
+    <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="64" cy="64" r="64" fill="rgba(255,255,255,0.12)"/>
+      <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="white" stroke="white" stroke-width="3" stroke-linejoin="round">
+        <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+        <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+        <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+        <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+        <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+      </g>
+    </svg>
+    <div class="text-group">
+      <div class="promo-title">NotebookLM Jetpack</div>
+      <div class="promo-tagline" style="font-family:'Noto Sans SC','Inter',sans-serif;">给 NotebookLM 装上喷射背包</div>
+    </div>
+    <div class="feature-icons">
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MARQUEE — ENGLISH 1400×560 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Marquee Banner — English (1400×560)</h2>
+<div class="promo marquee" id="marquee-en">
+  <div class="speed-lines">
+    <div class="speed-line" style="top:12%; left:3%; width:200px; opacity:0.5;"></div>
+    <div class="speed-line" style="top:28%; left:0; width:140px; opacity:0.4;"></div>
+    <div class="speed-line" style="top:45%; left:5%; width:180px; opacity:0.35;"></div>
+    <div class="speed-line" style="top:68%; left:2%; width:160px; opacity:0.45;"></div>
+    <div class="speed-line" style="top:82%; left:6%; width:120px; opacity:0.3;"></div>
+    <div class="speed-line" style="top:92%; left:1%; width:100px; opacity:0.25;"></div>
+  </div>
+  <div class="particles">
+    <div class="particle" style="width:6px;height:6px;top:15%;left:55%;opacity:0.3;"></div>
+    <div class="particle" style="width:4px;height:4px;top:30%;left:75%;opacity:0.25;"></div>
+    <div class="particle" style="width:8px;height:8px;top:70%;left:90%;opacity:0.2;"></div>
+    <div class="particle" style="width:5px;height:5px;top:85%;left:60%;opacity:0.3;"></div>
+    <div class="particle" style="width:3px;height:3px;top:50%;left:45%;opacity:0.35;"></div>
+  </div>
+  <!-- Flame trail -->
+  <div class="flame-trail" style="left:180px; top:320px;">
+    <div class="flame" style="width:40px;height:40px;background:rgba(251,188,4,0.3);left:0;top:0;"></div>
+    <div class="flame" style="width:30px;height:30px;background:rgba(249,115,22,0.25);left:-20px;top:15px;"></div>
+    <div class="flame" style="width:20px;height:20px;background:rgba(234,67,53,0.2);left:-35px;top:25px;"></div>
+  </div>
+  <div class="promo-content">
+    <div class="left-section">
+      <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="64" cy="64" r="64" fill="rgba(255,255,255,0.12)"/>
+        <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="white" stroke="white" stroke-width="3" stroke-linejoin="round">
+          <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+          <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+          <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+          <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+          <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+        </g>
+      </svg>
+      <div class="text-group">
+        <div class="promo-title">NotebookLM Jetpack</div>
+        <div class="promo-tagline">Supercharge NotebookLM with one-click imports from any source</div>
+      </div>
+    </div>
+    <div class="right-section">
+      <div class="feature-row">
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+          <span>Doc Sites</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span>Podcasts</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>AI Chats</span>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span>Bookmarks</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          <span>RSS Feeds</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Web Pages</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MARQUEE — CHINESE 1400×560 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Marquee Banner — Chinese (1400×560)</h2>
+<div class="promo marquee" id="marquee-cn">
+  <div class="speed-lines">
+    <div class="speed-line" style="top:12%; left:3%; width:200px; opacity:0.5;"></div>
+    <div class="speed-line" style="top:28%; left:0; width:140px; opacity:0.4;"></div>
+    <div class="speed-line" style="top:45%; left:5%; width:180px; opacity:0.35;"></div>
+    <div class="speed-line" style="top:68%; left:2%; width:160px; opacity:0.45;"></div>
+    <div class="speed-line" style="top:82%; left:6%; width:120px; opacity:0.3;"></div>
+    <div class="speed-line" style="top:92%; left:1%; width:100px; opacity:0.25;"></div>
+  </div>
+  <div class="particles">
+    <div class="particle" style="width:6px;height:6px;top:15%;left:55%;opacity:0.3;"></div>
+    <div class="particle" style="width:4px;height:4px;top:30%;left:75%;opacity:0.25;"></div>
+    <div class="particle" style="width:8px;height:8px;top:70%;left:90%;opacity:0.2;"></div>
+    <div class="particle" style="width:5px;height:5px;top:85%;left:60%;opacity:0.3;"></div>
+    <div class="particle" style="width:3px;height:3px;top:50%;left:45%;opacity:0.35;"></div>
+  </div>
+  <div class="flame-trail" style="left:180px; top:320px;">
+    <div class="flame" style="width:40px;height:40px;background:rgba(251,188,4,0.3);left:0;top:0;"></div>
+    <div class="flame" style="width:30px;height:30px;background:rgba(249,115,22,0.25);left:-20px;top:15px;"></div>
+    <div class="flame" style="width:20px;height:20px;background:rgba(234,67,53,0.2);left:-35px;top:25px;"></div>
+  </div>
+  <div class="promo-content">
+    <div class="left-section">
+      <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="64" cy="64" r="64" fill="rgba(255,255,255,0.12)"/>
+        <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="white" stroke="white" stroke-width="3" stroke-linejoin="round">
+          <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+          <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+          <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+          <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+          <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+        </g>
+      </svg>
+      <div class="text-group">
+        <div class="promo-title">NotebookLM Jetpack</div>
+        <div class="promo-tagline" style="font-family:'Noto Sans SC','Inter',sans-serif;">给 NotebookLM 装上喷射背包，一键导入任何来源</div>
+      </div>
+    </div>
+    <div class="right-section">
+      <div class="feature-row">
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+          <span style="font-family:'Noto Sans SC','Inter',sans-serif;">文档站</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span style="font-family:'Noto Sans SC','Inter',sans-serif;">播客</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span style="font-family:'Noto Sans SC','Inter',sans-serif;">AI 对话</span>
+        </div>
+      </div>
+      <div class="feature-row">
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span style="font-family:'Noto Sans SC','Inter',sans-serif;">收藏夹</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+          <span>RSS</span>
+        </div>
+        <div class="feature-card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>Web Pages</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREENSHOT — ENGLISH 1280×800 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Screenshot / Hero — English (1280×800)</h2>
+<div class="promo screenshot" id="screenshot-en">
+  <div class="speed-lines">
+    <div class="speed-line" style="top:8%; left:2%; width:200px; opacity:0.4;"></div>
+    <div class="speed-line" style="top:22%; left:0; width:150px; opacity:0.3;"></div>
+    <div class="speed-line" style="top:55%; left:4%; width:180px; opacity:0.35;"></div>
+    <div class="speed-line" style="top:78%; left:1%; width:120px; opacity:0.25;"></div>
+  </div>
+  <div class="particles">
+    <div class="particle" style="width:5px;height:5px;top:10%;left:70%;opacity:0.3;"></div>
+    <div class="particle" style="width:7px;height:7px;top:35%;left:88%;opacity:0.2;"></div>
+    <div class="particle" style="width:4px;height:4px;top:60%;left:92%;opacity:0.25;"></div>
+    <div class="particle" style="width:6px;height:6px;top:85%;left:78%;opacity:0.2;"></div>
+  </div>
+  <div class="promo-content">
+    <div class="top-section">
+      <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="64" cy="64" r="64" fill="rgba(255,255,255,0.12)"/>
+        <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="white" stroke="white" stroke-width="3" stroke-linejoin="round">
+          <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+          <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+          <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+          <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+          <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+        </g>
+      </svg>
+      <div class="text-group">
+        <div class="promo-title">NotebookLM Jetpack</div>
+        <div class="promo-tagline">Supercharge NotebookLM with one-click imports from any source</div>
+      </div>
+    </div>
+    <div class="features-grid">
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+        </div>
+        <h3>Doc Sites</h3>
+        <p>Import entire documentation sites. Supports 14+ frameworks including Docusaurus, VitePress, MkDocs, GitBook, and more.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <h3>Podcasts</h3>
+        <p>Download audio from Apple Podcasts and more. Drag into NotebookLM for AI-generated notes and summaries.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>AI Conversations</h3>
+        <p>Extract Q&A from Claude, ChatGPT, and Gemini. Selectively import the most valuable exchanges.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3>Read Later & Merge</h3>
+        <p>Save articles to read later. Merge 10-20 articles into one PDF — use only 1 source slot instead of 20.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+        </div>
+        <h3>RSS & Web Pages</h3>
+        <p>Import from RSS feeds, Substack, and any web page. Smart extraction strips noise and ads automatically.</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Smart Rescue</h3>
+        <p>Auto-detect failed &amp; silently broken imports on NotebookLM. One-click batch rescue for Substack, WeChat &amp; more.</p>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <span>Free & Open Source</span>
+      <div class="dot"></div>
+      <span>No Account Required</span>
+      <div class="dot"></div>
+      <span>100% Client-Side</span>
+      <div class="dot"></div>
+      <span>Manifest V3</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCREENSHOT — CHINESE 1280×800 -->
+<!-- ============================================================ -->
+<h2 class="section-label">Screenshot / Hero — Chinese (1280×800)</h2>
+<div class="promo screenshot" id="screenshot-cn">
+  <div class="speed-lines">
+    <div class="speed-line" style="top:8%; left:2%; width:200px; opacity:0.4;"></div>
+    <div class="speed-line" style="top:22%; left:0; width:150px; opacity:0.3;"></div>
+    <div class="speed-line" style="top:55%; left:4%; width:180px; opacity:0.35;"></div>
+    <div class="speed-line" style="top:78%; left:1%; width:120px; opacity:0.25;"></div>
+  </div>
+  <div class="particles">
+    <div class="particle" style="width:5px;height:5px;top:10%;left:70%;opacity:0.3;"></div>
+    <div class="particle" style="width:7px;height:7px;top:35%;left:88%;opacity:0.2;"></div>
+    <div class="particle" style="width:4px;height:4px;top:60%;left:92%;opacity:0.25;"></div>
+    <div class="particle" style="width:6px;height:6px;top:85%;left:78%;opacity:0.2;"></div>
+  </div>
+  <div class="promo-content">
+    <div class="top-section">
+      <svg class="jetpack-icon" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="64" cy="64" r="64" fill="rgba(255,255,255,0.12)"/>
+        <g transform="translate(64,66) scale(0.9) translate(-78.5,-77.5)" fill="white" stroke="white" stroke-width="3" stroke-linejoin="round">
+          <path d="M72.135429,114.488411 C76.012177,108.870392 79.804344,103.632202 83.810081,98.099007 C80.428185,94.118004 76.972122,90.077621 73.547028,86.011154 C68.698792,80.255074 68.536003,76.326691 72.957123,70.355927 C76.226433,65.940681 79.520920,61.542233 82.893761,57.205975 C86.426453,52.664204 90.600204,51.741600 94.543686,54.485363 C98.486076,57.228363 99.022224,61.602989 95.973534,66.337952 C94.904396,67.998451 93.787766,69.628372 92.302979,71.857559 C95.268700,72.487999 97.963890,72.604851 100.187317,73.689110 C101.747643,74.449997 102.664925,76.529526 103.869362,78.020195 C102.153770,78.936005 100.365463,80.732796 98.736549,80.598366 C94.288536,80.231270 89.881027,79.165352 85.508484,78.155373 C81.777733,77.293640 81.035614,74.968338 83.153252,71.858658 C84.744141,69.522476 86.679787,67.410522 88.148682,65.007271 C88.695503,64.112633 88.352188,62.673931 88.414780,61.483322 C87.309448,61.843987 85.813316,61.871563 85.170174,62.626152 C83.017807,65.151505 80.973930,67.817413 79.252502,70.650642 C76.712303,74.831474 78.135147,80.259804 82.691452,81.324394 C87.129631,82.361382 88.898460,85.345894 90.860558,88.554100 C97.736435,99.796722 98.239098,96.499992 89.994286,107.668037 C87.423965,111.149689 85.123795,114.904510 82.116150,117.959526 C80.531181,119.569458 77.485527,120.942200 75.480019,120.537209 C74.015099,120.241394 73.171440,116.869141 72.135429,114.488411z"/>
+          <path d="M70.575264,51.531242 C70.928436,51.144436 71.022820,50.999920 71.151131,50.898201 C73.673859,48.898228 76.347992,45.222626 79.613098,47.800491 C83.077751,50.535892 80.519806,54.386032 78.576828,57.118946 C74.934929,62.241528 70.810852,67.021309 66.786705,72.069908 C64.179733,70.017448 61.881622,68.208153 59.179298,66.080620 C63.022041,61.157990 66.677155,56.475723 70.575264,51.531242z"/>
+          <path d="M95.855118,51.335983 C90.877411,45.998154 90.862495,40.568569 95.512093,36.932861 C99.552719,33.773331 105.262169,34.542545 108.234039,38.759560 C110.707832,42.269829 110.663818,45.895351 108.132401,49.364933 C105.399216,53.111057 101.542015,53.775352 95.855118,51.335983z"/>
+          <path d="M56.076126,70.058609 C59.506550,68.714684 60.582218,70.094337 58.926952,72.719055 C56.565853,76.463013 53.707115,79.912010 50.849049,83.308708 C50.233154,84.040672 48.715099,84.013535 47.612606,84.336060 C47.630283,83.174088 47.191864,81.692696 47.743671,80.904808 C50.289772,77.269386 53.111595,73.827080 56.076126,70.058609z"/>
+          <path d="M60.671799,77.328552 C61.291580,78.506462 62.202030,79.999985 61.788269,80.648026 C60.120182,83.260620 58.145401,85.705544 56.049557,87.998177 C55.486862,88.613708 54.095711,88.471893 53.084866,88.677742 C53.032219,87.655670 52.526886,86.276222 53.003750,85.672180 C55.308895,82.752266 57.878159,80.040855 60.671799,77.328552z"/>
+        </g>
+      </svg>
+      <div class="text-group">
+        <div class="promo-title">NotebookLM Jetpack</div>
+        <div class="promo-tagline" style="font-family:'Noto Sans SC','Inter',sans-serif;">给 NotebookLM 装上喷射背包，一键导入任何来源</div>
+      </div>
+    </div>
+    <div class="features-grid">
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Sans SC','Inter',sans-serif;">文档站导入</h3>
+        <p style="font-family:'Noto Sans SC','Inter',sans-serif;">支持 14+ 文档框架：Docusaurus、VitePress、MkDocs、GitBook 等，一键导入整站文档。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Sans SC','Inter',sans-serif;">播客下载</h3>
+        <p style="font-family:'Noto Sans SC','Inter',sans-serif;">从 Apple Podcasts、小宇宙下载音频，拖入 NotebookLM 让 AI 生成笔记摘要。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Sans SC','Inter',sans-serif;">AI 对话提取</h3>
+        <p style="font-family:'Noto Sans SC','Inter',sans-serif;">从 Claude、ChatGPT、Gemini 提取问答对，选择性导入有价值的交流内容。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Sans SC','Inter',sans-serif;">稍后阅读 & 聚合</h3>
+        <p style="font-family:'Noto Sans SC','Inter',sans-serif;">收藏文章，10-20 篇聚合为一个 PDF，只占 1 个来源配额而非 20 个。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Sans SC','Inter',sans-serif;">RSS & 网页</h3>
+        <p style="font-family:'Noto Sans SC','Inter',sans-serif;">导入 RSS 订阅源、Substack、任意网页。智能提取去除广告噪音。</p>
+      </div>
+      <div class="feature-block">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3 style="font-family:'Noto Sans SC','Inter',sans-serif;">智能抢救</h3>
+        <p style="font-family:'Noto Sans SC','Inter',sans-serif;">自动检测 NotebookLM 中导入失败和假性成功的来源，一键批量修复。</p>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <span style="font-family:'Noto Sans SC','Inter',sans-serif;">完全免费 & 开源</span>
+      <div class="dot"></div>
+      <span style="font-family:'Noto Sans SC','Inter',sans-serif;">无需注册</span>
+      <div class="dot"></div>
+      <span style="font-family:'Noto Sans SC','Inter',sans-serif;">纯客户端运行</span>
+      <div class="dot"></div>
+      <span>Manifest V3</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

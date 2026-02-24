@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Loader2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
-import { isValidUrl, isYouTubeUrl } from '@/lib/utils';
+import { isValidUrl } from '@/lib/utils';
 import { t } from '@/lib/i18n';
 
 interface Props {
@@ -136,7 +136,7 @@ export function SingleImport({ onProgress }: Props) {
         <p>{t('single.supportedImports')}</p>
         <ul className="list-disc list-inside space-y-0.5 text-gray-400">
           <li>{t('single.webArticles')}</li>
-          <li>{t('single.youtubeVideos')}</li>
+          <li>{t('single.substackWechat')}</li>
           <li>{t('single.pdfLinks')}</li>
         </ul>
       </div>

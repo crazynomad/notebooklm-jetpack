@@ -22,14 +22,23 @@ NotebookLM 是最好的 AI 知识工具，但「把内容喂进去」这一步�
 
 ---
 
-### 痛点一：Substack 和微信公众号导入不了
+### 痛点一：Substack、微信公众号等链接 NotebookLM 导不进去
 
-你在 NotebookLM 里粘贴一篇 Substack 链接，点导入，结果要么被反爬拦截，要么拿到一堆订阅按钮、评论区的噪音文字。微信公众号更惨——看着"导入成功"，打开一看，内容是空的验证页面。
+NotebookLM 的网址导入对很多网站水土不服：
 
-**Jetpack 方案：**
-- Substack 文章：精准提取正文区域，自动过滤 Subscribe 按钮、评论区、推荐文章等 14 种噪音元素，Paywall 文章也能提取免费部分
-- 微信公众号：在浏览器中渲染完整页面后提取内容，绕过反爬机制。扩展自动检测"假性成功"的来源，蓝色横幅一键修复全部
-- 导入失败的来源？琥珀色横幅一键抢救，无需逐个重试
+- **Substack**：反爬拦截，或导入后全是 Subscribe 按钮、评论区噪音
+- **微信公众号**：看着"导入成功"，打开一看内容是空的验证页面（假性成功）
+- **付费墙文章**：Paywall 直接阻断，什么都拿不到
+- **动态渲染页面**：SPA 或需要 JS 渲染的页面，NotebookLM 只抓到空壳
+
+这些是 NotebookLM 用户最常遇到的问题——链接明明没错，导入就是失败或内容不对。
+
+**Jetpack 方案：智能提取 + 失败自动修复**
+- **Substack 文章**：精准提取正文区域，自动过滤 Subscribe 按钮、评论区、推荐文章等 14 种噪音元素，Paywall 文章也能提取免费部分
+- **微信公众号**：在浏览器中渲染完整页面后提取内容，绕过反爬机制
+- **智能失败检测**：打开 NotebookLM 页面，扩展自动扫描所有来源，标记导入失败和「假性成功」（内容为空）的来源
+- **一键批量抢救**：琥珀色横幅显示失败数量，一键重新导入全部失败来源，无需逐个重试
+- **假性成功修复**：蓝色横幅检测到「看似成功实则内容为空」的来源，一键修复全部
 
 ---
 
@@ -89,17 +98,6 @@ Docusaurus、VitePress、MkDocs、GitBook、Mintlify、Sphinx、ReadTheDocs、Go
 
 ---
 
-### 痛点六：YouTube 视频内容想快速学习
-
-你在 YouTube 上看到一个两小时的技术演讲，不想从头看完，想让 AI 帮你提炼重点。
-
-**Jetpack 方案：YouTube 视频自动导入**
-- 粘贴 YouTube 链接，自动提取字幕文本
-- 导入 NotebookLM，一个来源就涵盖整个视频的知识
-- 配合 NotebookLM 的 AI 功能，快速问答、总结、提炼
-
----
-
 ### 更多实用能力
 
 **RSS 源导入** — 粘贴博客或 Newsletter 的 RSS 地址，自动解析文章列表，批量导入到 NotebookLM。支持 Substack、Medium 等主流 RSS 格式。
@@ -143,11 +141,22 @@ NotebookLM is an incredible AI knowledge tool — but getting your content into 
 
 ---
 
-**Problem: Articles won't import cleanly**
+**Problem: Many links just won't import into NotebookLM**
 
-Paste a Substack link into NotebookLM and you get subscribe buttons, comment sections, and paywall noise mixed into your source.
+NotebookLM's URL import silently fails on many popular sources:
 
-Jetpack fixes this. Substack articles are extracted with surgical precision — 14 noise filters strip out everything except the actual article. Paywall articles? The free portion is still extracted. Failed imports are auto-detected on the NotebookLM page and rescued with one click.
+- **Substack** — anti-scraping blocks the import, or you get subscribe buttons and comment noise instead of the article
+- **WeChat articles** — appears to import successfully, but the content is actually an empty verification page (silent failure)
+- **Paywalled content** — blocked entirely, nothing imported
+- **Dynamic/SPA pages** — NotebookLM only fetches the empty HTML shell
+
+These are the most common frustrations for NotebookLM users — the link is correct, but the import fails or returns garbage.
+
+**Jetpack fixes this with smart extraction + automatic failure rescue:**
+- **Substack**: Surgical precision extraction — 14 noise filters strip subscribe buttons, comments, and recommendations. Paywall articles? Free portions are still extracted.
+- **WeChat**: Renders the full page in-browser before extracting, bypassing anti-scraping.
+- **Smart failure detection**: Open your NotebookLM page and the extension auto-scans ALL sources, flagging both failed imports AND "silent failures" (sources that appear successful but contain empty/broken content).
+- **One-click batch rescue**: Amber banner shows failed count → one click rescues all. Blue banner detects silently broken sources → one click repairs all. No manual retrying.
 
 ---
 
@@ -187,14 +196,6 @@ Paste an Apple Podcasts link → pick episodes → download audio → drag into 
 That brilliant ChatGPT brainstorm, that deep Claude analysis, that creative Gemini session — all locked inside their respective platforms.
 
 Open the extension on any **Claude, ChatGPT, or Gemini** conversation page. It auto-detects the platform, extracts Q&A pairs, and lets you selectively import the valuable exchanges into NotebookLM as structured markdown.
-
----
-
-**Problem: YouTube videos you want to learn from quickly**
-
-A 2-hour tech talk on YouTube — you don't want to watch the whole thing, you want AI to extract the key points.
-
-Paste a YouTube link → subtitles are extracted automatically → import to NotebookLM → ask questions, get summaries, extract insights.
 
 ---
 
