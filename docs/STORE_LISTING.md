@@ -6,13 +6,13 @@
 
 ## 扩展名称
 
-**NotebookLM Jetpack — 一键导入 Substack/微信/播客/文档到 NotebookLM**
+**NotebookLM Jetpack**
 
 ---
 
 ## 简短描述（132 字符以内，商店搜索结果显示）
 
-一键导入 Substack、微信公众号、文档站、播客、AI 对话到 NotebookLM。聚合多篇文章为一个来源，突破免费版限制。
+给 NotebookLM 装上喷射背包 🚀 一键导入网页、Substack、播客、文档站、AI 对话，聚合多篇突破来源限制。
 
 ---
 
@@ -89,6 +89,17 @@ Docusaurus、VitePress、MkDocs、GitBook、Mintlify、Sphinx、ReadTheDocs、Go
 
 ---
 
+### 痛点六：YouTube 视频内容想快速学习
+
+你在 YouTube 上看到一个两小时的技术演讲，不想从头看完，想让 AI 帮你提炼重点。
+
+**Jetpack 方案：YouTube 视频自动导入**
+- 粘贴 YouTube 链接，自动提取字幕文本
+- 导入 NotebookLM，一个来源就涵盖整个视频的知识
+- 配合 NotebookLM 的 AI 功能，快速问答、总结、提炼
+
+---
+
 ### 更多实用能力
 
 **RSS 源导入** — 粘贴博客或 Newsletter 的 RSS 地址，自动解析文章列表，批量导入到 NotebookLM。支持 Substack、Medium 等主流 RSS 格式。
@@ -98,6 +109,8 @@ Docusaurus、VitePress、MkDocs、GitBook、Mintlify、Sphinx、ReadTheDocs、Go
 **导入历史记录** — 自动记录最近 100 条导入，随时回溯。
 
 **智能失败检测与修复** — 在 NotebookLM 页面自动扫描导入失败或假性成功的来源，一键批量抢救。
+
+**中英文双语界面** — 自动适配浏览器语言，也可手动切换。
 
 ---
 
@@ -118,11 +131,11 @@ Docusaurus、VitePress、MkDocs、GitBook、Mintlify、Sphinx、ReadTheDocs、Go
 
 ### Extension Name
 
-**NotebookLM Jetpack — Import Substack, Podcasts, Docs & AI Chats**
+**NotebookLM Jetpack**
 
 ### Short Description (132 chars)
 
-Import Substack, WeChat articles, doc sites, podcasts & AI conversations into NotebookLM. Merge pages into one source to save slots.
+Supercharge NotebookLM 🚀 Import web pages, Substack, podcasts, doc sites & AI chats. Merge articles into one source to save slots.
 
 ### Detailed Description
 
@@ -132,9 +145,9 @@ NotebookLM is an incredible AI knowledge tool — but getting your content into 
 
 **Problem: Articles won't import cleanly**
 
-Paste a Substack link into NotebookLM and you get subscribe buttons, comment sections, and paywall noise mixed into your source. WeChat articles silently fail — they look imported but the content is an empty verification page.
+Paste a Substack link into NotebookLM and you get subscribe buttons, comment sections, and paywall noise mixed into your source.
 
-Jetpack fixes this. Substack articles are extracted with surgical precision — 14 noise filters strip out everything except the actual article. WeChat articles are rendered in-browser to bypass anti-scraping. Failed imports are auto-detected and rescued with one click.
+Jetpack fixes this. Substack articles are extracted with surgical precision — 14 noise filters strip out everything except the actual article. Paywall articles? The free portion is still extracted. Failed imports are auto-detected on the NotebookLM page and rescued with one click.
 
 ---
 
@@ -142,17 +155,22 @@ Jetpack fixes this. Substack articles are extracted with surgical precision — 
 
 Free-tier NotebookLM gives you 50 sources per notebook. Import 20 blog posts for a research project and you've used nearly half.
 
-Jetpack's solution: **Aggregate multiple articles into one source.** Save articles to your built-in read-later list as you browse. When ready, select 10-20 articles → export as a single merged PDF → upload to NotebookLM. Twenty articles, one source slot.
+Jetpack's solution: **Aggregate multiple articles into one source.**
+1. Save articles to your built-in read-later list as you browse
+2. Select 10-20 articles → export as a single merged PDF
+3. Upload one PDF to NotebookLM → 20 articles, one source slot
+
+Organize by collection for different projects or topics.
 
 ---
 
 **Problem: Importing an entire documentation site**
 
-You want to study a framework by importing its 200-page documentation into NotebookLM. Manually pasting 200 URLs? No thanks.
+You want to study a framework by importing its 200-page docs into NotebookLM. Manually pasting 200 URLs? No thanks.
 
-Jetpack auto-detects 14+ documentation frameworks (Docusaurus, VitePress, MkDocs, GitBook, Mintlify, Sphinx, ReadTheDocs, and more). Open any doc page → click "Analyze Site" → select chapters → batch import or export as PDF.
+Jetpack auto-detects **14+ documentation frameworks**: Docusaurus, VitePress, MkDocs, GitBook, Mintlify, Sphinx, ReadTheDocs, Google DevSite, Anthropic Docs, and more. Open any doc page → "Analyze Site" → select chapters → batch import or export as PDF.
 
-Also supports the emerging llms.txt standard for AI-native content discovery.
+Also supports the emerging **llms.txt** standard for AI-native content discovery.
 
 ---
 
@@ -168,19 +186,28 @@ Paste an Apple Podcasts link → pick episodes → download audio → drag into 
 
 That brilliant ChatGPT brainstorm, that deep Claude analysis, that creative Gemini session — all locked inside their respective platforms.
 
-Open the extension on any Claude, ChatGPT, or Gemini conversation page. It auto-detects the platform, extracts Q&A pairs, and lets you selectively import the valuable exchanges into NotebookLM as structured markdown.
+Open the extension on any **Claude, ChatGPT, or Gemini** conversation page. It auto-detects the platform, extracts Q&A pairs, and lets you selectively import the valuable exchanges into NotebookLM as structured markdown.
+
+---
+
+**Problem: YouTube videos you want to learn from quickly**
+
+A 2-hour tech talk on YouTube — you don't want to watch the whole thing, you want AI to extract the key points.
+
+Paste a YouTube link → subtitles are extracted automatically → import to NotebookLM → ask questions, get summaries, extract insights.
 
 ---
 
 **Also includes:**
-- RSS feed import (Substack, Medium, any standard RSS/Atom feed)
-- Right-click context menu for instant single-page import
-- Import history (last 100 entries)
-- Smart failure detection & one-click rescue on the NotebookLM page
+- **RSS feed import** — Substack, Medium, any standard RSS/Atom feed
+- **Right-click context menu** for instant single-page import
+- **Import history** — last 100 entries, always accessible
+- **Smart failure detection** — auto-scans for failed/silently broken imports on the NotebookLM page, one-click batch rescue
+- **Bilingual UI** — Chinese and English, auto-detects browser language with manual toggle
 
 **Privacy & Security:**
 - 100% free, no account required
-- Runs entirely in your browser — no data sent to third-party servers
+- Runs entirely in your browser — zero data sent to third-party servers
 - Open source: github.com/crazynomad/notebooklm-jetpack
 - Chrome Manifest V3 compliant
 
