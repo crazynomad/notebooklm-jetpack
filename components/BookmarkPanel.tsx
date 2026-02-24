@@ -350,10 +350,26 @@ export function BookmarkPanel({ onProgress }: Props) {
           )}
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center py-10 bg-surface-sunken rounded-xl">
-          <Bookmark className="w-10 h-10 text-gray-300/60 mb-3" />
-          <p className="text-sm text-gray-500 font-medium">还没有收藏内容</p>
-          <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">浏览时随手收藏，稍后批量导入</p>
+        <div className="flex flex-col items-center py-6 bg-surface-sunken rounded-xl px-5">
+          <Bookmark className="w-8 h-8 text-amber-400/60 mb-2" />
+          <p className="text-sm text-gray-600 font-medium">收藏网页，聚合导入</p>
+          <p className="text-xs text-gray-400 mt-1.5 mb-3 text-center leading-relaxed max-w-[280px]">
+            NotebookLM 免费用户来源数有限。将多个网页收藏后聚合为一份 PDF 导入，用一个来源额度获取多篇内容。
+          </p>
+          <div className="w-full space-y-2 text-[11px] text-gray-500 bg-white/60 rounded-lg p-3 border border-gray-100/80">
+            <div className="flex items-start gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold">1</span>
+              <span>浏览网页时点击上方「收藏」按钮，将有价值的页面加入收藏夹</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold">2</span>
+              <span>选择多个收藏，点击「聚合导出 PDF」合并为一份文档</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold">3</span>
+              <span>将 PDF 上传到 NotebookLM，一个来源 = 多篇内容 🚀</span>
+            </div>
+          </div>
         </div>
       )}
 

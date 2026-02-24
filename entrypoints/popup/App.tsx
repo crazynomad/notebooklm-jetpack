@@ -14,7 +14,7 @@ import { RescueBanner } from '@/components/RescueBanner';
 export default function App() {
   const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [activeTab, setActiveTab] = useState('docs');
+  const [activeTab, setActiveTab] = useState('bookmark');
   const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
 
@@ -94,10 +94,10 @@ export default function App() {
       <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
         <Tabs.List className="flex glass border-b border-border px-2 gap-0.5">
           {[
+            { value: 'bookmark', icon: Bookmark, label: '收藏夹' },
             { value: 'docs', icon: BookOpen, label: '文档站' },
             { value: 'podcast', icon: Headphones, label: '播客' },
             { value: 'claude', icon: MessageCircle, label: 'AI 对话' },
-            { value: 'bookmark', icon: Bookmark, label: '收藏' },
             { value: 'more', icon: MoreHorizontal, label: '更多' },
           ].map(({ value, icon: Icon, label }) => (
             <Tabs.Trigger
