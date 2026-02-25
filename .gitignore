@@ -33,3 +33,4 @@ dist-dev/
 # Screenshot build artifacts
 docs/screenshots/raw/
 docs/screenshots/*.png
+releases/*.zip
