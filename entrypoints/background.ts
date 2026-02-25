@@ -304,13 +304,45 @@ export default defineBackground(() => {
         const pagesToFetch = si.pages.slice(0, maxPages);
         console.log('[GENERATE_PDF] Fetching', pagesToFetch.length, 'pages...');
 
-        const contents = await fetchAllPages(pagesToFetch, {
-          concurrency: 5,
-          onProgress: (p) => {
-            sendProgress({ phase: 'fetching', current: p.current, total: p.total, currentPage: p.currentPage });
-            if (p.current % 50 === 0) console.log(`[GENERATE_PDF] Progress: ${p.current}/${p.total}`);
-          },
-        });
+        // Split: SPA pages (x.com etc.) need tab-based extraction
+        const spaPages = pagesToFetch.filter((p: { url: string }) => needsTabBasedExtraction(p.url));
+        const fetchPages = pagesToFetch.filter((p: { url: string }) => !needsTabBasedExtraction(p.url));
+
+        let contents: Awaited<ReturnType<typeof fetchAllPages>> = [];
+
+        // Tab-based extraction for SPA pages
+        if (spaPages.length > 0) {
+          console.log('[GENERATE_PDF] Tab-extracting', spaPages.length, 'SPA pages...');
+          const spaResults = await repairDynamicSources(spaPages.map((p: { url: string }) => p.url), true);
+          for (const result of spaResults) {
+            if (result.status === 'success' && result.title) {
+              // Find the original page info for this URL
+              const page = spaPages.find((p: { url: string }) => p.url === result.url);
+              const content = result.content || '';
+              contents.push({
+                url: result.url,
+                title: result.title,
+                markdown: content,
+                section: undefined,
+                wordCount: content.split(/\s+/).length,
+              });
+            }
+            sendProgress({ phase: 'fetching', current: contents.length, total: pagesToFetch.length, currentPage: result.title });
+          }
+        }
+
+        // Fetch-based extraction for regular pages
+        if (fetchPages.length > 0) {
+          const fetchedOffset = contents.length;
+          const fetchContents = await fetchAllPages(fetchPages, {
+            concurrency: 5,
+            onProgress: (p) => {
+              sendProgress({ phase: 'fetching', current: fetchedOffset + p.current, total: pagesToFetch.length, currentPage: p.currentPage });
+              if (p.current % 50 === 0) console.log(`[GENERATE_PDF] Progress: ${fetchedOffset + p.current}/${pagesToFetch.length}`);
+            },
+          });
+          contents.push(...fetchContents);
+        }
 
         if (contents.length === 0) {
           sendProgress({ phase: 'error', error: '未能获取任何页面内容' });
@@ -357,6 +389,7 @@ interface RescueResult {
   url: string;
   status: 'success' | 'error';
   title?: string;
+  content?: string;
   error?: string;
 }
 
@@ -410,10 +443,25 @@ function detectBlockedContent(markdown: string, html: string, url: string): stri
   return null;
 }
 
+/** URLs that need tab-based rendering (SPA / dynamic content) */
+function needsTabBasedExtraction(url: string): boolean {
+  return /^https?:\/\/(www\.)?(x\.com|twitter\.com)\//.test(url);
+}
+
 async function rescueSources(urls: string[]): Promise<RescueResult[]> {
   const results: RescueResult[] = [];
 
-  for (const url of urls) {
+  // Split: SPA sites go to tab-based extraction, others use fetch
+  const tabUrls = urls.filter(needsTabBasedExtraction);
+  const fetchUrls = urls.filter(u => !needsTabBasedExtraction(u));
+
+  // Handle tab-based URLs via the same repair/extract pipeline
+  if (tabUrls.length > 0) {
+    const tabResults = await repairDynamicSources(tabUrls);
+    results.push(...tabResults);
+  }
+
+  for (const url of fetchUrls) {
     try {
       console.log(`[rescue] Fetching: ${url}`);
       const resp = await fetch(url, {
@@ -486,15 +534,33 @@ async function rescueSources(urls: string[]): Promise<RescueResult[]> {
 
 // ── Repair WeChat sources ──
 // Open page in browser tab → extract rendered content → import as text
+// Tab-based content extraction for dynamic/SPA sites (X.com, WeChat, etc.)
+// extractOnly=true returns content without importing to NotebookLM (for PDF export)
+async function repairDynamicSources(urls: string[], extractOnly = false): Promise<RescueResult[]> {
+  return _tabBasedExtract(urls, extractOnly);
+}
+
 async function repairWechatSources(urls: string[]): Promise<RescueResult[]> {
+  return _tabBasedExtract(urls, false);
+}
+
+async function _tabBasedExtract(urls: string[], extractOnly = false): Promise<RescueResult[]> {
   const results: RescueResult[] = [];
 
   for (const url of urls) {
     try {
       console.log(`[repair] Opening: ${url}`);
 
+      // For X.com article focus-mode URLs, use as-is; for /status/ URLs keep original
+      // (we can't know if a /status/ URL is an article until we render it)
+      let openUrl = url;
+      const xArticleFocusMatch = url.match(/^https?:\/\/(www\.)?(x\.com|twitter\.com)\/(\w+)\/article\/(\d+)/);
+      if (xArticleFocusMatch) {
+        console.log(`[repair] X.com: already focus mode URL`);
+      }
+
       // Open the URL in a new tab
-      const tab = await chrome.tabs.create({ url, active: false });
+      const tab = await chrome.tabs.create({ url: openUrl, active: false });
       if (!tab.id) throw new Error('Failed to create tab');
 
       // Wait for page to load
@@ -514,14 +580,36 @@ async function repairWechatSources(urls: string[]): Promise<RescueResult[]> {
         chrome.tabs.onUpdated.addListener(listener);
       });
 
-      // Give extra time for dynamic content to render
-      await new Promise((r) => setTimeout(r, 3000));
+      // Give extra time for dynamic content to render (SPA sites need more)
+      const renderWait = needsTabBasedExtraction(url) ? 5000 : 3000;
+      await new Promise((r) => setTimeout(r, renderWait));
 
-      // Extract content from the rendered page
+      // Extract content from the rendered page (site-specific extractors)
       const extractResult = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => {
-          // WeChat article content is in #js_content or .rich_media_content
+          const currentUrl = window.location.href;
+
+          // ── X.com / Twitter Article extractor ──
+          // X articles have [data-testid="twitterArticleReadView"] as the container,
+          // with [data-testid="twitterArticleRichTextView"] holding pure article content.
+          // [data-testid="twitter-article-title"] holds the title.
+          const xArticleContent = document.querySelector('[data-testid="twitterArticleRichTextView"]');
+          if (xArticleContent && (currentUrl.includes('x.com/') || currentUrl.includes('twitter.com/'))) {
+            // Title: from dedicated testid, or page title cleaned up
+            const titleEl = document.querySelector('[data-testid="twitter-article-title"]');
+            const title = titleEl?.textContent?.trim()
+              || document.title.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
+
+            // The rich text view contains clean content — just extract with structure
+            const content = (xArticleContent as HTMLElement).innerText?.trim() || '';
+            if (content.length < 100) {
+              return { success: false, error: 'X article: extracted content too short' };
+            }
+            return { success: true, title, content };
+          }
+
+          // ── WeChat / Generic extractor ──
           const contentEl = document.querySelector('#js_content')
             || document.querySelector('.rich_media_content')
             || document.querySelector('article')
@@ -570,16 +658,23 @@ async function repairWechatSources(urls: string[]): Promise<RescueResult[]> {
       }
 
       const title = extracted.title || new URL(url).hostname;
-      const content = `# ${title}\n\nSource: ${url}\n\n${extracted.content}`;
+      const rawContent = extracted.content;
+      const content = `# ${title}\n\nSource: ${url}\n\n${rawContent}`;
 
-      // Import as text
-      const success = await importText(content, title);
-      results.push({
-        url,
-        status: success ? 'success' : 'error',
-        title,
-        error: success ? undefined : '导入 NotebookLM 失败',
-      });
+      if (extractOnly) {
+        // Return content without importing (for PDF export)
+        results.push({ url, status: 'success', title, content: rawContent });
+      } else {
+        // Import as text
+        const success = await importText(content, title);
+        results.push({
+          url,
+          status: success ? 'success' : 'error',
+          title,
+          content: rawContent,
+          error: success ? undefined : '导入 NotebookLM 失败',
+        });
+      }
 
       if (urls.indexOf(url) < urls.length - 1) {
         await new Promise((r) => setTimeout(r, 3000));

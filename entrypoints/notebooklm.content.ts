@@ -1178,9 +1178,20 @@ async function removeSourcesByUrl(urls: string[]): Promise<void> {
       const menuItems = document.querySelectorAll('[role="menuitem"], .mat-mdc-menu-item');
       for (const item of menuItems) {
         const text = item.textContent?.trim() || '';
-        if (text.includes('移除来源') || text.includes('Remove source')) {
+        if (text.includes('移除来源') || text.includes('Remove source') || text.includes('Delete source')) {
           (item as HTMLElement).click();
-          await delay(1000);
+          await delay(800);
+
+          // NotebookLM shows a confirmation dialog — click "Delete" / "删除" to confirm
+          const confirmBtns = document.querySelectorAll('button');
+          for (const btn of confirmBtns) {
+            const btnText = btn.textContent?.trim() || '';
+            if (btnText === 'Delete' || btnText === '删除') {
+              btn.click();
+              await delay(1000);
+              break;
+            }
+          }
           break;
         }
       }
