@@ -217,6 +217,9 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
       if (!(insertButton as HTMLButtonElement).disabled) break;
       await delay(300);
     }
+    // Record source count before inserting
+    const sourceCountBefore = document.querySelectorAll('.single-source-container').length;
+
     insertButton.click();
 
     // Wait for dialog to close / import to complete
@@ -227,7 +230,12 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
 
     // Step 6: Rename the newly created source (NotebookLM defaults to "粘贴的文字" / "Copied text" / etc.)
     if (title) {
-      await delay(4000); // Wait longer for source list to fully update (large pastes take time)
+      // Wait for the new source to appear in the list (poll instead of fixed delay)
+      for (let i = 0; i < 20; i++) { // up to 20s
+        await delay(1000);
+        const currentCount = document.querySelectorAll('.single-source-container').length;
+        if (currentCount > sourceCountBefore) break;
+      }
       try {
         // Strategy: try known default names first, then fallback to renaming the last source
         const defaultNames = ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text'];
