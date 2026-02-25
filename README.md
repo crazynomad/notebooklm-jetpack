@@ -1,46 +1,53 @@
-# NotebookLM Jetpack
+# NotebookLM Jetpack 🚀
 
-一键导入网页、RSS、文档站点、Claude 对话到 NotebookLM 的 Chrome 扩展。
+给 NotebookLM 装上喷射背包 — 一键导入网页、Substack、播客、文档站、AI 对话，聚合多篇突破来源限制。
 
-**完全免费，无需登录注册，纯客户端运行。**
+📖 **文档站**：[jetpack.boing.work](https://jetpack.boing.work/)
+🔒 **隐私政策**：[Privacy Policy](https://jetpack.boing.work/privacy)
+
+**完全免费 · 无需登录 · 纯客户端运行 · 开源**
 
 ## 功能
 
 | 功能 | 描述 |
 |------|------|
-| 单个导入 | 当前网页一键导入到 NotebookLM |
-| 批量导入 | 多个 URL 或所有浏览器标签页批量导入 |
-| RSS 导入 | RSS/Atom 源文章批量导入 |
-| 文档站点导入 | 自动分析文档站点结构，批量导入所有页面 |
-| Claude 对话导入 | 提取 Claude 对话内容并导入 |
-| 右键菜单 | 右键快速导入当前页面或链接 |
-| 导入历史 | 查看最近 100 条导入记录 |
+| 🌐 网页导入 | 单个导入、批量导入、导入所有标签页 |
+| 📑 收藏夹 & 聚合 | 内置「稍后阅读」，多篇聚合为一个 PDF，突破 50 来源限制 |
+| 📚 文档站导入 | 自动识别 14+ 文档框架，批量导入或导出 PDF |
+| 🎙️ 播客导入 | Apple Podcasts、小宇宙，下载音频拖入 NotebookLM |
+| 🤖 AI 对话导入 | Claude、ChatGPT、Gemini 对话提取，按问答对选择导入 |
+| 📡 RSS 导入 | RSS/Atom 源文章批量导入 |
+| 🛟 失败抢救 | 自动检测导入失败和假性成功的来源，一键批量修复 |
+| 🖱️ 右键菜单 | 浏览任意网页时右键直接导入 |
+| 📋 导入历史 | 最近 100 条导入记录 |
+| 🌐 双语界面 | 中英文自动适配，可手动切换 |
 
-### 文档站点导入
+### 特殊平台支持
 
-支持自动检测并提取以下框架的文档站点：
+- **Substack** — 精准提取正文，14 种噪音过滤（Subscribe 按钮、评论区等）
+- **微信公众号** — 浏览器内渲染后提取，绕过反爬机制
+- **X.com (Twitter) 长文** — 自动识别 Article 格式，浏览器渲染提取
 
-- [Docusaurus](https://docusaurus.io/)
-- [MkDocs / Material for MkDocs](https://www.mkdocs.org/)
-- [GitBook](https://www.gitbook.com/)
-- [VitePress](https://vitepress.dev/)
-- [ReadTheDocs / Sphinx](https://readthedocs.org/)
-- [Mintlify](https://mintlify.com/)
-- [Anthropic Docs](https://docs.anthropic.com/)
+### 文档站框架
+
+支持自动检测并提取以下框架：
+
+Docusaurus · VitePress · MkDocs · GitBook · Mintlify · Sphinx · ReadTheDocs · Google DevSite · Anthropic Docs · 语雀 · 微信开发文档 · 鸿蒙文档
+
+以及任何提供 `sitemap.xml` 或 `llms.txt` 的站点。
 
 ## 安装
+
+### Chrome Web Store
+
+*审核中，即将上线。*
 
 ### 从源码安装
 
 ```bash
-# 克隆项目
 git clone https://github.com/crazynomad/notebooklm-jetpack.git
 cd notebooklm-jetpack
-
-# 安装依赖
 pnpm install
-
-# 构建
 pnpm build
 ```
 
@@ -52,17 +59,11 @@ pnpm build
 ## 开发
 
 ```bash
-# 开发模式（热更新）
-pnpm dev
-
-# 运行测试
-pnpm test
-
-# 类型检查
-pnpm compile
-
-# 代码检查
-pnpm lint
+pnpm dev        # 开发模式（热更新，端口 3003）
+pnpm build      # 生产构建
+pnpm test       # 运行测试
+pnpm compile    # TypeScript 类型检查
+pnpm lint       # 代码检查
 ```
 
 ## 技术栈
@@ -75,10 +76,17 @@ pnpm lint
 
 ## 隐私
 
-- 无需登录，不收集用户数据
-- 所有操作在本地完成
+- 无需登录，不收集任何用户数据
+- 所有操作在浏览器本地完成，不上传到第三方服务器
 - 开源代码可审计
+- 符合 Chrome Manifest V3 安全规范
+
+详见 [隐私政策](https://jetpack.boing.work/privacy)。
 
 ## License
 
 MIT
+
+---
+
+*Made by 绿皮火车 🚂*
