@@ -225,13 +225,14 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
       if (!getMainDialog()) break;
     }
 
-    // Step 6: Rename the newly created source (NotebookLM defaults to "粘贴的文字" or "Copied text")
+    // Step 6: Rename the newly created source (NotebookLM defaults to "粘贴的文字" / "Copied text" / etc.)
     if (title) {
       await delay(4000); // Wait longer for source list to fully update (large pastes take time)
       try {
-        // Try both Chinese and English default names
+        // Strategy: try known default names first, then fallback to renaming the last source
+        const defaultNames = ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text'];
         let renamed = false;
-        for (const defaultName of ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text']) {
+        for (const defaultName of defaultNames) {
           try {
             await renameSource(defaultName, title);
             renamed = true;
@@ -240,8 +241,23 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
             // Try next default name
           }
         }
-        if (!renamed) throw new Error('Source with default name not found');
-        else console.log(`[rename] Renamed source to: ${title}`);
+        // Fallback: rename the last source in the list if its name looks like a default/generic name
+        if (!renamed) {
+          const allItems = document.querySelectorAll('.single-source-container');
+          if (allItems.length > 0) {
+            const lastItem = allItems[allItems.length - 1];
+            const lastTitle = lastItem.querySelector('.source-title')?.textContent?.trim() || '';
+            // Rename if it's a short generic name (not a URL, not already our title)
+            if (lastTitle && lastTitle !== title && lastTitle.length < 50 && !/^https?:\/\//.test(lastTitle)) {
+              try {
+                await renameSource(lastTitle, title);
+                renamed = true;
+              } catch { /* give up */ }
+            }
+          }
+        }
+        if (renamed) console.log(`[rename] Renamed source to: ${title}`);
+        else console.warn('[rename] Could not find source to rename');
       } catch (e) {
         console.warn('[rename] Failed to rename source:', e);
         // Non-fatal: import succeeded even if rename fails
