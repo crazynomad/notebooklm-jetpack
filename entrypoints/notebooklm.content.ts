@@ -1061,7 +1061,7 @@ function injectRepairBanner(): void {
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
       </svg>
       <span class="nlm-repair-text">
-        <strong>${wechatUrls.length}</strong> 个微信公众号来源需要修复
+        <strong>${wechatUrls.length}</strong> 个来源需要修复（内容可能为空）
       </span>
       <button class="nlm-repair-btn" id="nlm-repair-btn">
         🔧 修复
@@ -1142,7 +1142,7 @@ function updateRepairBanner(results: Array<{ url: string; status: string; title?
       footer.innerHTML = `
         <label>
           <input type="checkbox" id="nlm-repair-remove-old" checked />
-          移除原始微信来源
+          移除原始失败来源
         </label>
         <button class="nlm-repair-done-btn" id="nlm-repair-done-btn">✓ 完成</button>
       `;
@@ -1202,12 +1202,18 @@ async function removeSourcesByUrl(urls: string[]): Promise<void> {
 
 // ─── WeChat Fake-Success Detection ──────────────────────────
 
+/** Patterns for sites that NotebookLM can't fetch properly (SPA / anti-scraping) */
+const FAKE_SUCCESS_PATTERNS = [
+  /^https?:\/\/mp\.weixin\.qq\.com\//,        // WeChat articles
+  /^https?:\/\/(www\.)?(x\.com|twitter\.com)\//, // X.com / Twitter
+];
+
 function getWechatFakeSuccessSources(): string[] {
   const urls: string[] = [];
   const sources = document.querySelectorAll('.source-title');
   sources.forEach((s) => {
     const text = s.textContent?.trim();
-    if (text && /^https?:\/\/mp\.weixin\.qq\.com\//.test(text)) {
+    if (text && FAKE_SUCCESS_PATTERNS.some(p => p.test(text))) {
       const container = s.closest('.single-source-container');
       // Only include non-error ones (error ones are handled by rescue)
       if (container && !container.classList.contains('single-source-error-container')) {
