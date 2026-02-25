@@ -579,7 +579,7 @@ async function renameSource(oldName: string, newName: string): Promise<void> {
     if (renameItem) break;
 
     // Menu didn't open — dismiss any stale overlay and retry
-    console.warn(`[rename] Attempt ${attempt + 1}/${maxAttempts}: menu not found, retrying...`);
+    console.log(`[rename] Attempt ${attempt + 1}/${maxAttempts}: menu not found, retrying...`);
     document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     await delay(800 + attempt * 300);
   }
