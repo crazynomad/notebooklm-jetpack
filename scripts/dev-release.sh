@@ -30,26 +30,26 @@ git add -A
 if git diff --cached --quiet 2>/dev/null; then
   echo "⚠️  Nothing to commit, building with current HEAD"
 else
-  git commit -m "release: v$NEW_VERSION"
-  echo "✅ Committed: v$NEW_VERSION"
+  git commit -m "dev: v$NEW_VERSION"
+  echo "✅ Committed: dev v$NEW_VERSION"
 fi
 
 # ── 3. Get commit hash ──
 GIT_HASH=$(git rev-parse --short HEAD)
 echo "🔖 Hash: $GIT_HASH"
 
-# ── 4. Build ──
-pnpm build
+# ── 4. Build to dist-dev ──
+NODE_ENV=development pnpm build
 echo ""
-echo "🚀 Built v$NEW_VERSION+$GIT_HASH"
-echo "   Reload extension from dist/chrome-mv3"
+echo "🛠️  Dev built v$NEW_VERSION+$GIT_HASH"
+echo "   Reload extension from dist-dev/chrome-mv3"
 
 # ── 5. Push ──
 git push
 echo "📤 Pushed to remote"
 
 # ── 6. Auto-reload extension (best effort) ──
-if [ -n "$EXT_ID" ]; then
+if [ -n "${DEV_EXT_ID:-}" ]; then
   echo ""
-  node scripts/reload-ext.mjs "$EXT_ID" 2>/dev/null || echo "⚠️  Auto-reload skipped (browser relay not connected?)"
+  node scripts/reload-ext.mjs "$DEV_EXT_ID" 2>/dev/null || echo "⚠️  Auto-reload skipped (browser relay not connected?)"
 fi
