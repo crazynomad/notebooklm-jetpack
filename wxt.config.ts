@@ -9,7 +9,7 @@ const buildTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai'
 
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
-  outDir: process.env.NODE_ENV === 'development' || process.argv.includes('dev') ? 'dist-dev' : 'dist',
+  outDir: process.env.WXT_OUT_DIR || (process.env.NODE_ENV === 'development' || process.argv.includes('dev') ? 'dist-dev' : 'dist'),
 
   dev: {
     server: {

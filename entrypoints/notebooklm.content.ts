@@ -231,7 +231,7 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
       try {
         // Try both Chinese and English default names
         let renamed = false;
-        for (const defaultName of ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text']) {
+        for (const defaultName of ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text']) {
           try {
             await renameSource(defaultName, title);
             renamed = true;

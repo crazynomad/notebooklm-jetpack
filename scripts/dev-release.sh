@@ -39,7 +39,7 @@ GIT_HASH=$(git rev-parse --short HEAD)
 echo "🔖 Hash: $GIT_HASH"
 
 # ── 4. Build to dist-dev ──
-NODE_ENV=development pnpm build
+WXT_OUT_DIR=dist-dev pnpm build
 echo ""
 echo "🛠️  Dev built v$NEW_VERSION+$GIT_HASH"
 echo "   Reload extension from dist-dev/chrome-mv3"
