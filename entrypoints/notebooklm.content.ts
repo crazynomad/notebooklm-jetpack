@@ -217,9 +217,6 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
       if (!(insertButton as HTMLButtonElement).disabled) break;
       await delay(300);
     }
-    // Record source count before inserting
-    const sourceCountBefore = document.querySelectorAll('.single-source-container').length;
-
     insertButton.click();
 
     // Wait for dialog to close / import to complete
@@ -228,40 +225,7 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
       if (!getMainDialog()) break;
     }
 
-    // Step 6: Rename the newly created source (NotebookLM defaults to "粘贴的文字" / "Copied text" / etc.)
-    if (title) {
-      // Wait for the new source to appear in the list (poll instead of fixed delay)
-      for (let i = 0; i < 20; i++) { // up to 20s
-        await delay(1000);
-        const currentCount = document.querySelectorAll('.single-source-container').length;
-        if (currentCount > sourceCountBefore) break;
-      }
-      try {
-        // Check if NotebookLM already auto-renamed it (newer versions do this)
-        const allTitles = Array.from(document.querySelectorAll('.source-title')).map(el => el.textContent?.trim());
-        const alreadyRenamed = allTitles.some(t => t && title.startsWith(t) || t?.startsWith(title.substring(0, 20)));
-        if (alreadyRenamed) {
-          console.log(`[rename] NotebookLM auto-renamed source, skipping`);
-        } else {
-          // Try known default names
-          const defaultNames = ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text'];
-          let renamed = false;
-          for (const defaultName of defaultNames) {
-            try {
-              await renameSource(defaultName, title);
-              renamed = true;
-              break;
-            } catch {
-              // Try next default name
-            }
-          }
-          if (renamed) console.log(`[rename] Renamed source to: ${title}`);
-          else console.log('[rename] Source not found with default name (may have been auto-renamed by NotebookLM)');
-        }
-      } catch {
-        // Completely silent — rename is best-effort, import already succeeded
-      }
-    }
+    // Note: NotebookLM now auto-renames pasted text sources, so manual rename is no longer needed.
 
     return true;
   } catch (error) {
