@@ -237,38 +237,29 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
         if (currentCount > sourceCountBefore) break;
       }
       try {
-        // Strategy: try known default names first, then fallback to renaming the last source
-        const defaultNames = ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text'];
-        let renamed = false;
-        for (const defaultName of defaultNames) {
-          try {
-            await renameSource(defaultName, title);
-            renamed = true;
-            break;
-          } catch {
-            // Try next default name
-          }
-        }
-        // Fallback: rename the last source in the list if its name looks like a default/generic name
-        if (!renamed) {
-          const allItems = document.querySelectorAll('.single-source-container');
-          if (allItems.length > 0) {
-            const lastItem = allItems[allItems.length - 1];
-            const lastTitle = lastItem.querySelector('.source-title')?.textContent?.trim() || '';
-            // Rename if it's a short generic name (not a URL, not already our title)
-            if (lastTitle && lastTitle !== title && lastTitle.length < 50 && !/^https?:\/\//.test(lastTitle)) {
-              try {
-                await renameSource(lastTitle, title);
-                renamed = true;
-              } catch { /* give up */ }
+        // Check if NotebookLM already auto-renamed it (newer versions do this)
+        const allTitles = Array.from(document.querySelectorAll('.source-title')).map(el => el.textContent?.trim());
+        const alreadyRenamed = allTitles.some(t => t && title.startsWith(t) || t?.startsWith(title.substring(0, 20)));
+        if (alreadyRenamed) {
+          console.log(`[rename] NotebookLM auto-renamed source, skipping`);
+        } else {
+          // Try known default names
+          const defaultNames = ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text'];
+          let renamed = false;
+          for (const defaultName of defaultNames) {
+            try {
+              await renameSource(defaultName, title);
+              renamed = true;
+              break;
+            } catch {
+              // Try next default name
             }
           }
+          if (renamed) console.log(`[rename] Renamed source to: ${title}`);
+          else console.log('[rename] Source not found with default name (may have been auto-renamed by NotebookLM)');
         }
-        if (renamed) console.log(`[rename] Renamed source to: ${title}`);
-        else console.warn('[rename] Could not find source to rename');
-      } catch (e) {
-        console.warn('[rename] Failed to rename source:', e);
-        // Non-fatal: import succeeded even if rename fails
+      } catch {
+        // Completely silent — rename is best-effort, import already succeeded
       }
     }
 
