@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>NotebookLM Jetpack - Minimal Boost</title>
+  <desc>A minimalist notebook icon with an upward arrow/boost indicator</desc>
+  <defs>
+    <linearGradient id="c4-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A73E8"/>
+      <stop offset="100%" style="stop-color:#1557B0"/>
+    </linearGradient>
+    <linearGradient id="c4-flame" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBC04"/>
+      <stop offset="60%" style="stop-color:#F97316"/>
+      <stop offset="100%" style="stop-color:#EA4335"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#c4-bg)"/>
+
+  <!-- Stylized upward arrow / boost shape behind the notebook -->
+  <path d="M64,8 L80,40 L72,40 L72,65 L56,65 L56,40 L48,40Z" fill="white" opacity="0.15"/>
+
+  <!-- Notebook shape -->
+  <rect x="34" y="28" width="52" height="66" rx="4" fill="white"/>
+
+  <!-- Notebook binding/spine -->
+  <rect x="34" y="28" width="8" height="66" rx="4" ry="0" fill="#D2E3FC"/>
+  <line x1="42" y1="28" x2="42" y2="94" stroke="#A8C7FA" stroke-width="1"/>
+
+  <!-- Page content lines -->
+  <line x1="48" y1="42" x2="78" y2="42" stroke="#1A73E8" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+  <line x1="48" y1="52" x2="74" y2="52" stroke="#1A73E8" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+  <line x1="48" y1="62" x2="70" y2="62" stroke="#1A73E8" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+  <line x1="48" y1="72" x2="66" y2="72" stroke="#1A73E8" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+
+  <!-- Boost flames coming from bottom of notebook -->
+  <path d="M44,94 Q46,106 40,118 Q50,108 52,94Z" fill="url(#c4-flame)" opacity="0.95"/>
+  <path d="M56,94 Q58,110 54,122 Q62,112 64,94Z" fill="url(#c4-flame)" opacity="0.95"/>
+  <path d="M68,94 Q70,106 74,118 Q66,108 64,94Z" fill="url(#c4-flame)" opacity="0.95"/>
+
+  <!-- Inner flame glow -->
+  <path d="M48,94 Q50,102 47,110 Q52,104 53,94Z" fill="#FEF3C7" opacity="0.7"/>
+  <path d="M58,94 Q60,105 57,114 Q62,107 63,94Z" fill="#FEF3C7" opacity="0.7"/>
+
+  <!-- Small sparkle/star accents -->
+  <circle cx="96" cy="24" r="2.5" fill="white" opacity="0.6"/>
+  <circle cx="22" cy="18" r="2" fill="white" opacity="0.5"/>
+  <circle cx="104" cy="42" r="1.5" fill="white" opacity="0.4"/>
+</svg>

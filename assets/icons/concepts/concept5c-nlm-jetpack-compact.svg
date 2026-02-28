@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>NotebookLM Jetpack - Compact</title>
+  <desc>Compact version with smaller integrated jetpack tanks and center flames</desc>
+  <defs>
+    <linearGradient id="c5c-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A73E8"/>
+      <stop offset="100%" style="stop-color:#1557B0"/>
+    </linearGradient>
+    <linearGradient id="c5c-tank" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F8F9FA"/>
+      <stop offset="100%" style="stop-color:#E8EAED"/>
+    </linearGradient>
+    <linearGradient id="c5c-flame" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBC04"/>
+      <stop offset="45%" style="stop-color:#FF6D00"/>
+      <stop offset="100%" style="stop-color:#EA4335"/>
+    </linearGradient>
+    <linearGradient id="c5c-flame-core" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFDE7"/>
+      <stop offset="100%" style="stop-color:#FBBC04"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#c5c-bg)"/>
+
+  <!-- Jetpack tanks - compact, tucked behind logo -->
+  <rect x="14" y="42" width="12" height="36" rx="6" fill="url(#c5c-tank)" opacity="0.9"/>
+  <rect x="16" y="46" width="3" height="12" rx="1.5" fill="white" opacity="0.45"/>
+
+  <rect x="94" y="42" width="12" height="36" rx="6" fill="url(#c5c-tank)" opacity="0.9"/>
+  <rect x="101" y="46" width="3" height="12" rx="1.5" fill="white" opacity="0.45"/>
+
+  <!-- Straps -->
+  <path d="M26,50 L33,46" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <path d="M26,68 L33,72" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <path d="M94,50 L87,46" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <path d="M94,68 L87,72" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Flames - left -->
+  <path d="M14,78 Q16,90 12,104 Q20,94 24,78Z" fill="url(#c5c-flame)"/>
+  <path d="M17,78 Q18,88 15,97 Q21,90 22,78Z" fill="url(#c5c-flame-core)" opacity="0.75"/>
+
+  <!-- Flames - right -->
+  <path d="M96,78 Q98,90 94,104 Q102,94 106,78Z" fill="url(#c5c-flame)"/>
+  <path d="M99,78 Q100,88 97,97 Q103,90 104,78Z" fill="url(#c5c-flame-core)" opacity="0.75"/>
+
+  <!-- Center boost flame (below the logo) -->
+  <path d="M50,88 Q52,100 46,114 Q56,104 58,88Z" fill="url(#c5c-flame)" opacity="0.8"/>
+  <path d="M60,88 Q62,102 68,114 Q58,104 56,88Z" fill="url(#c5c-flame)" opacity="0.8"/>
+  <path d="M54,88 Q56,96 53,106 Q58,98 59,88Z" fill="url(#c5c-flame-core)" opacity="0.7"/>
+
+  <!-- NotebookLM spiral logo (white, prominently sized) -->
+  <g transform="translate(26, 12) scale(0.44)">
+    <path d="M87.27,1.14C39.07,1.14,0,39.88,0,87.69v41.44h16.09v-4.13c0-19.39,15.84-35.11,35.39-35.11s35.39,15.72,35.39,35.11v4.13h16.09v-4.13c0-28.2-23.05-51.05-51.48-51.05-11.07,0-21.32,3.46-29.72,9.37,8.79-17.32,26.88-29.21,47.77-29.21,29.51,0,53.44,23.74,53.44,53v22.02h16.09v-22.02c0-38.08-31.13-68.96-69.53-68.96-17.27,0-33.06,6.24-45.22,16.58,11.94-22.39,35.65-37.64,62.97-37.64,39.32,0,71.19,31.61,71.19,70.6v41.44h16.09v-41.44C174.55,39.88,135.48,1.14,87.27,1.14Z" fill="white"/>
+  </g>
+
+  <!-- Subtle sparkles -->
+  <circle cx="108" cy="20" r="2" fill="white" opacity="0.5"/>
+  <circle cx="16" cy="24" r="1.5" fill="white" opacity="0.4"/>
+</svg>

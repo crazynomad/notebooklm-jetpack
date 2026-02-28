@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>NotebookLM Jetpack</title>
+  <desc>NotebookLM spiral logo with jetpack fuel tanks and flame trails</desc>
+  <defs>
+    <linearGradient id="c5-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A73E8"/>
+      <stop offset="100%" style="stop-color:#1557B0"/>
+    </linearGradient>
+    <linearGradient id="c5-jet" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8EAED"/>
+      <stop offset="100%" style="stop-color:#BDC1C6"/>
+    </linearGradient>
+    <linearGradient id="c5-flame" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBC04"/>
+      <stop offset="45%" style="stop-color:#F97316"/>
+      <stop offset="100%" style="stop-color:#EA4335"/>
+    </linearGradient>
+    <linearGradient id="c5-flame-inner" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FEF3C7"/>
+      <stop offset="100%" style="stop-color:#FBBC04"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#c5-bg)"/>
+
+  <!-- Jetpack left tank -->
+  <rect x="10" y="38" width="14" height="42" rx="7" fill="url(#c5-jet)"/>
+  <rect x="12" y="42" width="3.5" height="16" rx="1.75" fill="white" opacity="0.4"/>
+
+  <!-- Jetpack right tank -->
+  <rect x="96" y="38" width="14" height="42" rx="7" fill="url(#c5-jet)"/>
+  <rect x="105" y="42" width="3.5" height="16" rx="1.75" fill="white" opacity="0.4"/>
+
+  <!-- Straps connecting tanks to logo -->
+  <path d="M24,46 L34,42" stroke="#BDC1C6" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M24,68 L34,72" stroke="#BDC1C6" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M96,46 L86,42" stroke="#BDC1C6" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M96,68 L86,72" stroke="#BDC1C6" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Flames - left tank -->
+  <path d="M11,80 Q13,93 8,108 Q17,96 21,80Z" fill="url(#c5-flame)"/>
+  <path d="M14,80 Q16,90 12,100 Q19,92 20,80Z" fill="url(#c5-flame-inner)"/>
+
+  <!-- Flames - right tank -->
+  <path d="M99,80 Q101,93 96,108 Q105,96 109,80Z" fill="url(#c5-flame)"/>
+  <path d="M102,80 Q104,90 100,100 Q107,92 108,80Z" fill="url(#c5-flame-inner)"/>
+
+  <!-- NotebookLM spiral logo (scaled & centered, white) -->
+  <g transform="translate(28, 18) scale(0.42)">
+    <path d="M87.27,1.14C39.07,1.14,0,39.88,0,87.69v41.44h16.09v-4.13c0-19.39,15.84-35.11,35.39-35.11s35.39,15.72,35.39,35.11v4.13h16.09v-4.13c0-28.2-23.05-51.05-51.48-51.05-11.07,0-21.32,3.46-29.72,9.37,8.79-17.32,26.88-29.21,47.77-29.21,29.51,0,53.44,23.74,53.44,53v22.02h16.09v-22.02c0-38.08-31.13-68.96-69.53-68.96-17.27,0-33.06,6.24-45.22,16.58,11.94-22.39,35.65-37.64,62.97-37.64,39.32,0,71.19,31.61,71.19,70.6v41.44h16.09v-41.44C174.55,39.88,135.48,1.14,87.27,1.14Z" fill="white"/>
+  </g>
+
+  <!-- Speed lines -->
+  <line x1="5" y1="90" x2="5" y2="100" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
+  <line x1="115" y1="88" x2="115" y2="98" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
+</svg>

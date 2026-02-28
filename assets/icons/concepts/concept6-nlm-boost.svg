@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>NotebookLM Jetpack</title>
+  <desc>NotebookLM logo as the hero element with subtle jetpack boost</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A73E8"/>
+      <stop offset="100%" style="stop-color:#1255B0"/>
+    </linearGradient>
+    <linearGradient id="tank" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#E8EAED"/>
+      <stop offset="100%" style="stop-color:#DADCE0"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBC04"/>
+      <stop offset="50%" style="stop-color:#F97316"/>
+      <stop offset="100%" style="stop-color:#EA4335"/>
+    </linearGradient>
+    <linearGradient id="flame-core" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FEF9C3"/>
+      <stop offset="100%" style="stop-color:#FBBC04"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#bg)"/>
+
+  <!-- Jetpack tanks - small & subtle, tucked to sides -->
+  <rect x="8" y="44" width="11" height="32" rx="5.5" fill="url(#tank)" opacity="0.85"/>
+  <rect x="10" y="48" width="3" height="12" rx="1.5" fill="white" opacity="0.4"/>
+
+  <rect x="101" y="44" width="11" height="32" rx="5.5" fill="url(#tank)" opacity="0.85"/>
+  <rect x="106" y="48" width="3" height="12" rx="1.5" fill="white" opacity="0.4"/>
+
+  <!-- Subtle straps -->
+  <path d="M19,52 L26,48" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+  <path d="M19,68 L26,72" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+  <path d="M101,52 L94,48" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+  <path d="M101,68 L94,72" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+
+  <!-- Short flames - left -->
+  <path d="M9,76 Q11,84 7,94 Q14,86 17,76Z" fill="url(#flame)" opacity="0.9"/>
+  <path d="M11,76 Q12,82 10,89 Q15,84 15,76Z" fill="url(#flame-core)" opacity="0.7"/>
+
+  <!-- Short flames - right -->
+  <path d="M103,76 Q105,84 101,94 Q108,86 111,76Z" fill="url(#flame)" opacity="0.9"/>
+  <path d="M105,76 Q106,82 104,89 Q109,84 109,76Z" fill="url(#flame-core)" opacity="0.7"/>
+
+  <!-- ★ NotebookLM logo - THE HERO, centered & large -->
+  <g transform="translate(19, 26) scale(0.52)">
+    <path d="M87.27,1.14C39.07,1.14,0,39.88,0,87.69v41.44h16.09v-4.13c0-19.39,15.84-35.11,35.39-35.11s35.39,15.72,35.39,35.11v4.13h16.09v-4.13c0-28.2-23.05-51.05-51.48-51.05-11.07,0-21.32,3.46-29.72,9.37,8.79-17.32,26.88-29.21,47.77-29.21,29.51,0,53.44,23.74,53.44,53v22.02h16.09v-22.02c0-38.08-31.13-68.96-69.53-68.96-17.27,0-33.06,6.24-45.22,16.58,11.94-22.39,35.65-37.64,62.97-37.64,39.32,0,71.19,31.61,71.19,70.6v41.44h16.09v-41.44C174.55,39.88,135.48,1.14,87.27,1.14Z" fill="white"/>
+  </g>
+</svg>

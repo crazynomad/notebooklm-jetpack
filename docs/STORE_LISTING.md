@@ -43,7 +43,7 @@ NotebookLM 的网址导入对很多网站水土不服，Jetpack 逐一击破：
 
 学新框架不用手动粘贴 200 个链接。打开文档站任意页面，点击「分析当前站点」，自动识别框架并提取全站页面树，勾选章节后一键导入或导出 PDF。
 
-已支持：Docusaurus、VitePress、MkDocs、GitBook、Mintlify、Sphinx、ReadTheDocs、Google DevSite、Anthropic Docs、语雀、鸿蒙文档等 14+ 框架，以及任何提供 sitemap.xml 或 llms.txt 的站点。
+已支持 14+ 主流文档框架（含 Docusaurus、MkDocs、Mintlify 等），以及任何提供 sitemap.xml 或 llms.txt 的站点。
 
 
 🎙️ 播客导入
@@ -119,8 +119,7 @@ NotebookLM 免费版每个笔记本只有 50 个来源配额。你想导入 20 �
 - 自动识别文档框架，提取全站页面树
 - 勾选需要的章节 → 一键批量导入，或导出为 PDF
 
-**已支持 14 种文档框架：**
-Docusaurus、VitePress、MkDocs、GitBook、Mintlify、Sphinx、ReadTheDocs、Google DevSite、Anthropic Docs、语雀、微信开发文档、鸿蒙文档，以及任何有 sitemap.xml 或 llms.txt 的站点。
+**已支持 14+ 种文档框架**，涵盖主流技术文档平台，以及任何有 sitemap.xml 或 llms.txt 的站点。
 
 还支持 AI 原生的 llms.txt 标准 —— 越来越多站点提供此文件，扩展会优先使用它获取完整结构化内容。
 
@@ -206,7 +205,7 @@ Only 50 source slots per notebook? Jetpack's built-in read-later list lets you c
 
 No more pasting 200 URLs manually. Open any doc page, click "Analyze Site", and Jetpack auto-detects the framework and extracts the full page tree. Select chapters, then batch import or export as PDF.
 
-Supports 14+ frameworks: Docusaurus, VitePress, MkDocs, GitBook, Mintlify, Sphinx, ReadTheDocs, Google DevSite, Anthropic Docs, and more. Also supports llms.txt for AI-native content discovery.
+Supports 14+ popular documentation frameworks (Docusaurus, MkDocs, Mintlify, and more). Also supports llms.txt for AI-native content discovery.
 
 
 🎙️ Podcast import
@@ -276,7 +275,7 @@ Organize by collection for different projects or topics.
 
 You want to study a framework by importing its 200-page docs into NotebookLM. Manually pasting 200 URLs? No thanks.
 
-✅ Jetpack auto-detects **14+ documentation frameworks**: Docusaurus, VitePress, MkDocs, GitBook, Mintlify, Sphinx, ReadTheDocs, Google DevSite, Anthropic Docs, and more. Open any doc page → "Analyze Site" → select chapters → batch import or export as PDF.
+✅ Jetpack auto-detects **14+ popular documentation frameworks** (including Docusaurus, MkDocs, Mintlify, and more). Open any doc page → "Analyze Site" → select chapters → batch import or export as PDF.
 
 Also supports the emerging **llms.txt** standard for AI-native content discovery.
 

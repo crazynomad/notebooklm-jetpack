@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>NotebookLM Jetpack - Jetpack Page</title>
+  <desc>A document page with a jetpack strapped to its back, flying upward</desc>
+  <defs>
+    <linearGradient id="c2-page" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF"/>
+      <stop offset="100%" style="stop-color:#E8F0FE"/>
+    </linearGradient>
+    <linearGradient id="c2-jet" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#5F6368"/>
+      <stop offset="100%" style="stop-color:#3C4043"/>
+    </linearGradient>
+    <linearGradient id="c2-flame" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBC04"/>
+      <stop offset="40%" style="stop-color:#F97316"/>
+      <stop offset="100%" style="stop-color:#EA4335"/>
+    </linearGradient>
+    <linearGradient id="c2-flame-inner" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FEF3C7"/>
+      <stop offset="100%" style="stop-color:#FBBC04"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Jetpack body - left tank -->
+  <rect x="22" y="35" width="14" height="45" rx="7" fill="url(#c2-jet)"/>
+  <rect x="24" y="38" width="4" height="20" rx="2" fill="#5F6368" opacity="0.5"/>
+
+  <!-- Jetpack body - right tank -->
+  <rect x="82" y="35" width="14" height="45" rx="7" fill="url(#c2-jet)"/>
+  <rect x="90" y="38" width="4" height="20" rx="2" fill="#5F6368" opacity="0.5"/>
+
+  <!-- Jetpack straps -->
+  <path d="M36,42 L44,38" stroke="#5F6368" stroke-width="3" stroke-linecap="round"/>
+  <path d="M36,58 L44,62" stroke="#5F6368" stroke-width="3" stroke-linecap="round"/>
+  <path d="M82,42 L74,38" stroke="#5F6368" stroke-width="3" stroke-linecap="round"/>
+  <path d="M82,58 L74,62" stroke="#5F6368" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Flames - left -->
+  <path d="M23,80 Q25,95 20,112 Q29,98 33,80Z" fill="url(#c2-flame)"/>
+  <path d="M26,80 Q28,92 24,105 Q30,94 31,80Z" fill="url(#c2-flame-inner)"/>
+
+  <!-- Flames - right -->
+  <path d="M85,80 Q87,95 82,112 Q91,98 95,80Z" fill="url(#c2-flame)"/>
+  <path d="M88,80 Q90,92 86,105 Q92,94 93,80Z" fill="url(#c2-flame-inner)"/>
+
+  <!-- Page / Document - main body -->
+  <rect x="38" y="14" width="42" height="56" rx="3" fill="url(#c2-page)" stroke="#1A73E8" stroke-width="2.5"/>
+
+  <!-- Page fold corner -->
+  <path d="M68,14 L80,26 L68,26Z" fill="#C2D9FC" stroke="#1A73E8" stroke-width="1.5" stroke-linejoin="round"/>
+
+  <!-- Page content lines -->
+  <line x1="45" y1="30" x2="65" y2="30" stroke="#1A73E8" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="45" y1="39" x2="72" y2="39" stroke="#1A73E8" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="45" y1="48" x2="68" y2="48" stroke="#1A73E8" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <line x1="45" y1="57" x2="60" y2="57" stroke="#1A73E8" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- Google blue accent dot -->
+  <circle cx="59" cy="78" r="8" fill="#1A73E8"/>
+  <path d="M55,78 L58,81 L64,75" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Speed lines -->
+  <line x1="15" y1="50" x2="8" y2="58" stroke="#DADCE0" stroke-width="2" stroke-linecap="round"/>
+  <line x1="105" y1="48" x2="112" y2="56" stroke="#DADCE0" stroke-width="2" stroke-linecap="round"/>
+  <line x1="12" y1="65" x2="6" y2="70" stroke="#DADCE0" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="108" y1="63" x2="114" y2="68" stroke="#DADCE0" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

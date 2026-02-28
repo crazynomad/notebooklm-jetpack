@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>NotebookLM Jetpack</title>
+  <defs>
+    <linearGradient id="bg7" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A73E8"/>
+      <stop offset="100%" style="stop-color:#1255B0"/>
+    </linearGradient>
+    <linearGradient id="flame7" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FBBC04"/>
+      <stop offset="50%" style="stop-color:#F97316"/>
+      <stop offset="100%" style="stop-color:#EA4335"/>
+    </linearGradient>
+    <linearGradient id="flame7c" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FEF9C3"/>
+      <stop offset="100%" style="stop-color:#FBBC04"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#bg7)"/>
+
+  <!-- Jetpack person - white silhouette -->
+  <g transform="translate(64, 58)" fill="white">
+    <!-- Head -->
+    <circle cx="6" cy="-30" r="9"/>
+
+    <!-- Body torso - leaning forward -->
+    <path d="M2,-20 Q-4,-8 -10,4 L-2,8 Q4,-4 8,-16Z" stroke="white" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+
+    <!-- Left arm (forward, running) -->
+    <path d="M0,-14 L14,-22 L20,-14" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- Right arm (back, holding jetpack) -->
+    <path d="M-2,-14 L-16,-8" stroke="white" stroke-width="7" stroke-linecap="round" fill="none"/>
+
+    <!-- Jetpack on back -->
+    <rect x="-24" y="-22" width="10" height="22" rx="4" fill="white"/>
+    <rect x="-22" y="-18" width="2.5" height="8" rx="1.25" fill="#1A73E8" opacity="0.4"/>
+
+    <!-- Left leg (forward stride) -->
+    <path d="M-8,4 L6,18 L16,28" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- Right leg (back stride) -->
+    <path d="M-6,4 L-18,18 L-26,14" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Jetpack flames -->
+  <path d="M33,48 Q35,58 30,68 Q38,60 40,48Z" fill="url(#flame7)" opacity="0.9"/>
+  <path d="M35,48 Q36,55 33,62 Q39,57 39,48Z" fill="url(#flame7c)" opacity="0.7"/>
+</svg>
