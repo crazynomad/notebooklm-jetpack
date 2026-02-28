@@ -1,5 +1,6 @@
 import type { DocSiteInfo, DocPageItem } from '@/lib/types';
 import { delay } from '@/lib/utils';
+import { ensureOffscreen, sendOffscreenMessage } from '@/services/offscreen';
 
 // ─── llms.txt (AI-native page index) ──────────────────────────
 // Standard adopted by 66%+ of doc sites (Mintlify, React, Svelte, Next.js, Angular, etc.)
@@ -139,27 +140,33 @@ export async function fetchSitemap(baseUrl: string): Promise<DocPageItem[]> {
         continue;
       }
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(text, 'text/xml');
+      // XML parsing delegated to offscreen document (DOMParser unavailable in service worker)
+      await ensureOffscreen();
+      const parsed = await sendOffscreenMessage<{
+        success: true;
+        urls: string[];
+        sitemapUrls: string[];
+      }>({ type: 'PARSE_SITEMAP_XML', xml: text });
 
       // Handle sitemap index (recursive)
-      const sitemaps = doc.querySelectorAll('sitemap > loc');
-      if (sitemaps.length > 0) {
-        for (const loc of sitemaps) {
-          const subUrl = loc.textContent?.trim();
-          if (!subUrl) continue;
+      if (parsed.sitemapUrls.length > 0) {
+        for (const subUrl of parsed.sitemapUrls) {
           try {
             const subResponse = await fetch(subUrl, { signal: AbortSignal.timeout(5000) });
             if (!subResponse.ok) continue;
             const subText = await subResponse.text();
-            const subDoc = parser.parseFromString(subText, 'text/xml');
-            extractUrlsFromSitemap(subDoc, origin, pages);
+            const subParsed = await sendOffscreenMessage<{
+              success: true;
+              urls: string[];
+              sitemapUrls: string[];
+            }>({ type: 'PARSE_SITEMAP_XML', xml: subText });
+            addSitemapUrls(subParsed.urls, origin, pages);
           } catch {
             // Skip failed sub-sitemaps
           }
         }
       } else {
-        extractUrlsFromSitemap(doc, origin, pages);
+        addSitemapUrls(parsed.urls, origin, pages);
       }
 
       if (pages.length > 0) break;
@@ -171,22 +178,17 @@ export async function fetchSitemap(baseUrl: string): Promise<DocPageItem[]> {
   return pages;
 }
 
-function extractUrlsFromSitemap(
-  doc: Document,
+/** Convert raw URL strings (from offscreen sitemap parsing) into DocPageItems. */
+function addSitemapUrls(
+  urls: string[],
   origin: string,
   pages: DocPageItem[]
 ): void {
-  const urls = doc.querySelectorAll('url > loc');
-  urls.forEach((loc) => {
-    const url = loc.textContent?.trim();
-    if (!url) return;
-
-    // Only include same-origin URLs
+  for (const url of urls) {
     try {
       const urlObj = new URL(url);
-      if (urlObj.origin !== origin) return;
+      if (urlObj.origin !== origin) continue;
 
-      // Generate title from path
       const path = urlObj.pathname;
       const title = path
         .split('/')
@@ -205,7 +207,7 @@ function extractUrlsFromSitemap(
     } catch {
       // Invalid URL
     }
-  });
+  }
 }
 
 // ─── HarmonyOS Catalog API ─────────────────────────────────────

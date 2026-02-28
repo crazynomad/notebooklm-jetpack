@@ -1,5 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { isLikelyRssUrl, parseRssFeed } from '@/services/rss-parser';
+
+// Mock the offscreen module so tests don't need real Chrome offscreen APIs.
+// The offscreen document uses DOMParser internally — in tests we simulate
+// its message-based contract directly.
+vi.mock('@/services/offscreen', () => ({
+  ensureOffscreen: vi.fn().mockResolvedValue(undefined),
+  sendOffscreenMessage: vi.fn(),
+}));
+
+import { sendOffscreenMessage } from '@/services/offscreen';
+const mockSendOffscreen = vi.mocked(sendOffscreenMessage);
 
 describe('isLikelyRssUrl', () => {
   it('detects .rss extension', () => {
@@ -32,26 +43,23 @@ describe('isLikelyRssUrl', () => {
 });
 
 describe('parseRssFeed', () => {
-  it('parses RSS 2.0 feed', async () => {
-    const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
-    <rss version="2.0">
-      <channel>
-        <title>Test Blog</title>
-        <item>
-          <title>First Post</title>
-          <link>https://example.com/post-1</link>
-          <pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate>
-        </item>
-        <item>
-          <title>Second Post</title>
-          <link>https://example.com/post-2</link>
-        </item>
-      </channel>
-    </rss>`;
+  beforeEach(() => {
+    mockSendOffscreen.mockReset();
+  });
 
+  it('parses RSS 2.0 feed via offscreen', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      text: () => Promise.resolve(rssXml),
+      text: () => Promise.resolve('<rss>...</rss>'),
+    });
+
+    // Simulate offscreen returning parsed items
+    mockSendOffscreen.mockResolvedValue({
+      success: true,
+      items: [
+        { url: 'https://example.com/post-1', title: 'First Post', pubDate: 'Mon, 01 Jan 2024 00:00:00 GMT' },
+        { url: 'https://example.com/post-2', title: 'Second Post' },
+      ],
     });
 
     const items = await parseRssFeed('https://example.com/feed.xml');
@@ -63,22 +71,25 @@ describe('parseRssFeed', () => {
     });
     expect(items[1].title).toBe('Second Post');
     expect(items[1].pubDate).toBeUndefined();
+
+    // Verify the XML was sent to offscreen
+    expect(mockSendOffscreen).toHaveBeenCalledWith({
+      type: 'PARSE_RSS_XML',
+      xml: '<rss>...</rss>',
+    });
   });
 
-  it('parses Atom feed', async () => {
-    const atomXml = `<?xml version="1.0" encoding="UTF-8"?>
-    <feed xmlns="http://www.w3.org/2005/Atom">
-      <title>Test Blog</title>
-      <entry>
-        <title>Atom Post</title>
-        <link rel="alternate" href="https://example.com/atom-1"/>
-        <published>2024-01-01T00:00:00Z</published>
-      </entry>
-    </feed>`;
-
+  it('parses Atom feed via offscreen', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      text: () => Promise.resolve(atomXml),
+      text: () => Promise.resolve('<feed>...</feed>'),
+    });
+
+    mockSendOffscreen.mockResolvedValue({
+      success: true,
+      items: [
+        { url: 'https://example.com/atom-1', title: 'Atom Post', pubDate: '2024-01-01T00:00:00Z' },
+      ],
     });
 
     const items = await parseRssFeed('https://example.com/atom.xml');
@@ -96,11 +107,13 @@ describe('parseRssFeed', () => {
     await expect(parseRssFeed('https://example.com/bad')).rejects.toThrow('404');
   });
 
-  it('throws on invalid XML', async () => {
+  it('throws on invalid XML (offscreen rejects)', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       text: () => Promise.resolve('not xml at all'),
     });
+
+    mockSendOffscreen.mockRejectedValue(new Error('Invalid RSS/XML format'));
 
     await expect(parseRssFeed('https://example.com/bad.xml')).rejects.toThrow();
   });

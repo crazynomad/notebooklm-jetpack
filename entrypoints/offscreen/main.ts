@@ -156,6 +156,101 @@ function htmlToMarkdown(html: string): { markdown: string; title: string } {
   return { markdown, title };
 }
 
+// ── RSS/Atom XML parsing ──────────────────────────────────────
+
+interface RssFeedItem {
+  url: string;
+  title: string;
+  pubDate?: string;
+}
+
+function parseRssXml(xml: string): RssFeedItem[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+
+  const parserError = doc.querySelector('parsererror');
+  if (parserError) {
+    throw new Error('Invalid RSS/XML format');
+  }
+
+  const items: RssFeedItem[] = [];
+
+  // Try RSS 2.0 format first
+  const rssItems = doc.querySelectorAll('item');
+  if (rssItems.length > 0) {
+    rssItems.forEach((item) => {
+      const link = item.querySelector('link')?.textContent;
+      const title = item.querySelector('title')?.textContent;
+      const pubDate = item.querySelector('pubDate')?.textContent;
+
+      if (link) {
+        items.push({
+          url: link.trim(),
+          title: title?.trim() || link,
+          pubDate: pubDate?.trim(),
+        });
+      }
+    });
+    return items;
+  }
+
+  // Try Atom format
+  const atomEntries = doc.querySelectorAll('entry');
+  if (atomEntries.length > 0) {
+    atomEntries.forEach((entry) => {
+      const linkEl =
+        entry.querySelector('link[rel="alternate"]') || entry.querySelector('link');
+      const link = linkEl?.getAttribute('href');
+      const title = entry.querySelector('title')?.textContent;
+      const published =
+        entry.querySelector('published')?.textContent ||
+        entry.querySelector('updated')?.textContent;
+
+      if (link) {
+        items.push({
+          url: link.trim(),
+          title: title?.trim() || link,
+          pubDate: published?.trim(),
+        });
+      }
+    });
+    return items;
+  }
+
+  throw new Error('No items found in feed');
+}
+
+// ── Sitemap XML parsing ──────────────────────────────────────
+
+function parseSitemapXml(xml: string): { urls: string[]; sitemapUrls: string[] } {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+
+  const urls: string[] = [];
+  const sitemapUrls: string[] = [];
+
+  // Check for sitemap index
+  const sitemaps = doc.querySelectorAll('sitemap > loc');
+  if (sitemaps.length > 0) {
+    sitemaps.forEach((loc) => {
+      const url = loc.textContent?.trim();
+      if (url) sitemapUrls.push(url);
+    });
+    return { urls, sitemapUrls };
+  }
+
+  // Extract page URLs
+  const locs = doc.querySelectorAll('url > loc');
+  locs.forEach((loc) => {
+    const url = loc.textContent?.trim();
+    if (url) urls.push(url);
+  });
+
+  return { urls, sitemapUrls };
+}
+
+// ── Message listener ─────────────────────────────────────────
+
 // Listen for messages from background service worker
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'HTML_TO_MARKDOWN') {
@@ -164,6 +259,28 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       sendResponse({ success: true, ...result });
     } catch (err) {
       console.error('[offscreen] htmlToMarkdown error:', err);
+      sendResponse({ success: false, error: String(err) });
+    }
+    return true;
+  }
+
+  if (msg.type === 'PARSE_RSS_XML') {
+    try {
+      const items = parseRssXml(msg.xml);
+      sendResponse({ success: true, items });
+    } catch (err) {
+      console.error('[offscreen] parseRssXml error:', err);
+      sendResponse({ success: false, error: String(err) });
+    }
+    return true;
+  }
+
+  if (msg.type === 'PARSE_SITEMAP_XML') {
+    try {
+      const result = parseSitemapXml(msg.xml);
+      sendResponse({ success: true, ...result });
+    } catch (err) {
+      console.error('[offscreen] parseSitemapXml error:', err);
       sendResponse({ success: false, error: String(err) });
     }
     return true;

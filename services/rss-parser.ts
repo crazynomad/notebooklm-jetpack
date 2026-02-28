@@ -1,6 +1,9 @@
 import type { RssFeedItem } from '@/lib/types';
+import { ensureOffscreen, sendOffscreenMessage } from '@/services/offscreen';
 
 // Parse RSS/Atom feed and extract article links
+// XML parsing is delegated to the offscreen document because
+// DOMParser is not available in the MV3 service worker.
 export async function parseRssFeed(feedUrl: string): Promise<RssFeedItem[]> {
   try {
     const response = await fetch(feedUrl);
@@ -8,62 +11,12 @@ export async function parseRssFeed(feedUrl: string): Promise<RssFeedItem[]> {
       throw new Error(`Failed to fetch RSS feed: ${response.status}`);
     }
 
-    const text = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(text, 'text/xml');
-
-    // Check for parser errors
-    const parserError = doc.querySelector('parsererror');
-    if (parserError) {
-      throw new Error('Invalid RSS/XML format');
-    }
-
-    const items: RssFeedItem[] = [];
-
-    // Try RSS 2.0 format first
-    const rssItems = doc.querySelectorAll('item');
-    if (rssItems.length > 0) {
-      rssItems.forEach((item) => {
-        const link = item.querySelector('link')?.textContent;
-        const title = item.querySelector('title')?.textContent;
-        const pubDate = item.querySelector('pubDate')?.textContent;
-
-        if (link) {
-          items.push({
-            url: link.trim(),
-            title: title?.trim() || link,
-            pubDate: pubDate?.trim(),
-          });
-        }
-      });
-      return items;
-    }
-
-    // Try Atom format
-    const atomEntries = doc.querySelectorAll('entry');
-    if (atomEntries.length > 0) {
-      atomEntries.forEach((entry) => {
-        // Atom links can have different rel attributes
-        const linkEl =
-          entry.querySelector('link[rel="alternate"]') || entry.querySelector('link');
-        const link = linkEl?.getAttribute('href');
-        const title = entry.querySelector('title')?.textContent;
-        const published =
-          entry.querySelector('published')?.textContent ||
-          entry.querySelector('updated')?.textContent;
-
-        if (link) {
-          items.push({
-            url: link.trim(),
-            title: title?.trim() || link,
-            pubDate: published?.trim(),
-          });
-        }
-      });
-      return items;
-    }
-
-    throw new Error('No items found in feed');
+    const xml = await response.text();
+    await ensureOffscreen();
+    const result = await sendOffscreenMessage<{ success: true; items: RssFeedItem[] }>(
+      { type: 'PARSE_RSS_XML', xml },
+    );
+    return result.items;
   } catch (error) {
     console.error('Failed to parse RSS feed:', error);
     throw error;

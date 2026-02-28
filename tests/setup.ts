@@ -9,6 +9,11 @@ const chromeMock = {
     sendMessage: vi.fn(),
     lastError: null as chrome.runtime.LastError | null,
     getURL: (path: string) => `chrome-extension://mock-id/${path}`,
+    getContexts: vi.fn().mockResolvedValue([]),
+  },
+  offscreen: {
+    createDocument: vi.fn().mockResolvedValue(undefined),
+    Reason: { DOM_PARSER: 'DOM_PARSER' },
   },
   storage: {
     local: {

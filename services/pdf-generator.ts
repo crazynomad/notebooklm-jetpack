@@ -52,39 +52,13 @@ export function cleanComponentMd(md: string): string {
 
 // ── Offscreen document for HTML→Markdown (DOMParser + Turndown need DOM) ──
 
-let offscreenReady = false;
-
-async function ensureOffscreen(): Promise<void> {
-  if (offscreenReady) return;
-  // Check if already exists
-  const contexts = await (chrome.runtime as unknown as { getContexts(f: { contextTypes: string[] }): Promise<{ documentUrl: string }[]> })
-    .getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
-  if (contexts.length > 0) {
-    offscreenReady = true;
-    return;
-  }
-  await chrome.offscreen.createDocument({
-    url: 'offscreen.html',
-    reasons: [chrome.offscreen.Reason.DOM_PARSER],
-    justification: 'Convert HTML to Markdown using DOMParser + Turndown',
-  });
-  offscreenReady = true;
-  console.log('[offscreen] Document created');
-}
+import { ensureOffscreen, sendOffscreenMessage } from '@/services/offscreen';
 
 export async function convertHtmlToMarkdown(html: string): Promise<{ markdown: string; title: string }> {
   await ensureOffscreen();
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ type: 'HTML_TO_MARKDOWN', html }, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-      } else if (response?.success) {
-        resolve({ markdown: response.markdown, title: response.title });
-      } else {
-        reject(new Error(response?.error || 'Unknown offscreen error'));
-      }
-    });
-  });
+  return sendOffscreenMessage<{ success: true; markdown: string; title: string }>(
+    { type: 'HTML_TO_MARKDOWN', html },
+  ).then(r => ({ markdown: r.markdown, title: r.title }));
 }
 
 // ── Fetch pages ──
