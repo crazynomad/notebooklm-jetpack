@@ -23,7 +23,7 @@
   ],
   "topbarCtaButton": {
     "name": "安装扩展",
-    "url": "https://chrome.google.com/webstore"
+    "url": "/getting-started/install"
   },
   "anchors": [
     {

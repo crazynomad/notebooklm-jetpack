@@ -1,25 +1,43 @@
 ---
 title: '安装扩展'
-description: '从 Chrome Web Store 安装 NotebookLM Jetpack'
+description: '安装 NotebookLM Jetpack Chrome 扩展'
 ---
 
-## 从 Chrome Web Store 安装
+## 从 GitHub 下载安装
+
+目前推荐的安装方式——直接从 GitHub Release 下载最新版本。
 
 <Steps>
-  <Step title="打开商店页面">
-    访问 [Chrome Web Store 页面](#)（审核通过后更新链接）
+  <Step title="下载扩展包">
+    前往 [GitHub Releases](https://github.com/crazynomad/notebooklm-jetpack/releases/latest)，下载 `.zip` 文件
   </Step>
-  <Step title="点击「添加至 Chrome」">
-    点击蓝色按钮，确认权限后自动安装
+  <Step title="解压文件">
+    将下载的 `.zip` 文件解压到一个固定的目录（不要删除，Chrome 需要持续读取该目录）
+  </Step>
+  <Step title="加载到 Chrome">
+    1. 打开 `chrome://extensions`
+    2. 开启右上角「开发者模式」
+    3. 点击「加载已解压的扩展程序」
+    4. 选择解压后的目录
   </Step>
   <Step title="固定到工具栏">
     点击 Chrome 右上角拼图图标 🧩 → 找到 NotebookLM Jetpack → 点击 📌 固定
   </Step>
 </Steps>
 
-## 开发者侧载安装
+<Tip>
+  更新时重复上述步骤，覆盖解压目录后在 `chrome://extensions` 页面点击刷新按钮即可。
+</Tip>
 
-如果你想使用最新开发版：
+## Chrome Web Store
+
+<Info>
+  扩展已提交 Chrome Web Store 审核，审核通过后将更新此处链接，届时可一键安装并自动更新。
+</Info>
+
+## 从源码构建
+
+如果你想使用最新开发版或参与开发：
 
 <Steps>
   <Step title="克隆仓库">
@@ -37,7 +55,3 @@ description: '从 Chrome Web Store 安装 NotebookLM Jetpack'
     4. 选择项目中的 `dist/chrome-mv3` 目录
   </Step>
 </Steps>
-
-<Tip>
-  安装后点击工具栏上的 Jetpack 图标，即可看到扩展面板。
-</Tip>
