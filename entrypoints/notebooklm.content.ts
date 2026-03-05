@@ -650,6 +650,41 @@ async function findInputByLabel(
   return null;
 }
 
+// ─── Content Script i18n ────────────────────────────────────
+
+const _csIsZh = navigator.language.startsWith('zh');
+const _csStrings: Record<string, [string, string]> = {
+  // [zh, en]
+  'rescue.text':       ['{n} 个来源导入失败，可尝试抢救', '{n} failed source imports — try rescue'],
+  'rescue.btn':        ['↻ 抢救', '↻ Rescue'],
+  'rescue.pending':    ['待抢救', 'Pending'],
+  'rescue.running':    ['抢救中...', 'Rescuing...'],
+  'rescue.done':       ['抢救完成：<strong>{s}</strong> 成功', 'Rescue done: <strong>{s}</strong> succeeded'],
+  'rescue.doneFail':   ['，<strong>{f}</strong> 失败', ', <strong>{f}</strong> failed'],
+  'rescue.removeFailed': ['移除已抢救的失败来源', 'Remove rescued failed sources'],
+  'repair.text':       ['{n} 个来源需要修复（内容可能为空）', '{n} sources need repair (may be empty)'],
+  'repair.btn':        ['🔧 修复', '🔧 Repair'],
+  'repair.pending':    ['待修复', 'Pending'],
+  'repair.running':    ['修复中...', 'Repairing...'],
+  'repair.done':       ['修复完成：<strong>{s}</strong> 成功', 'Repair done: <strong>{s}</strong> succeeded'],
+  'repair.doneFail':   ['，<strong>{f}</strong> 失败', ', <strong>{f}</strong> failed'],
+  'repair.removeOld':  ['移除原始失败来源', 'Remove original failed sources'],
+  'success':           ['成功', 'Success'],
+  'failed':            ['失败', 'Failed'],
+  'done':              ['✓ 完成', '✓ Done'],
+  'close':             ['关闭', 'Close'],
+};
+function ct(key: string, params?: Record<string, string | number>): string {
+  const pair = _csStrings[key];
+  let text = pair ? pair[_csIsZh ? 0 : 1] : key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+    }
+  }
+  return text;
+}
+
 // ─── Inline Rescue Banner ───────────────────────────────────
 
 function injectRescueBanner(): void {
@@ -791,18 +826,18 @@ function injectRescueBanner(): void {
         <line x1="12" y1="17" x2="12.01" y2="17"/>
       </svg>
       <span class="nlm-rescue-text">
-        <strong>${failedUrls.length}</strong> 个来源导入失败，可尝试抢救
+        ${ct('rescue.text', { n: `<strong>${failedUrls.length}</strong>` })}
       </span>
       <button class="nlm-rescue-btn" id="nlm-rescue-btn">
-        ↻ 抢救
+        ${ct('rescue.btn')}
       </button>
-      <button class="nlm-dismiss" id="nlm-rescue-dismiss" title="关闭">×</button>
+      <button class="nlm-dismiss" id="nlm-rescue-dismiss" title="${ct('close')}">×</button>
     </div>
     <div class="nlm-rescue-details" id="nlm-rescue-details" style="display:none">
       ${failedUrls.map((url) => `
         <div class="nlm-rescue-item" data-url="${url}">
           <span class="nlm-rescue-item-url" title="${url}">${url}</span>
-          <span class="nlm-rescue-status" data-status="pending">待抢救</span>
+          <span class="nlm-rescue-status" data-status="pending">${ct('rescue.pending')}</span>
         </div>
       `).join('')}
     </div>
@@ -814,7 +849,7 @@ function injectRescueBanner(): void {
   document.getElementById('nlm-rescue-btn')?.addEventListener('click', () => {
     const btn = document.getElementById('nlm-rescue-btn') as HTMLButtonElement;
     btn.disabled = true;
-    btn.innerHTML = '<span class="nlm-rescue-spinner"></span> 抢救中...';
+    btn.innerHTML = `<span class="nlm-rescue-spinner"></span> ${ct('rescue.running')}`; // static i18n string, safe
 
     // Show details
     const details = document.getElementById('nlm-rescue-details');
@@ -843,7 +878,7 @@ function updateInlineBanner(results: Array<{ url: string; status: string; title?
   // Update text
   const textEl = document.querySelector('#nlm-rescue-banner .nlm-rescue-text');
   if (textEl) {
-    textEl.innerHTML = `抢救完成：<strong>${successCount}</strong> 成功${failCount > 0 ? `，<strong>${failCount}</strong> 失败` : ''}`;
+    textEl.innerHTML = `${ct('rescue.done', { s: successCount })}${failCount > 0 ? ct('rescue.doneFail', { f: failCount }) : ''}`; // static i18n, safe
   }
 
   // Show details
@@ -858,10 +893,10 @@ function updateInlineBanner(results: Array<{ url: string; status: string; title?
     if (statusEl) {
       if (result.status === 'success') {
         statusEl.className = 'nlm-rescue-status nlm-rescue-success';
-        statusEl.textContent = `✓ ${result.title || '成功'}`;
+        statusEl.textContent = `✓ ${result.title || ct('success')}`;
       } else {
         statusEl.className = 'nlm-rescue-status nlm-rescue-error';
-        statusEl.textContent = `✗ ${result.error || '失败'}`;
+        statusEl.textContent = `✗ ${result.error || ct('failed')}`;
       }
     }
   }
@@ -876,9 +911,9 @@ function updateInlineBanner(results: Array<{ url: string; status: string; title?
       footer.innerHTML = `
         <label>
           <input type="checkbox" id="nlm-rescue-remove-failed" checked />
-          移除已抢救的失败来源
+          ${ct('rescue.removeFailed')}
         </label>
-        <button class="nlm-rescue-done-btn" id="nlm-rescue-done-btn">✓ 完成</button>
+        <button class="nlm-rescue-done-btn" id="nlm-rescue-done-btn">${ct('done')}</button>
       `;
       banner.appendChild(footer);
 
@@ -1040,18 +1075,18 @@ function injectRepairBanner(): void {
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
       </svg>
       <span class="nlm-repair-text">
-        <strong>${wechatUrls.length}</strong> 个来源需要修复（内容可能为空）
+        ${ct('repair.text', { n: `<strong>${wechatUrls.length}</strong>` })}
       </span>
       <button class="nlm-repair-btn" id="nlm-repair-btn">
-        🔧 修复
+        ${ct('repair.btn')}
       </button>
-      <button class="nlm-dismiss" id="nlm-repair-dismiss" title="关闭">×</button>
+      <button class="nlm-dismiss" id="nlm-repair-dismiss" title="${ct('close')}">×</button>
     </div>
     <div class="nlm-repair-details" id="nlm-repair-details" style="display:none">
       ${wechatUrls.map((url) => `
         <div class="nlm-repair-item" data-url="${url}">
           <span class="nlm-repair-item-url" title="${url}">${url}</span>
-          <span class="nlm-repair-status" data-status="pending">待修复</span>
+          <span class="nlm-repair-status" data-status="pending">${ct('repair.pending')}</span>
         </div>
       `).join('')}
     </div>
@@ -1070,7 +1105,7 @@ function injectRepairBanner(): void {
   document.getElementById('nlm-repair-btn')?.addEventListener('click', () => {
     const btn = document.getElementById('nlm-repair-btn') as HTMLButtonElement;
     btn.disabled = true;
-    btn.innerHTML = '<span class="nlm-repair-spinner"></span> 修复中...';
+    btn.innerHTML = `<span class="nlm-repair-spinner"></span> ${ct('repair.running')}`; // static i18n string, safe
     const details = document.getElementById('nlm-repair-details');
     if (details) details.style.display = 'block';
 
@@ -1094,7 +1129,7 @@ function updateRepairBanner(results: Array<{ url: string; status: string; title?
 
   const textEl = document.querySelector('#nlm-repair-banner .nlm-repair-text');
   if (textEl) {
-    textEl.innerHTML = `修复完成：<strong>${successCount}</strong> 成功${failCount > 0 ? `，<strong>${failCount}</strong> 失败` : ''}`;
+    textEl.innerHTML = `${ct('repair.done', { s: successCount })}${failCount > 0 ? ct('repair.doneFail', { f: failCount }) : ''}`; // static i18n, safe
   }
 
   for (const result of results) {
@@ -1104,10 +1139,10 @@ function updateRepairBanner(results: Array<{ url: string; status: string; title?
     if (statusEl) {
       if (result.status === 'success') {
         statusEl.className = 'nlm-repair-status nlm-repair-success';
-        statusEl.textContent = `✓ ${result.title || '成功'}`;
+        statusEl.textContent = `✓ ${result.title || ct('success')}`;
       } else {
         statusEl.className = 'nlm-repair-status nlm-repair-error';
-        statusEl.textContent = `✗ ${result.error || '失败'}`;
+        statusEl.textContent = `✗ ${result.error || ct('failed')}`;
       }
     }
   }
@@ -1121,9 +1156,9 @@ function updateRepairBanner(results: Array<{ url: string; status: string; title?
       footer.innerHTML = `
         <label>
           <input type="checkbox" id="nlm-repair-remove-old" checked />
-          移除原始失败来源
+          ${ct('repair.removeOld')}
         </label>
-        <button class="nlm-repair-done-btn" id="nlm-repair-done-btn">✓ 完成</button>
+        <button class="nlm-repair-done-btn" id="nlm-repair-done-btn">${ct('done')}</button>
       `;
       bannerEl.appendChild(footer);
 

@@ -12,11 +12,19 @@ function detectPlatform(url: string): Platform {
   return 'unknown';
 }
 
-const platformConfig = {
-  apple: { name: 'Apple Podcasts', color: 'purple', accent: 'bg-purple-500 hover:bg-purple-550', accentLight: 'bg-purple-50', textAccent: 'text-purple-600', textDark: 'text-purple-900', ring: 'focus:ring-purple-500', check: 'text-purple-500', border: 'border-purple-100/60' },
-  xiaoyuzhou: { name: '小宇宙', color: 'emerald', accent: 'bg-emerald-500 hover:bg-emerald-550', accentLight: 'bg-emerald-50', textAccent: 'text-emerald-600', textDark: 'text-emerald-900', ring: 'focus:ring-emerald-500', check: 'text-emerald-500', border: 'border-emerald-100/60' },
-  unknown: { name: '播客', color: 'purple', accent: 'bg-purple-500 hover:bg-purple-550', accentLight: 'bg-purple-50', textAccent: 'text-purple-600', textDark: 'text-purple-900', ring: 'focus:ring-purple-500', check: 'text-purple-500', border: 'border-purple-100/60' },
+const platformStyles = {
+  apple: { color: 'purple', accent: 'bg-purple-500 hover:bg-purple-550', accentLight: 'bg-purple-50', textAccent: 'text-purple-600', textDark: 'text-purple-900', ring: 'focus:ring-purple-500', check: 'text-purple-500', border: 'border-purple-100/60' },
+  xiaoyuzhou: { color: 'emerald', accent: 'bg-emerald-500 hover:bg-emerald-550', accentLight: 'bg-emerald-50', textAccent: 'text-emerald-600', textDark: 'text-emerald-900', ring: 'focus:ring-emerald-500', check: 'text-emerald-500', border: 'border-emerald-100/60' },
+  unknown: { color: 'purple', accent: 'bg-purple-500 hover:bg-purple-550', accentLight: 'bg-purple-50', textAccent: 'text-purple-600', textDark: 'text-purple-900', ring: 'focus:ring-purple-500', check: 'text-purple-500', border: 'border-purple-100/60' },
 };
+const platformNames: Record<string, string> = {
+  apple: 'Apple Podcasts',
+  xiaoyuzhou: '小宇宙',
+};
+function getPlatformConfig(platform: string) {
+  const styles = platformStyles[platform as keyof typeof platformStyles] || platformStyles.unknown;
+  return { name: platformNames[platform] || t('app.tabPodcast'), ...styles };
+}
 
 interface Props {
   initialUrl?: string;
@@ -33,7 +41,7 @@ export function PodcastImport({ initialUrl }: Props) {
   const [progress, setProgress] = useState<{ current: number; total: number; title?: string }>({ current: 0, total: 0 });
 
   const platform = useMemo(() => detectPlatform(url), [url]);
-  const theme = platformConfig[platform];
+  const theme = getPlatformConfig(platform);
 
   const handleFetch = () => {
     if (!url) { setError(t('podcast.enterLink')); setState('error'); return; }

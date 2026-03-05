@@ -138,7 +138,7 @@ export function BatchImport({ onProgress }: Props) {
       {/* URL list input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t('batch.urlList')} {urlCount > 0 && <span className="text-gray-400">({urlCount} 个)</span>}
+          {t('batch.urlList')} {urlCount > 0 && <span className="text-gray-400">({urlCount})</span>}
         </label>
         <textarea
           value={urlsText}
