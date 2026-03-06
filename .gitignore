@@ -34,3 +34,4 @@ dist-dev/
 docs/screenshots/raw/
 docs/screenshots/*.png
 releases/*.zip
+.obsidian/
