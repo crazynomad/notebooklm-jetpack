@@ -63,27 +63,50 @@ export default defineContentScript({
     let lastSourceCount = document.querySelectorAll('.single-source-container').length;
     let lastErrorCount = document.querySelectorAll('.single-source-error-container').length;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let delayedRecheckTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function recheckBanners(): void {
+      const rescueBanner = document.getElementById('nlm-rescue-banner');
+      const repairBanner = document.getElementById('nlm-repair-banner');
+      rescueBanner?.remove();
+      repairBanner?.remove();
+      injectRescueBanner();
+      injectRepairBanner();
+    }
+
     const observer = new MutationObserver(() => {
       if (debounceTimer) return;
       debounceTimer = setTimeout(() => {
         debounceTimer = null;
         const currentCount = document.querySelectorAll('.single-source-container').length;
         const currentErrorCount = document.querySelectorAll('.single-source-error-container').length;
-        const rescueBanner = document.getElementById('nlm-rescue-banner');
-        const repairBanner = document.getElementById('nlm-repair-banner');
 
         if (currentCount !== lastSourceCount || currentErrorCount !== lastErrorCount) {
-          // Source count or error count changed — remove and re-inject banners with updated counts
           lastSourceCount = currentCount;
           lastErrorCount = currentErrorCount;
-          rescueBanner?.remove();
-          repairBanner?.remove();
-          injectRescueBanner();
-          injectRepairBanner();
+          recheckBanners();
+
+          // Delayed re-checks: NotebookLM processes sources asynchronously.
+          // Error sources get class change (caught by attributes observer),
+          // but fake-success sources (WeChat/X.com) have NO DOM change after
+          // the title stabilizes — we must poll to catch them.
+          if (delayedRecheckTimer) clearTimeout(delayedRecheckTimer);
+          const recheckDelays = [5000, 10000, 18000];
+          let recheckIndex = 0;
+          const scheduleRecheck = () => {
+            if (recheckIndex >= recheckDelays.length) return;
+            delayedRecheckTimer = setTimeout(() => {
+              lastErrorCount = document.querySelectorAll('.single-source-error-container').length;
+              recheckBanners();
+              recheckIndex++;
+              scheduleRecheck();
+            }, recheckIndex === 0 ? recheckDelays[0] : recheckDelays[recheckIndex] - recheckDelays[recheckIndex - 1]);
+          };
+          scheduleRecheck();
         } else {
           // No change — just ensure banners exist
-          if (!rescueBanner) injectRescueBanner();
-          if (!repairBanner) injectRepairBanner();
+          if (!document.getElementById('nlm-rescue-banner')) injectRescueBanner();
+          if (!document.getElementById('nlm-repair-banner')) injectRepairBanner();
         }
       }, 800);
     });
