@@ -59,6 +59,39 @@ export default defineContentScript({
       injectRepairBanner();
     }, 2000);
 
+    // Keyboard shortcuts for selection mode
+    document.addEventListener('keydown', (e) => {
+      // Cmd/Ctrl+Shift+S — toggle selection mode (S = Select)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 's') {
+        e.preventDefault();
+        toggleSelectionMode();
+        return;
+      }
+
+      if (!selectionModeActive) return;
+
+      // Escape — exit selection mode
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleSelectionMode();
+        return;
+      }
+
+      // Cmd/Ctrl+A — select all (in selection mode)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+        e.preventDefault();
+        toggleSelectAll();
+        return;
+      }
+
+      // Delete / Backspace — delete selected
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        confirmAndDelete();
+      }
+    });
+
     // Re-check when source list changes (new sources added, sources removed, error state applied, etc.)
     let lastSourceCount = document.querySelectorAll('.single-source-container').length;
     let lastErrorCount = document.querySelectorAll('.single-source-error-container').length;
@@ -116,6 +149,372 @@ export default defineContentScript({
     }
   },
 });
+
+// ─── Bulk Delete (Selection Mode) ───────────────────────────
+
+let selectionModeActive = false;
+let lastClickedIndex = -1;
+
+function getSourceContainers(): HTMLElement[] {
+  return Array.from(document.querySelectorAll('.single-source-container')) as HTMLElement[];
+}
+
+function getSelectedContainers(): HTMLElement[] {
+  return Array.from(document.querySelectorAll('.single-source-container.nlm-selected')) as HTMLElement[];
+}
+
+function toggleSelectionMode(): void {
+  selectionModeActive = !selectionModeActive;
+  lastClickedIndex = -1;
+
+  if (selectionModeActive) {
+    injectSelectionUI();
+  } else {
+    exitSelectionMode();
+  }
+}
+
+function injectSelectionUI(): void {
+  // Inject CSS
+  if (!document.getElementById('nlm-select-style')) {
+    const style = document.createElement('style');
+    style.id = 'nlm-select-style';
+    style.textContent = `
+      .nlm-selection-active .single-source-container {
+        cursor: pointer !important;
+        position: relative;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .nlm-selection-active .single-source-container::before {
+        content: '';
+        position: absolute;
+        left: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 18px;
+        height: 18px;
+        border: 2px solid #9ca3af;
+        border-radius: 4px;
+        background: white;
+        z-index: 10;
+        transition: all 0.15s;
+      }
+      .nlm-selection-active .single-source-container.nlm-selected::before {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6.5 11.5L3 8l1-1 2.5 2.5L12 4l1 1-6.5 6.5z'/%3E%3C/svg%3E");
+        background-size: 14px;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+      .nlm-selection-active .single-source-container.nlm-selected {
+        background: #eff6ff !important;
+        border-left: 3px solid #3b82f6 !important;
+      }
+      .nlm-selection-active .single-source-container .source-title-column {
+        padding-left: 24px !important;
+      }
+      #nlm-select-toolbar {
+        margin: 8px 12px;
+        padding: 8px 12px;
+        background: #f0f9ff;
+        border: 1px solid #7dd3fc;
+        border-radius: 10px;
+        font-family: 'Google Sans', Roboto, sans-serif;
+        font-size: 13px;
+        color: #0c4a6e;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        animation: nlm-fade-in 0.2s ease;
+      }
+      #nlm-select-toolbar .nlm-sel-count {
+        font-weight: 500;
+        min-width: 70px;
+      }
+      #nlm-select-toolbar .nlm-sel-sep {
+        width: 1px;
+        height: 16px;
+        background: #bae6fd;
+      }
+      #nlm-select-toolbar button {
+        padding: 3px 10px;
+        border: 1px solid #bae6fd;
+        border-radius: 6px;
+        background: white;
+        color: #0369a1;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      #nlm-select-toolbar button:hover {
+        background: #e0f2fe;
+        border-color: #7dd3fc;
+      }
+      #nlm-select-toolbar button.nlm-sel-delete {
+        background: #fee2e2;
+        color: #dc2626;
+        border-color: #fca5a5;
+      }
+      #nlm-select-toolbar button.nlm-sel-delete:hover {
+        background: #fecaca;
+      }
+      #nlm-select-toolbar button.nlm-sel-delete:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      #nlm-select-toolbar button.nlm-sel-exit {
+        margin-left: auto;
+        background: transparent;
+        border-color: transparent;
+        color: #64748b;
+      }
+      #nlm-select-toolbar button.nlm-sel-exit:hover {
+        background: #e0f2fe;
+      }
+      #nlm-select-toolbar .nlm-sel-progress {
+        flex-basis: 100%;
+        margin-top: 4px;
+        font-size: 12px;
+        color: #0369a1;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Add active class to scroll area
+  const scrollArea = document.querySelector('.scroll-area-desktop');
+  scrollArea?.classList.add('nlm-selection-active');
+
+  // Inject toolbar
+  if (!document.getElementById('nlm-select-toolbar')) {
+    const toolbar = buildToolbarDOM();
+    scrollArea?.prepend(toolbar);
+    bindToolbarEvents(toolbar);
+  }
+
+  // Bind click on source containers
+  document.addEventListener('click', onSourceClick, true);
+
+  updateToolbar();
+}
+
+function buildToolbarDOM(): HTMLElement {
+  const total = getSourceContainers().length;
+  const toolbar = document.createElement('div');
+  toolbar.id = 'nlm-select-toolbar';
+
+  const count = document.createElement('span');
+  count.className = 'nlm-sel-count';
+  count.textContent = ct('select.toolbar', { n: 0, t: total });
+
+  const sep1 = document.createElement('div');
+  sep1.className = 'nlm-sel-sep';
+
+  const allBtn = document.createElement('button');
+  allBtn.dataset.action = 'all';
+  allBtn.textContent = ct('select.all');
+
+  const failedBtn = document.createElement('button');
+  failedBtn.dataset.action = 'failed';
+  failedBtn.textContent = ct('select.failed');
+
+  const invertBtn = document.createElement('button');
+  invertBtn.dataset.action = 'invert';
+  invertBtn.textContent = ct('select.invert');
+
+  const sep2 = document.createElement('div');
+  sep2.className = 'nlm-sel-sep';
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.dataset.action = 'delete';
+  deleteBtn.className = 'nlm-sel-delete';
+  deleteBtn.disabled = true;
+  deleteBtn.textContent = '🗑 ' + ct('select.delete');
+
+  const exitBtn = document.createElement('button');
+  exitBtn.dataset.action = 'exit';
+  exitBtn.className = 'nlm-sel-exit';
+  exitBtn.textContent = '✕';
+
+  toolbar.append(count, sep1, allBtn, failedBtn, invertBtn, sep2, deleteBtn, exitBtn);
+  return toolbar;
+}
+
+function bindToolbarEvents(toolbar: HTMLElement): void {
+  toolbar.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('button');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === 'all') toggleSelectAll();
+    else if (action === 'failed') selectFailed();
+    else if (action === 'invert') invertSelection();
+    else if (action === 'delete') confirmAndDelete();
+    else if (action === 'exit') toggleSelectionMode();
+  });
+}
+
+function onSourceClick(e: MouseEvent): void {
+  if (!selectionModeActive) return;
+
+  const container = (e.target as HTMLElement).closest('.single-source-container') as HTMLElement;
+  if (!container) return;
+
+  // Prevent NotebookLM's native click handler (opening source detail)
+  e.stopPropagation();
+  e.preventDefault();
+
+  const containers = getSourceContainers();
+  const index = containers.indexOf(container);
+
+  if (e.shiftKey && lastClickedIndex >= 0 && lastClickedIndex !== index) {
+    // Range select
+    const start = Math.min(lastClickedIndex, index);
+    const end = Math.max(lastClickedIndex, index);
+    for (let i = start; i <= end; i++) {
+      containers[i].classList.add('nlm-selected');
+    }
+  } else {
+    container.classList.toggle('nlm-selected');
+  }
+
+  lastClickedIndex = index;
+  updateToolbar();
+}
+
+function toggleSelectAll(): void {
+  const containers = getSourceContainers();
+  const allSelected = getSelectedContainers().length === containers.length;
+  containers.forEach(c => {
+    if (allSelected) c.classList.remove('nlm-selected');
+    else c.classList.add('nlm-selected');
+  });
+  updateToolbar();
+}
+
+function selectFailed(): void {
+  getSelectedContainers().forEach(c => c.classList.remove('nlm-selected'));
+  document.querySelectorAll('.single-source-error-container').forEach(c => {
+    c.classList.add('nlm-selected');
+  });
+  updateToolbar();
+}
+
+function invertSelection(): void {
+  getSourceContainers().forEach(c => c.classList.toggle('nlm-selected'));
+  updateToolbar();
+}
+
+function updateToolbar(): void {
+  const toolbar = document.getElementById('nlm-select-toolbar');
+  if (!toolbar) return;
+
+  const selected = getSelectedContainers().length;
+  const total = getSourceContainers().length;
+
+  const countEl = toolbar.querySelector('.nlm-sel-count');
+  if (countEl) countEl.textContent = ct('select.toolbar', { n: selected, t: total });
+
+  const deleteBtn = toolbar.querySelector('[data-action="delete"]') as HTMLButtonElement;
+  if (deleteBtn) deleteBtn.disabled = selected === 0;
+
+  const allBtn = toolbar.querySelector('[data-action="all"]') as HTMLButtonElement;
+  if (allBtn) allBtn.textContent = selected === total ? ct('select.none') : ct('select.all');
+}
+
+async function confirmAndDelete(): Promise<void> {
+  const selected = getSelectedContainers();
+  if (selected.length === 0) return;
+
+  if (!confirm(ct('select.confirm', { n: selected.length }))) return;
+
+  const toolbar = document.getElementById('nlm-select-toolbar');
+  toolbar?.querySelectorAll('button').forEach(b => (b as HTMLButtonElement).disabled = true);
+
+  let progressEl = toolbar?.querySelector('.nlm-sel-progress') as HTMLElement | null;
+  if (!progressEl && toolbar) {
+    progressEl = document.createElement('div');
+    progressEl.className = 'nlm-sel-progress';
+    toolbar.appendChild(progressEl);
+  }
+
+  let deleted = 0;
+  const total = selected.length;
+
+  for (const container of selected) {
+    if (progressEl) {
+      progressEl.textContent = ct('select.deleting', { n: deleted + 1, t: total });
+    }
+
+    try {
+      await removeSingleSource(container);
+      deleted++;
+    } catch (e) {
+      console.warn('[bulkDelete] Failed to delete source, skipping:', e);
+    }
+
+    await delay(300);
+  }
+
+  if (progressEl) {
+    progressEl.textContent = ct('select.done', { n: deleted });
+  }
+
+  await delay(1500);
+  toggleSelectionMode();
+}
+
+async function removeSingleSource(container: HTMLElement): Promise<void> {
+  const menuBtn = container.querySelector('.source-item-more-button')
+    || container.querySelector('button[aria-label="更多"], button[aria-label="More"]')
+    || container.querySelector('button') as HTMLElement;
+  if (!menuBtn) throw new Error('Menu button not found');
+
+  (menuBtn as HTMLElement).scrollIntoView({ block: 'center', behavior: 'instant' });
+  await delay(200);
+  (menuBtn as HTMLElement).click();
+  await delay(500);
+
+  const menuItems = document.querySelectorAll('[role="menuitem"], .mat-mdc-menu-item');
+  let found = false;
+  for (const item of menuItems) {
+    const text = item.textContent?.trim() || '';
+    if (text.includes('移除来源') || text.includes('Remove source') || text.includes('Delete source')) {
+      (item as HTMLElement).click();
+      await delay(800);
+
+      const confirmBtns = document.querySelectorAll('button');
+      for (const btn of confirmBtns) {
+        const btnText = btn.textContent?.trim() || '';
+        if (btnText === 'Delete' || btnText === '删除' || btnText === '移除') {
+          btn.click();
+          await delay(1000);
+          found = true;
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  if (!found) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    throw new Error('Delete menu item not found');
+  }
+}
+
+function exitSelectionMode(): void {
+  selectionModeActive = false;
+  lastClickedIndex = -1;
+
+  document.querySelectorAll('.nlm-selected').forEach(el => el.classList.remove('nlm-selected'));
+  document.getElementById('nlm-select-toolbar')?.remove();
+  document.querySelector('.scroll-area-desktop')?.classList.remove('nlm-selection-active');
+  document.removeEventListener('click', onSourceClick, true);
+}
 
 // ─── URL Import ─────────────────────────────────────────────
 
@@ -699,6 +1098,15 @@ async function findInputByLabel(
 const _csIsZh = navigator.language.startsWith('zh');
 const _csStrings: Record<string, [string, string]> = {
   // [zh, en]
+  'select.toolbar':    ['已选 {n}/{t}', '{n}/{t} selected'],
+  'select.all':        ['全选', 'Select all'],
+  'select.none':       ['取消全选', 'Deselect all'],
+  'select.failed':     ['选择失败', 'Select failed'],
+  'select.invert':     ['反选', 'Invert'],
+  'select.delete':     ['删除', 'Delete'],
+  'select.deleting':   ['删除中 {n}/{t}...', 'Deleting {n}/{t}...'],
+  'select.confirm':    ['确定删除 {n} 个来源？此操作不可撤销。', 'Delete {n} sources? This cannot be undone.'],
+  'select.done':       ['已删除 {n} 个来源', '{n} sources deleted'],
   'rescue.text':       ['{n} 个来源导入失败，可尝试抢救', '{n} failed source imports — try rescue'],
   'rescue.btn':        ['↻ 抢救', '↻ Rescue'],
   'rescue.pending':    ['待抢救', 'Pending'],
