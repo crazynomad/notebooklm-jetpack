@@ -74,6 +74,9 @@ function createTurndownService(): TurndownService {
 // Content selectors in priority order
 const CONTENT_SELECTORS = [
   '.devsite-article-body',
+  // Huawei Developer Docs
+  '.doc-content',
+  '.document-content',
   // Substack
   '.available-content .body.markup',
   '.available-content',

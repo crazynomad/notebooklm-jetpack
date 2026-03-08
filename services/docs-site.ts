@@ -266,11 +266,12 @@ export async function fetchHuaweiCatalog(url: string): Promise<DocPageItem[]> {
       }
     }
 
-    // The response is an array of root catalog nodes
-    if (Array.isArray(data)) {
-      walk(data);
-    } else if (data?.children) {
-      walk(data.children);
+    // The API response wraps the tree: { code, value: { catalogTreeList: [...] } }
+    const tree = data?.value?.catalogTreeList
+      || (Array.isArray(data) ? data : null)
+      || data?.children;
+    if (tree) {
+      walk(tree);
     }
 
     return pages;

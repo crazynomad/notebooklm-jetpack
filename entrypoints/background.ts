@@ -445,7 +445,8 @@ function detectBlockedContent(markdown: string, html: string, url: string): stri
 
 /** URLs that need tab-based rendering (SPA / dynamic content) */
 function needsTabBasedExtraction(url: string): boolean {
-  return /^https?:\/\/(www\.)?(x\.com|twitter\.com)\//.test(url);
+  return /^https?:\/\/(www\.)?(x\.com|twitter\.com)\//.test(url)
+    || /^https?:\/\/developer\.huawei\.com\//.test(url);
 }
 
 async function rescueSources(urls: string[]): Promise<RescueResult[]> {
@@ -607,6 +608,21 @@ async function _tabBasedExtract(urls: string[], extractOnly = false): Promise<Re
               return { success: false, error: 'X article: extracted content too short' };
             }
             return { success: true, title, content };
+          }
+
+          // ── Huawei Developer Docs extractor ──
+          if (currentUrl.includes('developer.huawei.com')) {
+            const docTitle = document.querySelector('h1')?.textContent?.trim()
+              || document.title.replace(/-.*$/, '').trim();
+            // Huawei uses Angular — content is in .markdown-body or #mark .idpContent
+            const docContent = document.querySelector('.markdown-body')
+              || document.querySelector('#mark .idpContent')
+              || document.querySelector('.document-content-html')
+              || document.querySelector('#document-content .layout-content');
+            if (docContent && (docContent as HTMLElement).innerText?.trim().length > 50) {
+              return { success: true, title: docTitle, content: (docContent as HTMLElement).innerText.trim() };
+            }
+            return { success: false, error: '华为文档内容提取失败' };
           }
 
           // ── WeChat / Generic extractor ──

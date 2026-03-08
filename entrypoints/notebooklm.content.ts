@@ -62,7 +62,7 @@ export default defineContentScript({
     // Keyboard shortcuts for selection mode
     document.addEventListener('keydown', (e) => {
       // Cmd/Ctrl+Shift+S — toggle selection mode (S = Select)
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 's') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
         toggleSelectionMode();
         return;
@@ -183,36 +183,34 @@ function injectSelectionUI(): void {
       .nlm-selection-active .single-source-container {
         cursor: pointer !important;
         position: relative;
-        transition: background 0.15s, border-color 0.15s;
+        transition: background 0.15s;
       }
-      .nlm-selection-active .single-source-container::before {
+      .nlm-selection-active .single-source-container::after {
         content: '';
         position: absolute;
-        left: 4px;
+        right: 10px;
         top: 50%;
         transform: translateY(-50%);
-        width: 18px;
-        height: 18px;
-        border: 2px solid #9ca3af;
-        border-radius: 4px;
+        width: 20px;
+        height: 20px;
+        border: 2.5px solid #f59e0b;
+        border-radius: 50%;
         background: white;
         z-index: 10;
         transition: all 0.15s;
+        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
       }
-      .nlm-selection-active .single-source-container.nlm-selected::before {
-        background: #3b82f6;
-        border-color: #3b82f6;
+      .nlm-selection-active .single-source-container.nlm-selected::after {
+        background: #f59e0b;
+        border-color: #f59e0b;
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6.5 11.5L3 8l1-1 2.5 2.5L12 4l1 1-6.5 6.5z'/%3E%3C/svg%3E");
         background-size: 14px;
         background-position: center;
         background-repeat: no-repeat;
+        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35);
       }
       .nlm-selection-active .single-source-container.nlm-selected {
-        background: #eff6ff !important;
-        border-left: 3px solid #3b82f6 !important;
-      }
-      .nlm-selection-active .single-source-container .source-title-column {
-        padding-left: 24px !important;
+        background: #fffbeb !important;
       }
       #nlm-select-toolbar {
         margin: 8px 12px;
