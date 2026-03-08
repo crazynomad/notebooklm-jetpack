@@ -3,6 +3,26 @@ title: '更新日志'
 description: 'NotebookLM Jetpack 版本更新记录'
 ---
 
+## v1.5.6 — 2026-03-08
+
+- 🗑️ 新增批量删除来源功能：`Cmd+Shift+S`（Mac）/ `Ctrl+Shift+S`（Windows）进入选择模式，支持全选、反选、仅选失败项，一键批量删除
+- 🛟 改进错误检测：通过 MutationObserver 监听 class 属性变化，实时检测导入失败的来源（#35）
+- 🔄 延迟复查机制：导入后 5s/10s/18s 多次自动复查，捕获微信等「假性成功」来源
+- ✏️ 修复粘贴文本来源的智能重命名功能（#38）
+- 🏗️ 新增华为开发者文档支持：修复 Catalog API 解析 + Tab-based 内容提取（#37）
+
+## v1.5.5 — 2026-03-02
+
+- 🌐 完成 content script 横幅和 popup 组件的完整 i18n 国际化
+
+## v1.5.4 — 2026-03-01
+
+- 🌐 新增 Chrome i18n 支持，添加 `_locales` 目录（en / zh_CN）
+
+## v1.5.3
+
+- 📝 README 更新：截图、YouTube 演示视频、英文内容
+
 ## v1.5.2 — 2026-02-25
 
 - 🌐 新增 X.com（Twitter）长文章（Article）导入支持，通过标签页渲染完整提取
