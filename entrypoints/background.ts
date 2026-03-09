@@ -316,16 +316,19 @@ export default defineBackground(() => {
           const spaResults = await repairDynamicSources(spaPages.map((p: { url: string }) => p.url), true);
           for (const result of spaResults) {
             if (result.status === 'success' && result.title) {
-              // Find the original page info for this URL
-              const page = spaPages.find((p: { url: string }) => p.url === result.url);
               const content = result.content || '';
+              // innerText from SPA pages is plain text with \n line breaks.
+              // Convert single \n to \n\n so marked.parse() creates proper paragraphs.
+              const markdown = content.replace(/(?<!\n)\n(?!\n)/g, '\n\n');
               contents.push({
                 url: result.url,
                 title: result.title,
-                markdown: content,
+                markdown,
                 section: undefined,
                 wordCount: content.split(/\s+/).length,
               });
+            } else if (result.status === 'error') {
+              console.warn('[GENERATE_PDF] SPA extraction failed:', result.url, result.error);
             }
             sendProgress({ phase: 'fetching', current: contents.length, total: pagesToFetch.length, currentPage: result.title });
           }
@@ -582,7 +585,9 @@ async function _tabBasedExtract(urls: string[], extractOnly = false): Promise<Re
       });
 
       // Give extra time for dynamic content to render (SPA sites need more)
-      const renderWait = needsTabBasedExtraction(url) ? 5000 : 3000;
+      // X.com articles need 8s+ in background tabs for full content rendering
+      const isXcom = /^https?:\/\/(www\.)?(x\.com|twitter\.com)\//.test(url);
+      const renderWait = isXcom ? 8000 : needsTabBasedExtraction(url) ? 5000 : 3000;
       await new Promise((r) => setTimeout(r, renderWait));
 
       // Extract content from the rendered page (site-specific extractors)
@@ -591,23 +596,38 @@ async function _tabBasedExtract(urls: string[], extractOnly = false): Promise<Re
         func: () => {
           const currentUrl = window.location.href;
 
-          // ── X.com / Twitter Article extractor ──
-          // X articles have [data-testid="twitterArticleReadView"] as the container,
-          // with [data-testid="twitterArticleRichTextView"] holding pure article content.
-          // [data-testid="twitter-article-title"] holds the title.
-          const xArticleContent = document.querySelector('[data-testid="twitterArticleRichTextView"]');
-          if (xArticleContent && (currentUrl.includes('x.com/') || currentUrl.includes('twitter.com/'))) {
-            // Title: from dedicated testid, or page title cleaned up
-            const titleEl = document.querySelector('[data-testid="twitter-article-title"]');
-            const title = titleEl?.textContent?.trim()
-              || document.title.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
-
-            // The rich text view contains clean content — just extract with structure
-            const content = (xArticleContent as HTMLElement).innerText?.trim() || '';
-            if (content.length < 100) {
-              return { success: false, error: 'X article: extracted content too short' };
+          // ── X.com / Twitter extractor ──
+          // Articles: [data-testid="twitterArticleRichTextView"] for long-form articles
+          // Regular tweets/threads: [data-testid="tweetText"] for tweet content
+          if (currentUrl.includes('x.com/') || currentUrl.includes('twitter.com/')) {
+            // Try Article extractor first (long-form X Articles)
+            const xArticleContent = document.querySelector('[data-testid="twitterArticleRichTextView"]');
+            if (xArticleContent) {
+              const titleEl = document.querySelector('[data-testid="twitter-article-title"]');
+              const title = titleEl?.textContent?.trim()
+                || document.title.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
+              const content = (xArticleContent as HTMLElement).innerText?.trim() || '';
+              if (content.length >= 100) {
+                return { success: true, title, content };
+              }
             }
-            return { success: true, title, content };
+
+            // Fallback: extract tweet text from the main tweet (for regular posts/threads)
+            const tweetTexts = document.querySelectorAll('article [data-testid="tweetText"]');
+            if (tweetTexts.length > 0) {
+              const title = document.title.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
+              const parts: string[] = [];
+              tweetTexts.forEach(el => {
+                const text = (el as HTMLElement).innerText?.trim();
+                if (text && text.length > 10) parts.push(text);
+              });
+              const content = parts.join('\n\n');
+              if (content.length >= 50) {
+                return { success: true, title, content };
+              }
+            }
+
+            return { success: false, error: 'X.com: 未找到文章或推文内容' };
           }
 
           // ── Huawei Developer Docs extractor ──
