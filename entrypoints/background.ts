@@ -355,7 +355,8 @@ export default defineBackground(() => {
         console.log('[GENERATE_PDF] Fetched', contents.length, 'pages, building HTML...');
         sendProgress({ phase: 'rendering', current: 1, total: 1 });
         html = buildDocsHtml(si, contents);
-        await handleExportPdfFromHtml(html, si.title);
+        const pdfTitle = contents.length === 1 ? contents[0].title : si.title;
+        await handleExportPdfFromHtml(html, pdfTitle);
         sendProgress({ phase: 'done' });
       } catch (err) {
         console.error('[GENERATE_PDF] Error:', err);

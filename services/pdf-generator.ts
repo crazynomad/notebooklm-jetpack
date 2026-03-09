@@ -134,39 +134,40 @@ export async function fetchAllPages(pages: DocPageItem[], options: PdfGeneratorO
 // ── GitHub markdown CSS ──
 
 const CSS = `
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "WenQuanYi Micro Hei", sans-serif, "Apple Color Emoji", "Segoe UI Emoji"; font-size: 14px; line-height: 1.6; color: #24292f; max-width: 860px; margin: 0 auto; padding: 20px 40px; }
+body { font-family: Georgia, "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", serif; font-size: 15px; line-height: 1.9; color: #1a1612; background: #f6f1ea; max-width: 820px; margin: 0 auto; padding: 24px 48px; -webkit-font-smoothing: antialiased; }
 @media print {
-  body { font-size: 11px; padding: 0 15px; }
+  body { font-size: 12px; padding: 0 15px; background: #f6f1ea; }
   .page-break { page-break-before: always; }
   .no-break { page-break-inside: avoid; }
   @page { margin: 1.5cm; size: A4; }
 }
-h1 { font-size: 2em; border-bottom: 1px solid #d1d9e0; padding-bottom: .3em; margin-top: 1.5em; }
-h2 { font-size: 1.5em; border-bottom: 1px solid #d1d9e0; padding-bottom: .3em; margin-top: 1.4em; }
-h3 { font-size: 1.25em; margin-top: 1.2em; }
-h4 { font-size: 1em; margin-top: 1em; }
-code { background: #f6f8fa; border-radius: 6px; padding: .2em .4em; font-size: 85%; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
-pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow-x: auto; line-height: 1.45; }
+h1 { font-size: 1.8em; border-bottom: 1px solid #d4c9ba; padding-bottom: .3em; margin-top: 1.8em; color: #1a1612; letter-spacing: .02em; }
+h2 { font-size: 1.4em; border-bottom: 1px solid #d4c9ba; padding-bottom: .3em; margin-top: 1.6em; color: #2a2420; }
+h3 { font-size: 1.2em; margin-top: 1.4em; color: #2a2420; }
+h4 { font-size: 1em; margin-top: 1.2em; color: #3a3430; }
+p { margin: .8em 0; }
+code { background: #eee8de; border-radius: 4px; padding: .15em .4em; font-size: 85%; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; color: #5c4a3a; }
+pre { background: #eee8de; border-radius: 6px; padding: 16px; overflow-x: auto; line-height: 1.5; }
 pre code { background: none; padding: 0; }
-blockquote { border-left: 3px solid #d0d7de; color: #656d76; padding: 0 1em; margin: .5em 0; }
+blockquote { border-left: 3px solid #c4553a; color: #5c5147; background: #eee8de; padding: .6em 1em; margin: 1em 0; border-radius: 0 6px 6px 0; }
 table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-th, td { border: 1px solid #d1d9e0; padding: 6px 13px; }
-th { background: #f6f8fa; font-weight: 600; }
-tr:nth-child(even) { background: #f6f8fa; }
-hr { border: none; border-top: 1px solid #d1d9e0; margin: 1.5em 0; }
+th, td { border: 1px solid #d4c9ba; padding: 8px 14px; }
+th { background: #eee8de; font-weight: 600; color: #2a2420; }
+tr:nth-child(even) { background: #ede6db; }
+hr { border: none; border-top: 1px solid #d4c9ba; margin: 2em 0; }
 ul, ol { padding-left: 2em; }
-li { margin: .25em 0; }
+li { margin: .3em 0; }
 .cover { text-align: center; padding-top: 180px; }
-.cover h1 { border: none; color: #333; font-size: 2.5em; }
-.cover .meta { color: #999; margin-top: 1.5em; }
-.page-header { color: #999; font-size: .8em; margin-bottom: .3em; }
-.page-source { color: #bbb; font-size: .75em; margin-top: 2em; border-top: 1px solid #eee; padding-top: .5em; }
-.toc { background: #f6f8fa; border-radius: 8px; padding: 20px 28px; margin: 1em 0; }
-.toc h2 { border: none; margin-top: 0; }
+.cover h1 { border: none; color: #1a1612; font-size: 2.4em; letter-spacing: .04em; }
+.cover .meta { color: #8a7e70; margin-top: 1.5em; font-size: .9em; letter-spacing: .08em; }
+.page-header { color: #8a7e70; font-size: .8em; margin-bottom: .3em; letter-spacing: .05em; }
+.page-source { color: #b0a596; font-size: .75em; margin-top: 2.5em; border-top: 1px solid #d4c9ba; padding-top: .6em; }
+.toc { background: #eee8de; border-radius: 8px; padding: 24px 32px; margin: 1em 0; }
+.toc h2 { border: none; margin-top: 0; color: #2a2420; }
 .toc ul { list-style: none; padding-left: 0; }
-.toc li { margin: .15em 0; }
+.toc li { margin: .2em 0; }
 .toc li li { padding-left: 1.5em; }
-.toc a { color: #0969da; text-decoration: none; }
+.toc a { color: #c4553a; text-decoration: none; }
 `;
 
 // ── Build full HTML document from pages ──
@@ -181,43 +182,53 @@ export function buildDocsHtml(siteInfo: DocSiteInfo, pages: PageContent[]): stri
     sections.get(s)!.push(p);
   }
 
-  // TOC
-  let toc = '<div class="toc"><h2>Table of Contents</h2><ul>';
-  for (const [sec, ps] of sections) {
-    toc += `<li><strong>${sec}</strong><ul>`;
-    for (const p of ps) toc += `<li><a href="#p-${encodeURIComponent(p.url)}">${p.title}</a></li>`;
-    toc += '</ul></li>';
+  // TOC (skip for single page)
+  let toc = '';
+  if (pages.length > 1) {
+    toc = '<div class="toc"><h2>Table of Contents</h2><ul>';
+    for (const [sec, ps] of sections) {
+      toc += `<li><strong>${sec}</strong><ul>`;
+      for (const p of ps) toc += `<li><a href="#p-${encodeURIComponent(p.url)}">${p.title}</a></li>`;
+      toc += '</ul></li>';
+    }
+    toc += '</ul></div>';
   }
-  toc += '</ul></div>';
 
   // Pages
   let pagesHtml = '';
   for (const p of pages) {
     const html = marked.parse(p.markdown) as string;
+    // Only add h1 title if markdown doesn't already start with one
+    const hasH1 = /^<h1[\s>]/i.test(html.trim());
     pagesHtml += `
       <div class="page-break"></div>
       <div class="page-header">${p.section || ''}</div>
       <div id="p-${encodeURIComponent(p.url)}">
+        ${hasH1 ? '' : `<h1>${p.title}</h1>`}
         ${html}
       </div>
       <div class="page-source">${p.url}</div>
     `;
   }
 
+  const title = pages.length === 1 ? pages[0].title : siteInfo.title;
+  const cover = pages.length === 1 ? '' : `
+  <div class="cover">
+    <h1>${title}</h1>
+    <div class="meta">${pages.length} pages &middot; ${new Date().toISOString().split('T')[0]}</div>
+    <div class="meta">Generated by NotebookLM Jetpack</div>
+  </div>
+  <div class="page-break"></div>`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>${siteInfo.title}</title>
+  <title>${title}</title>
   <style>${CSS}</style>
 </head>
 <body>
-  <div class="cover">
-    <h1>${siteInfo.title}</h1>
-    <div class="meta">${pages.length} pages &middot; ${new Date().toISOString().split('T')[0]}</div>
-    <div class="meta">Generated by NotebookLM Jetpack</div>
-  </div>
-  <div class="page-break"></div>
+  ${cover}
   ${toc}
   ${pagesHtml}
 </body>
