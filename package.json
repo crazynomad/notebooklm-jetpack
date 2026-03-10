@@ -23,6 +23,7 @@
   "dependencies": {
     "@radix-ui/react-tabs": "^1.1.13",
     "clsx": "^2.1.1",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^0.454.0",
     "marked": "^17.0.3",
     "react": "^18.2.0",

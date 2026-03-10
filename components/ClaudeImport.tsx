@@ -5,6 +5,7 @@ import {
   CheckCircle,
   AlertCircle,
   RefreshCw,
+  Share2,
 } from 'lucide-react';
 import type { ClaudeConversation, QAPair, ImportProgress } from '@/lib/types';
 import { t } from '@/lib/i18n';
@@ -156,6 +157,25 @@ export function ClaudeImport({ onProgress }: Props) {
     });
   };
 
+  const handleShareCard = async () => {
+    if (!conversation) return;
+    const pairs = conversation.pairs || [];
+    const selected = pairs.filter((p) => selectedPairIds.has(p.id));
+    if (selected.length === 0) return;
+
+    await chrome.storage.local.set({
+      shareCardData: {
+        pairs: selected,
+        title: conversation.title,
+        platform: platformInfo?.name || 'AI',
+        platformIcon: platformInfo?.icon || '🤖',
+        url: conversation.url,
+      },
+    });
+
+    chrome.tabs.create({ url: chrome.runtime.getURL('/share-card.html') });
+  };
+
   const pairs = conversation?.pairs || [];
   const allSelected = pairs.length > 0 && selectedPairIds.size === pairs.length;
 
@@ -303,18 +323,28 @@ export function ClaudeImport({ onProgress }: Props) {
         ))}
       </div>
 
-      {/* Import button */}
-      <button
-        onClick={handleImport}
-        disabled={state === 'importing' || selectedPairIds.size === 0}
-        className="w-full py-2.5 bg-notebooklm-blue text-white rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-      >
-        {state === 'importing' ? (
-          <><Loader2 className="w-4 h-4 animate-spin" />{t('claude.importingBtn')}</>
-        ) : (
-          <>{t('claude.importSelected', { count: selectedPairIds.size })}</>
-        )}
-      </button>
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={handleImport}
+          disabled={state === 'importing' || selectedPairIds.size === 0}
+          className="flex-1 py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+        >
+          {state === 'importing' ? (
+            <><Loader2 className="w-4 h-4 animate-spin" />{t('claude.importingBtn')}</>
+          ) : (
+            <>{t('claude.importSelected', { count: selectedPairIds.size })}</>
+          )}
+        </button>
+        <button
+          onClick={handleShareCard}
+          disabled={state === 'importing' || selectedPairIds.size === 0}
+          className="py-2.5 px-4 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+          title={t('claude.shareCard')}
+        >
+          <Share2 className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* Status */}
       {state === 'success' && (

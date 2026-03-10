@@ -78,6 +78,25 @@ NotebookLM has no official API. The content script uses CSS selectors that may b
 - **PDF tests**: `tests/pdf-*.mjs` (standalone scripts for PDF generation verification)
 - **E2E**: `scripts/test-e2e.mjs` (CDP-based smoke test)
 
+## Issues & Architecture Constraints
+
+### Issue Templates
+All issues must use the GitHub Issue Templates (`.github/ISSUE_TEMPLATE/`). Blank issues are disabled. Three templates:
+- **Bug Report**: requires version, browser, feature area, repro steps, error logs
+- **Feature Request**: requires motivation, proposed solution
+- **Site Support Request**: requires URL, site type, page structure info (sitemap/framework/rendering)
+
+### Architecture Limitations (Pure Client-Side)
+When evaluating site support requests or new features, remember this extension has **no backend server**. We can only support:
+- ✅ Static/SSR pages with standard HTML structure
+- ✅ Doc sites with sitemap.xml or llms.txt
+- ✅ Content sources with public RSS/API
+- ❌ Heavy SPA / JS-runtime-rendered pages (content not in initial HTML)
+- ❌ Private content requiring authentication
+- ❌ Sites with aggressive anti-bot/anti-automation
+
+If a request falls into ❌ territory, label it `site-support` and explain the architectural constraint. Do not attempt hacky workarounds that will break.
+
 ## Configuration
 
 Manifest permissions include: storage, activeTab, tabs, scripting, contextMenus, downloads, debugger, offscreen.

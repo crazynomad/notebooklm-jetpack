@@ -1,0 +1,89 @@
+name: 🐛 Bug Report
+description: 报告一个 Bug / Report a bug
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你提交 Bug 报告！请尽量填写以下信息，这样我们才能快速定位和修复问题。
+        Thanks for filing a bug report! Please fill in the details below so we can investigate efficiently.
+
+  - type: input
+    id: version
+    attributes:
+      label: 扩展版本 / Extension Version
+      description: "在扩展 Popup 底部可以看到版本号"
+      placeholder: "e.g. v1.5.7"
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: 浏览器 / Browser
+      placeholder: "e.g. Chrome 130, Edge 130"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature
+    attributes:
+      label: 涉及功能 / Feature Area
+      options:
+        - Doc Sites 导入
+        - Podcast 导入
+        - AI 对话导入 (Claude/ChatGPT/Gemini)
+        - Bookmarks 书签
+        - PDF 导出
+        - RSS
+        - URL 导入
+        - NotebookLM 页面交互
+        - 其他 / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述 / Description
+      description: "清楚地描述你遇到了什么问题"
+      placeholder: "导入某某网站时，点击导入按钮后没有反应..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Steps to Reproduce
+      description: "请提供详细的复现步骤"
+      value: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 看到 ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为 / Expected Behavior
+      description: "你期望看到什么结果？"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 错误日志 / Error Logs
+      description: "打开 DevTools (F12) → Console，粘贴相关报错信息"
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图 / Screenshots
+      description: "如果有帮助的话，请附上截图"
+    validations:
+      required: false

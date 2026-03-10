@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, Loader2, CheckCircle, AlertCircle, Search, ChevronRight, FileDown, Rocket } from 'lucide-react';
+import { BookOpen, Loader2, CheckCircle, AlertCircle, Search, ChevronRight, FileDown, Copy, Rocket } from 'lucide-react';
 import type { ImportProgress, DocSiteInfo, DocPageItem, DocFramework } from '@/lib/types';
 import type { PdfProgress } from '@/services/pdf-generator';
 import { t } from '@/lib/i18n';
@@ -16,7 +16,7 @@ export function DocsImport({ onProgress }: Props) {
   const [state, setState] = useState<State>('idle');
   const [error, setError] = useState('');
   const [results, setResults] = useState<{ success: number; failed: number } | null>(null);
-  const [pdfState, setPdfState] = useState<'idle' | 'fetching' | 'generating' | 'done'>('idle');
+  const [pdfState, setPdfState] = useState<'idle' | 'fetching' | 'generating' | 'done' | 'copied'>('idle');
   const [pdfProgress, setPdfProgress] = useState<PdfProgress | null>(null);
   const [isOnNotebookLM, setIsOnNotebookLM] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
@@ -211,7 +211,7 @@ export function DocsImport({ onProgress }: Props) {
     });
   };
 
-  const handleExportPdf = async () => {
+  const handleExport = async (mode: 'pdf' | 'clipboard') => {
     if (!siteInfo) return;
 
     const pages = siteInfo.pages.filter((p) => selectedPages.has(p.url));
@@ -229,17 +229,26 @@ export function DocsImport({ onProgress }: Props) {
       const filteredSiteInfo = { ...siteInfo, pages };
       // Connect to background via port for progress updates
       const port = chrome.runtime.connect({ name: 'pdf-export' });
-      port.postMessage({ type: 'GENERATE_PDF', siteInfo: filteredSiteInfo });
+      port.postMessage({ type: mode === 'clipboard' ? 'GENERATE_CLIPBOARD' : 'GENERATE_PDF', siteInfo: filteredSiteInfo });
 
-      port.onMessage.addListener((msg) => {
+      port.onMessage.addListener(async (msg) => {
         if (msg.phase === 'fetching') {
           setPdfState('fetching');
           setPdfProgress({ phase: 'fetching', current: msg.current, total: msg.total, currentPage: msg.currentPage });
         } else if (msg.phase === 'rendering') {
           setPdfState('generating');
           setPdfProgress({ phase: 'rendering', current: 1, total: 1 });
+        } else if (msg.phase === 'clipboard') {
+          try {
+            await navigator.clipboard.writeText(msg.markdown);
+            setPdfState('copied');
+          } catch {
+            setState('error');
+            setError(t('clipboardFailed'));
+            setPdfState('idle');
+          }
         } else if (msg.phase === 'done') {
-          setPdfState('done');
+          if (mode === 'pdf') setPdfState('done');
           port.disconnect();
         } else if (msg.phase === 'error') {
           setState('error');
@@ -251,7 +260,7 @@ export function DocsImport({ onProgress }: Props) {
 
       port.onDisconnect.addListener(() => {
         // Background disconnected (e.g. service worker restart) — if not done, show message
-        if (pdfState !== 'done') {
+        if (pdfState !== 'done' && pdfState !== 'copied') {
           setPdfState('done');
           // PDF generation continues in background even if port drops
         }
@@ -415,36 +424,46 @@ export function DocsImport({ onProgress }: Props) {
             )}
           </button>
 
-          {/* PDF Export */}
-          <button
-            onClick={handleExportPdf}
-            disabled={selectedPages.size === 0 || state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
-            className="w-full py-2.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
-          >
-            {pdfState === 'fetching' || pdfState === 'generating' ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {pdfState === 'fetching'
-                  ? <>{t('pdfFetching', { current: pdfProgress?.current || 0, total: pdfProgress?.total || selectedPages.size })}</>
-                  : <>{t('pdfGenerating', { current: pdfProgress?.current || 0, total: pdfProgress?.total || 1 })}</>}
-              </>
-            ) : pdfState === 'done' ? (
-              <>
+          {/* Export: Download PDF / Copy to Clipboard */}
+          {pdfState === 'fetching' || pdfState === 'generating' ? (
+            <button
+              disabled
+              className="w-full py-2.5 bg-emerald-500 text-white text-sm rounded-lg disabled:opacity-70 flex items-center justify-center gap-2"
+            >
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {pdfState === 'fetching'
+                ? t('pdfFetching', { current: pdfProgress?.current || 0, total: pdfProgress?.total || selectedPages.size })
+                : t('pdfGeneratingSimple')}
+            </button>
+          ) : pdfState === 'done' || pdfState === 'copied' ? (
+            <div className="text-center">
+              <p className="text-sm text-emerald-600 flex items-center justify-center gap-1.5 py-1">
                 <CheckCircle className="w-4 h-4" />
-                {t('pdfDownloaded')}
-              </>
-            ) : (
-              <>
+                {pdfState === 'copied' ? t('clipboardCopied') : t('pdfDownloaded')}
+              </p>
+              {pdfState === 'done' && (
+                <p className="text-xs text-emerald-600/70">{t('docs.pdfSaved')}</p>
+              )}
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleExport('pdf')}
+                disabled={selectedPages.size === 0 || state === 'importing'}
+                className="flex-1 py-2.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+              >
                 <FileDown className="w-4 h-4" />
-                {t('docs.exportPdf', { count: selectedPages.size })}
-              </>
-            )}
-          </button>
-
-          {pdfState === 'done' && (
-            <p className="text-xs text-emerald-600 text-center">
-              {t('docs.pdfSaved')}
-            </p>
+                {t('downloadPdf')}
+              </button>
+              <button
+                onClick={() => handleExport('clipboard')}
+                disabled={selectedPages.size === 0 || state === 'importing'}
+                className="flex-1 py-2.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+              >
+                <Copy className="w-4 h-4" />
+                {t('copyToClipboard')}
+              </button>
+            </div>
           )}
         </div>
       )}

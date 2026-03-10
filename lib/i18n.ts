@@ -26,6 +26,10 @@ const zh = {
   'pdfFetching': '抓取页面 {current}/{total}...',
   'pdfGenerating': '生成 PDF {current}/{total}...',
   'pdfGeneratingSimple': '生成 PDF...',
+  'clipboardCopied': '已复制到剪贴板',
+  'clipboardFailed': '复制失败',
+  'copyToClipboard': '复制',
+  'downloadPdf': '下载 PDF',
   'successCount': '成功 {success} 个',
   'successFailCount': '成功 {success} 个，失败 {failed} 个',
   'successArticles': '成功 {success} 篇',
@@ -149,6 +153,7 @@ const zh = {
   'claude.guideStep2': '点击浏览器工具栏中的 Jetpack 图标打开本面板',
   'claude.guideStep3': '点击「提取当前对话」，选择要导入的问答对',
   'claude.guideStep4': '一键导入到 NotebookLM，AI 对话秒变知识来源',
+  'claude.shareCard': '生成分享卡片',
   'claude.guideTip': '💡 导入前请确保已打开一个 NotebookLM 笔记本（非首页）',
 
   // ── BookmarkPanel ──
@@ -242,6 +247,10 @@ const en: Record<keyof typeof zh, string> = {
   'pdfFetching': 'Fetching {current}/{total}...',
   'pdfGenerating': 'Generating PDF {current}/{total}...',
   'pdfGeneratingSimple': 'Generating PDF...',
+  'clipboardCopied': 'Copied to clipboard',
+  'clipboardFailed': 'Copy failed',
+  'copyToClipboard': 'Copy',
+  'downloadPdf': 'Download PDF',
   'successCount': '{success} succeeded',
   'successFailCount': '{success} succeeded, {failed} failed',
   'successArticles': '{success} articles succeeded',
@@ -365,6 +374,7 @@ const en: Record<keyof typeof zh, string> = {
   'claude.guideStep2': 'Click the Jetpack icon in the toolbar to open this panel',
   'claude.guideStep3': 'Click "Extract Current Conversation" and select Q&A pairs',
   'claude.guideStep4': 'Import to NotebookLM — turn AI chats into knowledge sources',
+  'claude.shareCard': 'Share Card',
   'claude.guideTip': '💡 Make sure a NotebookLM notebook (not homepage) is open before importing',
 
   // ── BookmarkPanel ──

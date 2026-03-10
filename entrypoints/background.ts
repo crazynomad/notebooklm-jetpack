@@ -256,17 +256,37 @@ export default defineBackground(() => {
     if (port.name !== 'pdf-export') return;
 
     port.onMessage.addListener(async (msg) => {
-      if (msg.type !== 'GENERATE_PDF') return;
+      if (msg.type !== 'GENERATE_PDF' && msg.type !== 'GENERATE_CLIPBOARD') return;
 
+      const isClipboard = msg.type === 'GENERATE_CLIPBOARD';
       const si = msg.siteInfo;
       const sendProgress = (data: Record<string, unknown>) => {
         try { port.postMessage(data); } catch { /* port disconnected */ }
       };
 
-      console.log('[GENERATE_PDF] Starting via port, pages:', si.pages.length);
+      const logPrefix = isClipboard ? '[GENERATE_CLIPBOARD]' : '[GENERATE_PDF]';
+      console.log(`${logPrefix} Starting via port, pages:`, si.pages.length);
 
       try {
-        let html: string;
+        // Helper: finalize output — either copy to clipboard (return markdown) or generate PDF
+        const finalizeOutput = async (contents: { title: string; markdown: string; section?: string; url: string; wordCount: number }[]) => {
+          if (isClipboard) {
+            // Concatenate all markdown for clipboard
+            const markdown = contents.map(c => {
+              const header = `# ${c.title}\n`;
+              const source = `\n> Source: ${c.url}\n`;
+              return header + c.markdown + source;
+            }).join('\n\n---\n\n');
+            sendProgress({ phase: 'clipboard', markdown });
+            sendProgress({ phase: 'done' });
+          } else {
+            sendProgress({ phase: 'rendering', current: 1, total: 1 });
+            const html = buildDocsHtml(si, contents);
+            const pdfTitle = contents.length === 1 ? contents[0].title : si.title;
+            await handleExportPdfFromHtml(html, pdfTitle);
+            sendProgress({ phase: 'done' });
+          }
+        };
 
         // Fast path: llms-full.txt
         if (si.hasLlmsFullTxt) {
@@ -290,10 +310,7 @@ export default defineBackground(() => {
                 };
               });
               sendProgress({ phase: 'fetching', current: 1, total: 1 });
-              sendProgress({ phase: 'rendering', current: 1, total: 1 });
-              html = buildDocsHtml(si, contents);
-              await handleExportPdfFromHtml(html, si.title);
-              sendProgress({ phase: 'done' });
+              await finalizeOutput(contents);
               return;
             }
           }
@@ -352,14 +369,10 @@ export default defineBackground(() => {
           return;
         }
 
-        console.log('[GENERATE_PDF] Fetched', contents.length, 'pages, building HTML...');
-        sendProgress({ phase: 'rendering', current: 1, total: 1 });
-        html = buildDocsHtml(si, contents);
-        const pdfTitle = contents.length === 1 ? contents[0].title : si.title;
-        await handleExportPdfFromHtml(html, pdfTitle);
-        sendProgress({ phase: 'done' });
+        console.log(`${logPrefix} Fetched`, contents.length, 'pages, finalizing...');
+        await finalizeOutput(contents);
       } catch (err) {
-        console.error('[GENERATE_PDF] Error:', err);
+        console.error(`${logPrefix} Error:`, err);
         sendProgress({ phase: 'error', error: String(err) });
       }
     });

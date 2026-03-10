@@ -1,0 +1,77 @@
+name: 🌐 网站支持请求 / Site Support Request
+description: 请求支持新的文档站点或网站 / Request support for a new website
+labels: ["site-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        想让 Jetpack 支持一个新网站？请提供以下信息帮助我们评估可行性。
+        Want Jetpack to support a new site? Please provide the following info so we can assess feasibility.
+
+        ⚠️ **请注意 / Please Note:**
+        NotebookLM Jetpack 是一个纯客户端的 Chrome 扩展，**不依赖任何后端服务器**。
+        这意味着我们只能处理：
+        - ✅ 有标准 HTML 结构的静态/SSR 页面
+        - ✅ 提供 sitemap.xml 或 llms.txt 的文档站
+        - ✅ 有公开 RSS/API 的内容源
+        - ❌ **重度 SPA / 动态渲染页面**（内容完全由 JS 运行时生成）
+        - ❌ **需要登录认证才能访问的私有内容**
+        - ❌ **有严格反爬/反自动化机制的站点**
+
+        如果你请求的站点属于 ❌ 类别，我们可能无法在当前架构下支持。
+
+  - type: input
+    id: url
+    attributes:
+      label: 网站 URL / Site URL
+      placeholder: "https://example.com/docs"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: site_type
+    attributes:
+      label: 站点类型 / Site Type
+      options:
+        - 技术文档站 / Technical Documentation
+        - 知识库 / Knowledge Base
+        - 博客 / Blog
+        - 学术/科研 / Academic/Research
+        - 新闻/媒体 / News/Media
+        - 其他 / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: structure
+    attributes:
+      label: 页面结构信息 / Page Structure Info
+      description: |
+        请尽量提供以下信息（任何一项都有帮助）：
+        - 该站点是否有 sitemap.xml？
+        - 是否有 /llms.txt 或 /llms-full.txt？
+        - 页面内容是静态 HTML 还是 JS 动态渲染？
+        - 使用了什么文档框架？(Docusaurus, MkDocs, GitBook, etc.)
+      placeholder: |
+        - sitemap: https://example.com/sitemap.xml
+        - 框架: Docusaurus
+        - 页面内容是 SSR 的
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: 使用场景 / Use Case
+      description: "你打算导入这个站点的什么内容到 NotebookLM？大概多少页？"
+      placeholder: "我想把 XX 的 API 文档（约 50 页）导入 NotebookLM 用于..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图 / Screenshots
+      description: "如果方便的话，附上网站截图"
+    validations:
+      required: false
