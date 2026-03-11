@@ -187,7 +187,7 @@ body {
 
 /* ── Card header ── */
 .card-header {
-  padding: 16px 28px 20px;
+  padding: 20px 32px 24px;
   text-align: center;
   position: relative;
 }
@@ -205,7 +205,7 @@ body {
 
 .platform-label {
   font-family: 'EB Garamond', serif;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.35em;
   text-transform: uppercase;
   color: var(--margin-note);
@@ -214,9 +214,9 @@ body {
 
 .card-title {
   font-family: 'Noto Serif SC', serif;
-  font-size: 18px;
+  font-size: 21px;
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--text-cn);
   letter-spacing: 0.02em;
   display: -webkit-box;
@@ -227,14 +227,14 @@ body {
 
 /* ── Q&A pairs ── */
 .pairs {
-  padding: 24px 28px 0;
+  padding: 24px 32px 0;
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 
 .pair {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .pair:last-child {
@@ -243,26 +243,26 @@ body {
 
 /* Question block */
 .question-block {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   padding-left: 14px;
   border-left: 2px solid var(--accent-light);
 }
 
 .role-label {
   font-family: 'EB Garamond', serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .question-text {
   font-family: 'Noto Serif SC', serif;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 500;
-  line-height: 1.85;
+  line-height: 1.9;
   color: var(--text-cn);
 }
 
@@ -273,19 +273,19 @@ body {
 
 .answer-label {
   font-family: 'EB Garamond', serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--margin-note);
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 .answer-text {
   font-family: 'Noto Serif SC', serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 400;
-  line-height: 1.9;
+  line-height: 2.0;
   color: var(--text-en);
 }
 
@@ -301,7 +301,7 @@ body {
 
 /* ── Card footer ── */
 .card-footer {
-  margin: 24px 28px 0;
+  margin: 24px 32px 0;
   padding: 16px 0 28px;
   border-top: 1px solid var(--rule);
   display: flex;
@@ -318,14 +318,14 @@ body {
 
 .footer-brand {
   font-family: 'EB Garamond', serif;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--margin-note);
   letter-spacing: 0.08em;
 }
 
 .footer-made-with {
   font-family: 'EB Garamond', 'Noto Serif SC', serif;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--rule);
   letter-spacing: 0.04em;
 }

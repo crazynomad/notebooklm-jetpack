@@ -3,34 +3,49 @@
 <head>
 <meta charset="utf-8">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;500;600&display=swap');
 
   :root {
-    --accent: #D97706;
-    --accent-light: rgba(217, 119, 6, 0.08);
-    --accent-glow: rgba(217, 119, 6, 0.15);
+    --accent: #b8734a;
+    --accent-light: rgba(184, 115, 74, 0.08);
+    --accent-glow: rgba(184, 115, 74, 0.15);
+    --bg: #f6f1ea;
+    --text-primary: #1a1612;
+    --text-secondary: #5c5147;
+    --text-margin: #8a7e70;
+    --rule: #d4c9ba;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'DM Sans', 'Noto Sans SC', sans-serif;
+    font-family: 'EB Garamond', 'Noto Serif SC', serif;
     width: 1280px;
     height: 800px;
     position: relative;
     overflow: hidden;
-    background: #FAFBFD;
+    background: var(--bg);
   }
 
-  /* Subtle dot grid pattern */
+  /* Paper texture overlay */
   body::before {
     content: '';
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
-    background-size: 24px 24px;
     pointer-events: none;
     z-index: 0;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+  }
+
+  /* Warm vignette corners */
+  body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(196, 168, 140, 0.18) 100%);
   }
 
   /* Large number watermark */
@@ -38,24 +53,24 @@
     position: absolute;
     top: -30px;
     right: 40px;
-    font-family: 'Instrument Serif', serif;
+    font-family: 'EB Garamond', serif;
     font-size: 280px;
     font-weight: 400;
-    color: var(--accent);
-    opacity: 0.05;
+    color: var(--text-margin);
+    opacity: 0.08;
     line-height: 1;
     pointer-events: none;
     z-index: 0;
     letter-spacing: -8px;
   }
 
-  /* Top accent bar */
+  /* Thin rule line instead of accent bar */
   .accent-bar {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 3px;
     background: var(--accent);
     z-index: 10;
   }
@@ -75,13 +90,15 @@
     height: 32px;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 4px rgba(26,22,18,0.12);
   }
   .badge-icon img { width: 100%; height: 100%; display: block; }
   .badge-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: #555;
+    font-family: 'EB Garamond', serif;
+    font-size: 14px;
+    font-weight: 500;
+    font-style: italic;
+    color: var(--text-secondary);
     letter-spacing: 0.02em;
   }
 
@@ -93,24 +110,26 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 14px;
+    padding: 5px 14px;
     border-radius: 20px;
     background: var(--accent-light);
     border: 1px solid var(--accent-glow);
     z-index: 5;
   }
   .pill-dot {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: var(--accent);
+    opacity: 0.8;
   }
   .pill-text {
+    font-family: 'EB Garamond', serif;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--accent);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
   }
 
   /* Title block */
@@ -121,25 +140,37 @@
     padding-top: 88px;
     margin-bottom: 24px;
   }
+
+  /* Decorative rule above title */
+  .title-block::before {
+    content: '';
+    display: block;
+    width: 48px;
+    height: 1px;
+    background: var(--rule);
+    margin: 0 auto 20px;
+  }
+
   .title {
-    font-family: 'Instrument Serif', 'Noto Sans SC', serif;
-    font-size: 44px;
-    font-weight: 400;
-    color: #111;
+    font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+    font-size: 46px;
+    font-weight: 500;
+    color: var(--text-primary);
     line-height: 1.15;
-    letter-spacing: -0.5px;
-    margin-bottom: 12px;
+    letter-spacing: 0.01em;
+    margin-bottom: 14px;
   }
   .title em {
     font-style: italic;
     color: var(--accent);
   }
   .subtitle {
-    font-family: 'DM Sans', 'Noto Sans SC', sans-serif;
-    font-size: 17px;
+    font-family: 'EB Garamond', 'Noto Serif SC', serif;
+    font-size: 18px;
     font-weight: 400;
-    color: #888;
-    letter-spacing: 0.01em;
+    font-style: italic;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
   }
 
   /* Screenshot area: full base + highlight overlay */
@@ -159,19 +190,19 @@
     height: 438px;
     background-size: cover;
     background-position: center top;
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow:
-      0 4px 16px rgba(0,0,0,0.06),
-      0 12px 48px rgba(0,0,0,0.10),
-      0 0 0 1px rgba(0,0,0,0.04);
+      0 4px 16px rgba(26,22,18,0.08),
+      0 12px 48px rgba(26,22,18,0.12),
+      0 0 0 1px rgba(26,22,18,0.06);
   }
-  /* Dim overlay so highlight pops */
+  /* Warm dim overlay so highlight pops */
   .screenshot-base::after {
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.25);
+    border-radius: 8px;
+    background: rgba(246,241,234,0.2);
     pointer-events: none;
   }
 
@@ -181,11 +212,11 @@
     bottom: -12px;
     right: -72px;
     height: 440px;
-    border-radius: 12px;
-    border: 3px solid rgba(255,255,255,0.9);
+    border-radius: 8px;
+    border: 2px solid rgba(212,201,186,0.8);
     box-shadow:
-      0 8px 32px rgba(0,0,0,0.14),
-      0 2px 8px rgba(0,0,0,0.06);
+      0 8px 32px rgba(26,22,18,0.16),
+      0 2px 8px rgba(26,22,18,0.08);
     z-index: 2;
     overflow: hidden;
   }
@@ -200,14 +231,16 @@
     position: absolute;
     bottom: 16px;
     right: 32px;
+    font-family: 'EB Garamond', serif;
     font-size: 11px;
-    font-weight: 500;
-    color: #bbb;
-    letter-spacing: 0.02em;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--text-margin);
+    letter-spacing: 0.04em;
     z-index: 5;
   }
 
-  /* Corner accent shape */
+  /* Corner accent shape — warm soft circle */
   .corner-accent {
     position: absolute;
     bottom: -60px;
@@ -216,7 +249,7 @@
     height: 200px;
     border-radius: 50%;
     background: var(--accent);
-    opacity: 0.03;
+    opacity: 0.04;
     z-index: 0;
   }
 </style>

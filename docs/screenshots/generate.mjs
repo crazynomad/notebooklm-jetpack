@@ -19,8 +19,8 @@ const slides = [
     subtitle_en: 'Bookmark → Merge → Export PDF → Break the 50-source limit',
     img: 'raw/01-bookmarks.png',
     highlightImg: 'raw/01-bookmarks-highlight.png',
-    accent: '#059669',
-    accentRgb: '5, 150, 105',
+    accent: '#c4553a',
+    accentRgb: '196, 85, 58',
   },
   {
     id: '02-docs',
@@ -32,8 +32,8 @@ const slides = [
     subtitle_en: 'Auto-detect 14+ frameworks, extract full page tree',
     img: 'raw/02-docs.png',
     highlightImg: 'raw/02-docs-highlight.png',
-    accent: '#7C3AED',
-    accentRgb: '124, 58, 237',
+    accent: '#8a6d3b',
+    accentRgb: '138, 109, 59',
   },
   {
     id: '03-ai-chat',
@@ -45,8 +45,8 @@ const slides = [
     subtitle_en: 'Claude · ChatGPT · Gemini — selectively import Q&A pairs',
     img: 'raw/03-ai-chat.png',
     highlightImg: 'raw/03-ai-chat-highlight.png',
-    accent: '#2563EB',
-    accentRgb: '37, 99, 235',
+    accent: '#5c7a5e',
+    accentRgb: '92, 122, 94',
   },
   {
     id: '04-rescue',
@@ -58,8 +58,8 @@ const slides = [
     subtitle_en: 'Auto-detect failed & silently broken imports, batch repair',
     img: 'raw/04-rescue.png',
     highlightImg: 'raw/04-rescue-highlight.png',
-    accent: '#D97706',
-    accentRgb: '217, 119, 6',
+    accent: '#b8734a',
+    accentRgb: '184, 115, 74',
   },
   {
     id: '05-podcast',
@@ -71,8 +71,8 @@ const slides = [
     subtitle_en: 'Apple Podcasts · Xiaoyuzhou — pick episodes, download audio',
     img: 'raw/05-podcast.png',
     highlightImg: 'raw/05-podcast-highlight.png',
-    accent: '#E11D48',
-    accentRgb: '225, 29, 72',
+    accent: '#7a5c6e',
+    accentRgb: '122, 92, 110',
   },
 ];
 
