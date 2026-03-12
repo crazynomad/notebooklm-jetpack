@@ -61,5 +61,19 @@ export default defineConfig({
       __BUILD_TIME__: JSON.stringify(buildTime),
       __VERSION__: JSON.stringify(version),
     },
+    plugins: [
+      {
+        // Strip remote CDN URLs from jspdf to comply with MV3 no-remote-code policy
+        name: 'strip-remote-code-urls',
+        transform(code: string, id: string) {
+          if (id.includes('jspdf')) {
+            return code.replace(
+              /https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/pdfobject\/[^"']*/g,
+              '',
+            );
+          }
+        },
+      },
+    ],
   }),
 });
