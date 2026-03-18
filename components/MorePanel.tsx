@@ -13,6 +13,8 @@ import {
   Github,
   Heart,
   Info,
+  Download,
+  Upload,
 } from 'lucide-react';
 import type { ImportProgress, ImportItem, RssFeedItem } from '@/lib/types';
 import { t } from '@/lib/i18n';
@@ -235,6 +237,69 @@ export function MorePanel({ onProgress }: Props) {
           )}
         </div>
       )}
+
+      {/* Data Management */}
+      <div className="border border-border rounded-lg overflow-hidden shadow-soft">
+        <div className="px-3 py-2.5 bg-surface-sunken">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <Download className="w-4 h-4 text-green-500" />
+            {t('data.export')} / {t('data.import')}
+          </div>
+        </div>
+        <div className="p-3 space-y-2">
+          <p className="text-xs text-gray-500">{t('data.exportHint')}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  const resp = await chrome.runtime.sendMessage({ type: 'EXPORT_USER_DATA' });
+                  if (resp?.success) {
+                    const blob = new Blob([resp.data as string], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `notebooklm-jetpack-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }
+                } catch (e) {
+                  console.error('Export failed:', e);
+                }
+              }}
+              className="btn-press flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-500 text-white text-xs font-medium rounded-lg hover:bg-green-600 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {t('data.export')}
+            </button>
+            <label className="btn-press flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-colors cursor-pointer">
+              <Upload className="w-3.5 h-3.5" />
+              {t('data.import')}
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  try {
+                    const text = await file.text();
+                    const resp = await chrome.runtime.sendMessage({ type: 'IMPORT_USER_DATA', data: text });
+                    if (resp?.success) {
+                      const result = resp.data as { importedKeys: string[] };
+                      alert(t('data.importSuccess', { count: result.importedKeys.length }));
+                    } else {
+                      alert(t('data.importError'));
+                    }
+                  } catch {
+                    alert(t('data.importError'));
+                  }
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
 
       {/* About Section */}
       <div className="border border-border rounded-lg overflow-hidden shadow-soft">
