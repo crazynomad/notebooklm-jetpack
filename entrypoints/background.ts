@@ -1,4 +1,5 @@
 import { parseRssFeed } from '@/services/rss-parser';
+import { fetchNotebooks as fetchNotebooksApi } from '@/services/notebook-api';
 import {
   importUrl,
   importBatch,
@@ -974,16 +975,32 @@ async function handleMessage(message: MessageType): Promise<unknown> {
 
     // ── Notebook Info ──
     case 'GET_NOTEBOOKS': {
-      // Find all NotebookLM tabs and query each for notebook info
-      const nlmTabs = await chrome.tabs.query({ url: 'https://notebooklm.google.com/*' });
+      // Primary: fetch via batchexecute API (works without open NLM tabs)
+      const apiNotebooks = await fetchNotebooksApi();
+      if (apiNotebooks.length > 0) {
+        // Detect current notebook from any open NLM tab URL
+        let current: { id: string; title: string; url: string } | null = null;
+        const nlmTabs = await chrome.tabs.query({ url: 'https://notebooklm.google.com/notebook/*' });
+        if (nlmTabs.length > 0) {
+          const tabUrl = nlmTabs[0].url || '';
+          const match = tabUrl.match(/\/notebook\/([^/?#]+)/);
+          if (match) {
+            current = apiNotebooks.find(nb => nb.id === match[1]) || null;
+          }
+        }
+        return { current, notebooks: apiNotebooks };
+      }
+
+      // Fallback: content-script approach (requires open NLM tabs)
+      console.log('[background] API fetch returned empty, falling back to content script');
+      const fallbackTabs = await chrome.tabs.query({ url: 'https://notebooklm.google.com/*' });
       const notebooks: Array<{ id: string; title: string; url: string }> = [];
       const seen = new Set<string>();
-      let current: { id: string; title: string; url: string } | null = null;
+      let fallbackCurrent: { id: string; title: string; url: string } | null = null;
 
-      for (const tab of nlmTabs) {
+      for (const tab of fallbackTabs) {
         if (!tab.id) continue;
         try {
-          // Ensure content script is injected
           await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             files: ['content-scripts/notebooklm.js'],
@@ -999,7 +1016,7 @@ async function handleMessage(message: MessageType): Promise<unknown> {
           if (resp.success && resp.data) {
             if (resp.data.current && !seen.has(resp.data.current.id)) {
               seen.add(resp.data.current.id);
-              current = resp.data.current;
+              fallbackCurrent = resp.data.current;
               notebooks.push(resp.data.current);
             }
             for (const nb of resp.data.list) {
@@ -1013,7 +1030,7 @@ async function handleMessage(message: MessageType): Promise<unknown> {
           // Tab may not be ready
         }
       }
-      return { current, notebooks };
+      return { current: fallbackCurrent, notebooks };
     }
 
     default:
