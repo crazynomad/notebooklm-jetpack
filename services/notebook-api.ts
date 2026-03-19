@@ -7,6 +7,15 @@ const NLM_HOME_URL = 'https://notebooklm.google.com/';
 // RPC method ID for listing notebooks
 const RPC_LIST_NOTEBOOKS = 'wXbhsf';
 
+// Cache config
+const CACHE_KEY = 'notebook_list_cache';
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+interface NotebookCache {
+  notebooks: NotebookItem[];
+  cachedAt: number;
+}
+
 export interface NotebookItem {
   id: string;
   title: string;
@@ -51,6 +60,42 @@ function stripAntiXssi(text: string): string {
     return text.slice(prefix.length).trim();
   }
   return text;
+}
+
+async function getCachedNotebooks(): Promise<NotebookItem[] | null> {
+  try {
+    const result = await chrome.storage.local.get(CACHE_KEY);
+    const cache = result[CACHE_KEY] as NotebookCache | undefined;
+    if (cache && Date.now() - cache.cachedAt < CACHE_TTL_MS) {
+      return cache.notebooks;
+    }
+  } catch { /* storage unavailable */ }
+  return null;
+}
+
+async function setCachedNotebooks(notebooks: NotebookItem[]): Promise<void> {
+  try {
+    await chrome.storage.local.set({
+      [CACHE_KEY]: { notebooks, cachedAt: Date.now() } satisfies NotebookCache,
+    });
+  } catch { /* storage unavailable */ }
+}
+
+/**
+ * Fetch notebooks with cache support.
+ * Returns cached data if within TTL, otherwise fetches fresh.
+ * @param force - bypass cache and always fetch from API
+ */
+export async function fetchNotebooksCached(force = false): Promise<NotebookItem[]> {
+  if (!force) {
+    const cached = await getCachedNotebooks();
+    if (cached && cached.length > 0) return cached;
+  }
+  const notebooks = await fetchNotebooks();
+  if (notebooks.length > 0) {
+    await setCachedNotebooks(notebooks);
+  }
+  return notebooks;
 }
 
 /**
@@ -129,12 +174,15 @@ function parseNotebookList(rawText: string): NotebookItem[] {
 
       try {
         const parsed = JSON.parse(trimmed);
-        // batchexecute envelope: [[["wrb.fr", "wXbhsf", "JSON_DATA", ...]]]
+        // batchexecute envelope: [["wrb.fr", "wXbhsf", "JSON_DATA", ...]]
         if (!Array.isArray(parsed)) continue;
 
         for (const outerItem of parsed) {
           if (!Array.isArray(outerItem)) continue;
-          for (const item of outerItem) {
+          // Response may be 2-level [[rpc_result]] or 3-level [[[rpc_result]]].
+          // Detect by checking if outerItem itself is an RPC result (first element is "wrb.fr").
+          const candidates = outerItem[0] === 'wrb.fr' ? [outerItem] : outerItem.filter(Array.isArray);
+          for (const item of candidates) {
             if (!Array.isArray(item)) continue;
             // Check if this is our RPC response: ["wrb.fr", "wXbhsf", "...", ...]
             if (item[0] === 'wrb.fr' && item[1] === RPC_LIST_NOTEBOOKS && typeof item[2] === 'string') {

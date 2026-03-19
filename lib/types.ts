@@ -86,7 +86,7 @@ export type MessageType =
   | { type: 'CREATE_COLLECTION'; name: string }
   | { type: 'IS_BOOKMARKED'; url: string }
   // Notebook info
-  | { type: 'GET_NOTEBOOKS' };
+  | { type: 'GET_NOTEBOOKS'; force?: boolean };
 
 // Notebook info returned from content script
 export interface NotebookInfo {
