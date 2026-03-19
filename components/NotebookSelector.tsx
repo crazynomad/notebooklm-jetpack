@@ -11,18 +11,18 @@ interface NotebookData {
 export function NotebookSelector() {
   const { t } = useI18n();
   const [data, setData] = useState<NotebookData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
 
-  const fetchNotebooks = useCallback(async () => {
+  const fetchNotebooks = useCallback(async (force = false) => {
     setLoading(true);
     try {
-      const resp = await chrome.runtime.sendMessage({ type: 'GET_NOTEBOOKS' });
+      const resp = await chrome.runtime.sendMessage({ type: 'GET_NOTEBOOKS', force });
       if (resp?.success) {
         setData(resp.data as NotebookData);
       }
     } catch {
-      // No NotebookLM tabs open
+      // Extension context unavailable
     }
     setLoading(false);
   }, []);
@@ -46,7 +46,21 @@ export function NotebookSelector() {
     setOpen(false);
   };
 
-  // No NotebookLM tabs open — compact prompt
+  // Loading state — show skeleton while fetching notebooks
+  if (loading) {
+    return (
+      <div className="w-full flex items-center gap-2.5 rounded-xl border border-gray-200/80 px-3 py-2.5">
+        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+          <RefreshCw className="w-4 h-4 text-gray-300 animate-spin" />
+        </div>
+        <div className="flex-1">
+          <div className="h-4 w-32 bg-gray-100 rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  // No notebooks found — compact prompt to open NotebookLM
   if (!data || notebooks.length === 0) {
     return (
       <button
@@ -90,7 +104,7 @@ export function NotebookSelector() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              fetchNotebooks();
+              fetchNotebooks(true);
             }}
             className="p-1.5 text-gray-400 hover:text-notebooklm-blue rounded-md hover:bg-blue-50 transition-colors"
             title={t('notebook.refresh')}

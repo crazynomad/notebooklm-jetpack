@@ -1,5 +1,5 @@
 import { parseRssFeed } from '@/services/rss-parser';
-import { fetchNotebooks as fetchNotebooksApi } from '@/services/notebook-api';
+import { fetchNotebooksCached as fetchNotebooksApi } from '@/services/notebook-api';
 import {
   importUrl,
   importBatch,
@@ -976,7 +976,7 @@ async function handleMessage(message: MessageType): Promise<unknown> {
     // ── Notebook Info ──
     case 'GET_NOTEBOOKS': {
       // Primary: fetch via batchexecute API (works without open NLM tabs)
-      const apiNotebooks = await fetchNotebooksApi();
+      const apiNotebooks = await fetchNotebooksApi(message.force);
       if (apiNotebooks.length > 0) {
         // Detect current notebook from any open NLM tab URL
         let current: { id: string; title: string; url: string } | null = null;
