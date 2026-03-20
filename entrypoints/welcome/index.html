@@ -89,9 +89,82 @@
         text-decoration: none;
       }
       .footer a:hover { text-decoration: underline; }
+
+      /* Pin guide tooltip — top right */
+      .pin-guide {
+        position: fixed;
+        top: 16px;
+        right: 80px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        max-width: 320px;
+        z-index: 100;
+        animation: slideIn 0.4s ease-out;
+      }
+      .pin-guide-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        flex-shrink: 0;
+      }
+      .pin-guide-text {
+        flex: 1;
+      }
+      .pin-guide-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1a1a2e;
+        line-height: 1.4;
+      }
+      .pin-guide-desc {
+        font-size: 11px;
+        color: #888;
+        line-height: 1.4;
+        margin-top: 2px;
+      }
+      .pin-guide-close {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        background: none;
+        border: none;
+        font-size: 16px;
+        color: #bbb;
+        cursor: pointer;
+        line-height: 1;
+        padding: 2px;
+      }
+      .pin-guide-close:hover { color: #666; }
+      .pin-guide-arrow {
+        position: absolute;
+        top: -8px;
+        right: 24px;
+        width: 16px;
+        height: 8px;
+      }
+      @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
     </style>
   </head>
   <body>
+    <!-- Pin guide tooltip -->
+    <div class="pin-guide" id="pinGuide">
+      <svg class="pin-guide-arrow" viewBox="0 0 16 8"><path d="M8 0L16 8H0z" fill="white"/></svg>
+      <img src="/icons/icon-48.png" alt="" class="pin-guide-icon" />
+      <div class="pin-guide-text">
+        <div class="pin-guide-title">NotebookLM Jetpack has been added to Chrome</div>
+        <div class="pin-guide-desc">Click the puzzle piece icon above and pin Jetpack for quick access.</div>
+      </div>
+      <button class="pin-guide-close" onclick="document.getElementById('pinGuide').style.display='none'" aria-label="Close">&times;</button>
+    </div>
+
     <div class="container">
       <img src="/icons/icon-128.png" alt="NotebookLM Jetpack" class="logo" />
 
