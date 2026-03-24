@@ -56,6 +56,26 @@ export interface RssFeedItem {
   pubDate?: string;
 }
 
+// YouTube types
+export interface YouTubeVideoItem {
+  id: string;
+  url: string;
+  title: string;
+  publishedAt?: string;
+}
+
+export interface YouTubeSourceInfo {
+  type: 'video' | 'playlist' | 'channel';
+  id: string;
+  title: string;
+  videoCount?: number;
+}
+
+export interface YouTubeResult {
+  source: YouTubeSourceInfo;
+  videos: YouTubeVideoItem[];
+}
+
 // Message types for communication between popup and background
 export type MessageType =
   | { type: 'IMPORT_URL'; url: string }
@@ -71,6 +91,7 @@ export type MessageType =
   | { type: 'EXPORT_PDF'; blobUrl: string; title: string }
   | { type: 'GENERATE_PDF'; siteInfo: DocSiteInfo }
   | { type: 'FETCH_PODCAST'; url: string; count?: number }
+  | { type: 'FETCH_YOUTUBE'; url: string; count?: number }
   | { type: 'DOWNLOAD_PODCAST' }
   | { type: 'GET_FAILED_SOURCES'; tabId: number }
   | { type: 'RESCUE_SOURCES'; urls: string[] }

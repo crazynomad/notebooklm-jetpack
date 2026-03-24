@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { BookOpen, History, MessageCircle, Headphones, MoreHorizontal, Bookmark } from 'lucide-react';
+import { BookOpen, History, MessageCircle, Headphones, MoreHorizontal, Bookmark, Youtube } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
@@ -8,6 +8,7 @@ import type { Locale } from '@/lib/i18n';
 import { DocsImport } from '@/components/DocsImport';
 import { PodcastImport } from '@/components/PodcastImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
+import { YouTubeImport } from '@/components/YouTubeImport';
 import { MorePanel } from '@/components/MorePanel';
 import { BookmarkPanel } from '@/components/BookmarkPanel';
 import { HistoryPanel } from '@/components/HistoryPanel';
@@ -21,6 +22,7 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [activeTab, setActiveTab] = useState('bookmark');
   const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
+  const [initialYouTubeUrl, setInitialYouTubeUrl] = useState('');
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
 
   // Auto-detect URL from current tab
@@ -31,6 +33,9 @@ export default function App() {
       if (/podcasts\.apple\.com\//.test(url) || /xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) {
         setActiveTab('podcast');
         setInitialPodcastUrl(url);
+      } else if (/youtube\.com\/(watch|playlist|shorts|@|channel|c\/|user\/)|youtu\.be\//.test(url)) {
+        setActiveTab('youtube');
+        setInitialYouTubeUrl(url);
       } else if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) {
         setActiveTab('claude');
       }
@@ -114,6 +119,7 @@ export default function App() {
             { value: 'bookmark', icon: Bookmark, label: t('app.tabBookmarks') },
             { value: 'docs', icon: BookOpen, label: t('app.tabDocs') },
             { value: 'podcast', icon: Headphones, label: t('app.tabPodcast') },
+            { value: 'youtube', icon: Youtube, label: t('app.tabYouTube') },
             { value: 'claude', icon: MessageCircle, label: t('app.tabAI') },
             { value: 'more', icon: MoreHorizontal, label: t('app.tabMore') },
           ].map(({ value, icon: Icon, label }) => (
@@ -142,6 +148,10 @@ export default function App() {
 
         <Tabs.Content value="podcast" className="p-4 animate-fade-in">
           <PodcastImport initialUrl={initialPodcastUrl} />
+        </Tabs.Content>
+
+        <Tabs.Content value="youtube" className="p-4 animate-fade-in">
+          <YouTubeImport initialUrl={initialYouTubeUrl} onProgress={setImportProgress} />
         </Tabs.Content>
 
         <Tabs.Content value="claude" className="p-4 animate-fade-in">

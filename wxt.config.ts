@@ -38,6 +38,7 @@ export default defineConfig({
       'https://notebooklm.google.com/*',
       'https://claude.ai/*',
       'https://platform.claude.com/*',
+      'https://www.youtube.com/*',
     ],
     action: {
       default_title: '__MSG_actionTitle__',
