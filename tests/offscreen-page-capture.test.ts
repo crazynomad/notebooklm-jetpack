@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // We test the fallback logic by extracting htmlToMarkdown into a testable form.
 // Since the offscreen module runs in a Chrome context, we reproduce the pure logic here.
