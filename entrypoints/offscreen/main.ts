@@ -85,9 +85,16 @@ const CONTENT_SELECTORS = [
   '.available-content .body.markup',
   '.available-content',
   '.body.markup',
-  // General
+  // General — specific content containers before broad layout landmarks
   '.markdown-body',
   'article [itemprop="articleBody"]',
+  '#main-content',          // Confluence, WordPress, many CMSes
+  '.wiki-content',          // Confluence wiki body
+  '.entry-content',         // WordPress posts
+  '.post-content',          // WordPress/Ghost
+  '.page-content',          // Generic CMS
+  '.article-content',       // Generic
+  '.article-body',          // Generic
   'article',
   'main',
   '[role="main"]',
