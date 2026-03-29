@@ -165,8 +165,6 @@ try {
 } catch { /* fake-browser in WXT build doesn't support onMessageExternal */ }
 
 // Context menu IDs
-const MENU_ID_PAGE = 'import-page';
-const MENU_ID_LINK = 'import-link';
 const MENU_ID_CAPTURE = 'capture-page-content';
 
 export default defineBackground(() => {
@@ -179,24 +177,10 @@ export default defineBackground(() => {
       chrome.tabs.create({ url: chrome.runtime.getURL('/welcome.html') });
     }
 
-    // Menu item for importing current page
-    chrome.contextMenus.create({
-      id: MENU_ID_PAGE,
-      title: '导入此页面到 NotebookLM',
-      contexts: ['page'],
-    });
-
-    // Menu item for importing a link
-    chrome.contextMenus.create({
-      id: MENU_ID_LINK,
-      title: '导入此链接到 NotebookLM',
-      contexts: ['link'],
-    });
-
     // Menu item for capturing page content (for authenticated pages)
     chrome.contextMenus.create({
       id: MENU_ID_CAPTURE,
-      title: '导入此页面内容到 NotebookLM（适用于需登录页面）',
+      title: '导入此页面内容到 NotebookLM',
       contexts: ['page'],
     });
   });
@@ -221,24 +205,6 @@ export default defineBackground(() => {
         console.error('Context menu capture failed:', error);
       }
       return;
-    }
-
-    let url: string | undefined;
-    if (info.menuItemId === MENU_ID_PAGE) {
-      url = tab?.url;
-    } else if (info.menuItemId === MENU_ID_LINK) {
-      url = info.linkUrl;
-    }
-
-    if (!url || !url.startsWith('http')) {
-      console.warn('Context menu import: invalid URL');
-      return;
-    }
-
-    try {
-      await importUrl(url);
-    } catch (error) {
-      console.error('Context menu import failed:', error);
     }
   });
 

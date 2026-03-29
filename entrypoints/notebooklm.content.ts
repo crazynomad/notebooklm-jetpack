@@ -513,7 +513,7 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     // Smart rename: wait for NotebookLM to process, then check if it auto-renamed.
     // If the source still has a default name, rename it manually. (Fixes #38)
     if (title) {
-      await delay(5000);
+      await delay(3000);
       const defaultNames = ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text'];
       const allSources = document.querySelectorAll('.single-source-container');
       if (allSources.length > 0) {
