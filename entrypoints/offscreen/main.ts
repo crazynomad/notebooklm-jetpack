@@ -130,6 +130,15 @@ const REMOVE_SELECTORS = [
   '.social-share',
   '[data-testid="navbar"]',
   '.header-anchor-widget',
+  // Confluence: sections outside the article body
+  '#labels-section',
+  '#comments-section',
+  '#space-tools-web-items',
+  '.page-metadata',
+  // Generic: like/reaction widgets and interactive toolbars
+  '[role="toolbar"]',
+  '.like-button-container',
+  '.likes-section',
 ].join(',');
 
 function htmlToMarkdown(html: string): { markdown: string; title: string } {
