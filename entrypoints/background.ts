@@ -928,6 +928,9 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
           target: { tabId: activeTab.id },
           func: () => ({ html: document.body.innerHTML, title: document.title }),
         });
+        if (!results?.[0]?.result) {
+          throw new Error('Could not capture this page type');
+        }
         extracted = results[0].result;
       } catch {
         throw new Error('Could not capture this page type');

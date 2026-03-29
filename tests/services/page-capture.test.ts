@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // We test the handler logic by extracting it into a testable helper.
-// The actual case in background.ts calls the same pattern.
+// NOTE: This re-implements the handler logic locally — it does not import from background.ts.
+// If the handler in background.ts is changed, update this helper to match.
 
 async function capturePageContent(
   tabId: number,
@@ -16,8 +17,11 @@ async function capturePageContent(
   }
   let extracted: { html: string; title: string };
   try {
-    const result = await executeScript({ target: { tabId }, func: () => ({ html: document.body.innerHTML, title: document.title }) });
-    extracted = result[0].result;
+    const results = await executeScript({ target: { tabId }, func: () => ({ html: document.body.innerHTML, title: document.title }) });
+    if (!results?.[0]?.result) {
+      throw new Error('Could not capture this page type');
+    }
+    extracted = results[0].result;
   } catch {
     throw new Error('Could not capture this page type');
   }
@@ -59,6 +63,20 @@ describe('capturePageContent', () => {
 
   it('throws when executeScript fails (restricted tab)', async () => {
     mockExecuteScript.mockRejectedValue(new Error('Cannot access a chrome extension URL'));
+    await expect(
+      capturePageContent(1, 'https://example.com', mockExecuteScript, mockConvert, mockImport)
+    ).rejects.toThrow('Could not capture this page type');
+  });
+
+  it('throws when executeScript returns empty results', async () => {
+    mockExecuteScript.mockResolvedValue([]);
+    await expect(
+      capturePageContent(1, 'https://example.com', mockExecuteScript, mockConvert, mockImport)
+    ).rejects.toThrow('Could not capture this page type');
+  });
+
+  it('throws when executeScript result is undefined', async () => {
+    mockExecuteScript.mockResolvedValue([{ result: undefined }]);
     await expect(
       capturePageContent(1, 'https://example.com', mockExecuteScript, mockConvert, mockImport)
     ).rejects.toThrow('Could not capture this page type');
