@@ -3,6 +3,7 @@
  * Service workers can't use DOMParser/Turndown reliably, so we delegate here.
  */
 import TurndownService from 'turndown';
+import { tables } from 'turndown-plugin-gfm';
 
 function createTurndownService(): TurndownService {
   const td = new TurndownService({
@@ -67,6 +68,9 @@ function createTurndownService(): TurndownService {
     filter: 'figcaption',
     replacement: (content) => content.trim() ? `\n*${content.trim()}*\n` : '',
   });
+
+  // GFM table support (converts <table> to Markdown pipe tables)
+  td.use(tables);
 
   return td;
 }
