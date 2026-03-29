@@ -513,12 +513,13 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     // Smart rename: wait for NotebookLM to process, then check if it auto-renamed.
     // If the source still has a default name, rename it manually. (Fixes #38)
     if (title) {
-      await delay(3000);
+      await delay(5000);
       const defaultNames = ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text'];
       const allSources = document.querySelectorAll('.single-source-container');
       if (allSources.length > 0) {
         const lastSource = allSources[allSources.length - 1];
-        const sourceTitle = lastSource.querySelector('.source-title')?.textContent?.trim();
+        // Prefer .source-title (inner span) over .source-title-column (may contain extra nested text)
+        const sourceTitle = (lastSource.querySelector('.source-title') ?? lastSource.querySelector('.source-title-column'))?.textContent?.trim();
         if (sourceTitle && defaultNames.includes(sourceTitle)) {
           console.log(`[importText] Source still has default name "${sourceTitle}", renaming to "${title}"`);
           try {
@@ -858,8 +859,9 @@ async function renameSource(oldName: string, newName: string): Promise<void> {
   // Search from last to first (most recently added source is at the bottom)
   for (let i = allItems.length - 1; i >= 0; i--) {
     const item = allItems[i];
-    const titleEl = item.querySelector('.source-title-column');
-    if (titleEl?.textContent?.trim() === oldName) {
+    // Prefer .source-title (inner span) — .source-title-column may include extra nested text
+    const titleText = (item.querySelector('.source-title') ?? item.querySelector('.source-title-column'))?.textContent?.trim();
+    if (titleText === oldName) {
       targetMoreBtn = item.querySelector('.source-item-more-button') as HTMLElement;
       if (!targetMoreBtn) {
         // Fallback: find button with aria-label="更多"
