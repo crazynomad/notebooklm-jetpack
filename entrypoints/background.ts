@@ -916,6 +916,30 @@ async function _tabBasedExtract(urls: string[], extractOnly = false, targetTabId
 
 async function handleMessage(message: MessageType, senderTabId?: number): Promise<unknown> {
   switch (message.type) {
+    case 'CAPTURE_PAGE_CONTENT': {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!activeTab?.id) throw new Error('No active tab found');
+      const tabUrl = activeTab.url || '';
+      if (!tabUrl.startsWith('http')) throw new Error('Cannot capture this page type');
+
+      let extracted: { html: string; title: string };
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: activeTab.id },
+          func: () => ({ html: document.body.innerHTML, title: document.title }),
+        });
+        extracted = results[0].result;
+      } catch {
+        throw new Error('Could not capture this page type');
+      }
+
+      const { markdown, title } = await convertHtmlToMarkdown(extracted.html);
+      const pageTitle = extracted.title || title;
+      const success = await importText(markdown, pageTitle, senderTabId);
+      if (!success) throw new Error('Import failed. Make sure NotebookLM is open.');
+      return true;
+    }
+
     case 'IMPORT_URL':
       return await importUrl(message.url, senderTabId);
 
