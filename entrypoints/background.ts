@@ -201,7 +201,8 @@ export default defineBackground(() => {
         const { html, title: tabTitle } = results[0].result;
         const { markdown, title } = await convertHtmlToMarkdown(html);
         const pageTitle = tabTitle || title;
-        const contentWithHeader = `# [${pageTitle}](${tab.url})\n\n${markdown}`;
+        const headerTitle = title || tabTitle;
+        const contentWithHeader = `${headerTitle}\n${tab.url}\n\n${markdown}`;
         await importText(contentWithHeader, pageTitle);
       } catch (error) {
         console.error('Context menu capture failed:', error);
@@ -932,11 +933,10 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
       }
 
       const { markdown, title } = await convertHtmlToMarkdown(extracted.html);
-      // Use h1-derived title for the header link (clean), document.title for the source name
       const pageTitle = extracted.title || title;
       const headerTitle = title || extracted.title;
-      const contentWithHeader = `# [${headerTitle}](${tabUrl})\n\n${markdown}`;
-      console.log('[CAPTURE] header:', contentWithHeader.slice(0, 120));
+      // Use plain text format — NotebookLM strips markdown # headings from pasted text
+      const contentWithHeader = `${headerTitle}\n${tabUrl}\n\n${markdown}`;
       const success = await importText(contentWithHeader, pageTitle, senderTabId);
       if (!success) throw new Error('Import failed. Make sure NotebookLM is open.');
       return true;
