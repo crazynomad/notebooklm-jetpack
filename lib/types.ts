@@ -80,6 +80,7 @@ export interface YouTubeResult {
 export type MessageType =
   | { type: 'IMPORT_URL'; url: string }
   | { type: 'IMPORT_BATCH'; urls: string[] }
+  | { type: 'CAPTURE_PAGE_CONTENT' }
   | { type: 'PARSE_RSS'; rssUrl: string }
   | { type: 'GET_CURRENT_TAB' }
   | { type: 'GET_ALL_TABS' }
