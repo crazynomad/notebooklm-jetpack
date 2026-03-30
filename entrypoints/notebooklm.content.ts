@@ -489,6 +489,7 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     }
 
     // Step 4: Fill text content
+    console.log('[importText] text starts with:', JSON.stringify(text.slice(0, 150)));
     await fillInput(textArea, text);
 
     // Step 5: Click "插入" (Insert) button — wait longer for it to become enabled
