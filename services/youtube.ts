@@ -91,26 +91,46 @@ export function parseYouTubeUrl(url: string): { type: YouTubeUrlType; id: string
 
 // ── Fetch Entry Point ──
 
-const DEFAULT_PLAYLIST_LIMIT = 50;
-const DEFAULT_CHANNEL_LIMIT = 30;
 const FETCH_TIMEOUT = 15000;
 
-export async function fetchYouTube(
-  url: string,
-  options?: { count?: number },
-): Promise<YouTubeResult> {
+const INNERTUBE_CLIENT = {
+  client: {
+    clientName: 'WEB',
+    clientVersion: '2.20240101.00.00',
+    hl: 'en',
+  },
+};
+
+export async function fetchYouTube(url: string): Promise<YouTubeResult> {
   const parsed = parseYouTubeUrl(url);
 
   switch (parsed.type) {
     case 'video':
       return await fetchSingleVideo(parsed.id);
     case 'playlist':
-      return await fetchPlaylistVideos(parsed.id, options?.count || DEFAULT_PLAYLIST_LIMIT);
+      return await fetchPlaylistVideos(parsed.id);
     case 'channel':
-      return await fetchChannelVideos(parsed.id, options?.count || DEFAULT_CHANNEL_LIMIT);
+      return await fetchChannelVideos(parsed.id);
     default:
       throw new Error('Unrecognized YouTube URL');
   }
+}
+
+/** Load more videos using a continuation token (works for both playlist and channel). */
+export async function fetchYouTubeMore(continuation: string): Promise<{
+  videos: YouTubeVideoItem[];
+  continuation?: string;
+}> {
+  const resp = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ context: INNERTUBE_CLIENT, continuation }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  });
+
+  if (!resp.ok) throw new Error(`InnerTube continuation failed: ${resp.status}`);
+  const data = await resp.json();
+  return extractContinuationItems(data);
 }
 
 // ── Single Video ──
@@ -141,79 +161,41 @@ async function fetchSingleVideo(videoId: string): Promise<YouTubeResult> {
 
 // ── Playlist ──
 
-async function fetchPlaylistVideos(
-  playlistId: string,
-  maxResults: number,
-): Promise<YouTubeResult> {
+async function fetchPlaylistVideos(playlistId: string): Promise<YouTubeResult> {
   // Try InnerTube API first
   try {
-    return await fetchPlaylistViaInnerTube(playlistId, maxResults);
+    return await fetchPlaylistViaInnerTube(playlistId);
   } catch (innerTubeError) {
     console.warn('[YouTube] InnerTube failed for playlist, trying RSS:', innerTubeError);
   }
 
-  // Fallback to RSS
+  // Fallback to RSS (no pagination)
   return await fetchPlaylistViaRss(playlistId);
 }
 
-async function fetchPlaylistViaInnerTube(
-  playlistId: string,
-  maxResults: number,
-): Promise<YouTubeResult> {
-  const videos: YouTubeVideoItem[] = [];
-  let playlistTitle = playlistId;
-  let continuationToken: string | undefined;
-
-  const clientContext = {
-    client: {
-      clientName: 'WEB',
-      clientVersion: '2.20240101.00.00',
-      hl: 'en',
-    },
-  };
-
+async function fetchPlaylistViaInnerTube(playlistId: string): Promise<YouTubeResult> {
   const resp = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ context: clientContext, browseId: `VL${playlistId}` }),
+    body: JSON.stringify({ context: INNERTUBE_CLIENT, browseId: `VL${playlistId}` }),
     signal: AbortSignal.timeout(FETCH_TIMEOUT),
   });
 
   if (!resp.ok) throw new Error(`InnerTube browse failed: ${resp.status}`);
   const data = await resp.json();
 
-  playlistTitle = extractPlaylistTitle(data) || playlistId;
-
-  const { items, continuation } = extractPlaylistItems(data);
-  videos.push(...items);
-  continuationToken = continuation;
-
-  // Pagination
-  while (continuationToken && videos.length < maxResults) {
-    const contResp = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ context: clientContext, continuation: continuationToken }),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT),
-    });
-
-    if (!contResp.ok) break;
-    const contData = await contResp.json();
-    const result = extractContinuationItems(contData);
-    videos.push(...result.items);
-    continuationToken = result.continuation;
-  }
-
-  const trimmed = videos.slice(0, maxResults);
+  const playlistTitle = extractPlaylistTitle(data) || playlistId;
+  const { videos, continuation } = extractPlaylistItems(data);
 
   return {
     source: {
       type: 'playlist',
       id: playlistId,
       title: playlistTitle,
-      videoCount: trimmed.length,
+      videoCount: videos.length,
     },
-    videos: trimmed,
+    videos,
+    continuation,
   };
 }
 
@@ -230,10 +212,10 @@ function extractPlaylistTitle(data: any): string | undefined {
 }
 
 function extractPlaylistItems(data: any): {
-  items: YouTubeVideoItem[];
+  videos: YouTubeVideoItem[];
   continuation?: string;
 } {
-  const items: YouTubeVideoItem[] = [];
+  const videos: YouTubeVideoItem[] = [];
   let continuation: string | undefined;
 
   try {
@@ -241,7 +223,7 @@ function extractPlaylistItems(data: any): {
     const contents = tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]
       ?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents;
 
-    if (!Array.isArray(contents)) return { items };
+    if (!Array.isArray(contents)) return { videos };
 
     for (const item of contents) {
       if (item.playlistVideoRenderer) {
@@ -249,7 +231,7 @@ function extractPlaylistItems(data: any): {
         const videoId = renderer.videoId;
         if (!videoId) continue;
         const title = renderer.title?.runs?.[0]?.text || renderer.title?.simpleText || videoId;
-        items.push({
+        videos.push({
           id: videoId,
           url: `https://www.youtube.com/watch?v=${videoId}`,
           title,
@@ -263,29 +245,29 @@ function extractPlaylistItems(data: any): {
     // Parse error — return whatever we got
   }
 
-  return { items, continuation };
+  return { videos, continuation };
 }
 
 function extractContinuationItems(data: any): {
-  items: YouTubeVideoItem[];
+  videos: YouTubeVideoItem[];
   continuation?: string;
 } {
-  const items: YouTubeVideoItem[] = [];
+  const videos: YouTubeVideoItem[] = [];
   let continuation: string | undefined;
 
   try {
     const actions = data?.onResponseReceivedActions;
     const contents = actions?.[0]?.appendContinuationItemsAction?.continuationItems;
 
-    if (!Array.isArray(contents)) return { items };
+    if (!Array.isArray(contents)) return { videos };
 
     for (const item of contents) {
-      if (item.playlistVideoRenderer) {
-        const renderer = item.playlistVideoRenderer;
+      const renderer = item.playlistVideoRenderer || item.richItemRenderer?.content?.videoRenderer;
+      if (renderer) {
         const videoId = renderer.videoId;
         if (!videoId) continue;
         const title = renderer.title?.runs?.[0]?.text || renderer.title?.simpleText || videoId;
-        items.push({
+        videos.push({
           id: videoId,
           url: `https://www.youtube.com/watch?v=${videoId}`,
           title,
@@ -299,7 +281,7 @@ function extractContinuationItems(data: any): {
     // Parse error
   }
 
-  return { items, continuation };
+  return { videos, continuation };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -324,28 +306,138 @@ async function fetchPlaylistViaRss(playlistId: string): Promise<YouTubeResult> {
 
 // ── Channel ──
 
-async function fetchChannelVideos(
-  channelIdentifier: string,
-  maxResults: number,
-): Promise<YouTubeResult> {
+/** Protobuf-encoded params for the "Videos" tab sorted by latest. */
+const CHANNEL_VIDEOS_TAB_PARAMS = 'EgZ2aWRlb3PyBgQKAjoA';
+
+async function fetchChannelVideos(channelIdentifier: string): Promise<YouTubeResult> {
   const channelId = await resolveChannelId(channelIdentifier);
 
+  // Try InnerTube first
+  try {
+    return await fetchChannelViaInnerTube(channelId, channelIdentifier);
+  } catch (innerTubeError) {
+    console.warn('[YouTube] InnerTube failed for channel, trying RSS:', innerTubeError);
+  }
+
+  // Fallback to RSS (no pagination, max 15 items)
+  return await fetchChannelViaRss(channelId, channelIdentifier);
+}
+
+async function fetchChannelViaInnerTube(
+  channelId: string,
+  channelIdentifier: string,
+): Promise<YouTubeResult> {
+  const resp = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      context: INNERTUBE_CLIENT,
+      browseId: channelId,
+      params: CHANNEL_VIDEOS_TAB_PARAMS,
+    }),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  });
+
+  if (!resp.ok) throw new Error(`InnerTube channel browse failed: ${resp.status}`);
+  const data = await resp.json();
+
+  const channelTitle = extractChannelTitle(data) || channelIdentifier;
+  const { videos, continuation } = extractChannelVideoItems(data);
+
+  if (videos.length === 0) {
+    throw new Error('No videos found via InnerTube, falling back to RSS');
+  }
+
+  return {
+    source: {
+      type: 'channel',
+      id: channelId,
+      title: channelTitle,
+      videoCount: videos.length,
+    },
+    videos,
+    continuation,
+  };
+}
+
+function extractChannelTitle(data: any): string | undefined {
+  try {
+    return (
+      data?.metadata?.channelMetadataRenderer?.title ||
+      data?.header?.c4TabbedHeaderRenderer?.title
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+function extractChannelVideoItems(data: any): {
+  videos: YouTubeVideoItem[];
+  continuation?: string;
+} {
+  const videos: YouTubeVideoItem[] = [];
+  let continuation: string | undefined;
+
+  try {
+    // Navigate to the Videos tab content
+    const tabs = data?.contents?.twoColumnBrowseResultsRenderer?.tabs;
+    let tabContents: any[] | undefined;
+
+    for (const tab of tabs || []) {
+      const renderer = tab.tabRenderer;
+      if (!renderer) continue;
+      // The Videos tab contains richGridRenderer
+      const richGrid = renderer.content?.richGridRenderer?.contents;
+      if (richGrid) {
+        tabContents = richGrid;
+        break;
+      }
+    }
+
+    if (!tabContents) return { videos };
+
+    for (const item of tabContents) {
+      const videoRenderer = item.richItemRenderer?.content?.videoRenderer;
+      if (videoRenderer) {
+        const videoId = videoRenderer.videoId;
+        if (!videoId) continue;
+        const title = videoRenderer.title?.runs?.[0]?.text || videoId;
+        videos.push({
+          id: videoId,
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          title,
+        });
+      }
+      if (item.continuationItemRenderer) {
+        continuation = item.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token;
+      }
+    }
+  } catch {
+    // Parse error
+  }
+
+  return { videos, continuation };
+}
+
+async function fetchChannelViaRss(
+  channelId: string,
+  channelIdentifier: string,
+): Promise<YouTubeResult> {
   const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
   const resp = await fetch(rssUrl, { signal: AbortSignal.timeout(FETCH_TIMEOUT) });
   if (!resp.ok) throw new Error(`Channel RSS feed failed: ${resp.status}`);
   const xml = await resp.text();
 
   const { title, videos } = parseYouTubeRss(xml);
-  const trimmed = videos.slice(0, maxResults);
 
   return {
     source: {
       type: 'channel',
       id: channelId,
       title: title || channelIdentifier,
-      videoCount: trimmed.length,
+      videoCount: videos.length,
     },
-    videos: trimmed,
+    videos,
   };
 }
 

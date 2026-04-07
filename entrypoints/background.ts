@@ -11,7 +11,7 @@ import { analyzeDocSite, fetchSitemap, fetchHuaweiCatalog, fetchLlmsTxt, fetchLl
 import { fetchAllPages, buildDocsHtml, cleanComponentMd, convertHtmlToMarkdown } from '@/services/pdf-generator';
 import { getHistory, clearHistory } from '@/services/history';
 import { fetchPodcast, sanitizeFilename, buildFilename } from '@/services/podcast';
-import { fetchYouTube } from '@/services/youtube';
+import { fetchYouTube, fetchYouTubeMore } from '@/services/youtube';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 
 // Helper: render HTML to PDF via CDP and download
@@ -1075,7 +1075,11 @@ async function handleMessage(message: MessageType, senderTabId?: number): Promis
     }
 
     case 'FETCH_YOUTUBE': {
-      return await fetchYouTube(message.url, { count: message.count });
+      return await fetchYouTube(message.url);
+    }
+
+    case 'FETCH_YOUTUBE_MORE': {
+      return await fetchYouTubeMore(message.continuation);
     }
 
     case 'GET_FAILED_SOURCES': {

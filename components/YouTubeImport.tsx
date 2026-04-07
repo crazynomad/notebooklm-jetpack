@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Youtube, Loader2, CheckCircle, AlertCircle, PlayCircle, ListVideo, User } from 'lucide-react';
+import { Youtube, Loader2, CheckCircle, AlertCircle, PlayCircle, ListVideo, User, ChevronDown } from 'lucide-react';
 import type { ImportProgress, YouTubeResult, YouTubeVideoItem, YouTubeSourceInfo } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { isYouTubeUrl, parseYouTubeUrl } from '@/services/youtube';
@@ -19,20 +19,20 @@ interface Props {
 
 export function YouTubeImport({ initialUrl, onProgress }: Props) {
   const [url, setUrl] = useState(initialUrl || '');
-  const [count, setCount] = useState<number | undefined>(undefined);
   const [state, setState] = useState<State>('idle');
   const [error, setError] = useState('');
   const [source, setSource] = useState<YouTubeSourceInfo | null>(null);
   const [videos, setVideos] = useState<YouTubeVideoItem[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<{ success: number; failed: number } | null>(null);
+  const [continuation, setContinuation] = useState<string | undefined>();
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const urlType = useMemo(() => {
     if (!url || !isYouTubeUrl(url)) return 'unknown';
     return parseYouTubeUrl(url).type;
   }, [url]);
 
-  const showCount = urlType === 'playlist' || urlType === 'channel';
   const SourceIcon = sourceIcons[urlType as keyof typeof sourceIcons] || Youtube;
 
   const handleFetch = () => {
@@ -44,19 +44,46 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
     setSource(null);
     setVideos([]);
     setResults(null);
+    setContinuation(undefined);
 
     chrome.runtime.sendMessage(
-      { type: 'FETCH_YOUTUBE', url, count },
+      { type: 'FETCH_YOUTUBE', url },
       (resp) => {
         if (resp?.success && resp.data) {
           const data = resp.data as YouTubeResult;
           setSource(data.source);
           setVideos(data.videos);
           setSelected(new Set(data.videos.map((v) => v.id)));
+          setContinuation(data.continuation);
           setState('loaded');
         } else {
           setState('error');
           setError(resp?.error || t('youtube.fetchFailed'));
+        }
+      },
+    );
+  };
+
+  const handleLoadMore = () => {
+    if (!continuation || loadingMore) return;
+    setLoadingMore(true);
+
+    chrome.runtime.sendMessage(
+      { type: 'FETCH_YOUTUBE_MORE', continuation },
+      (resp) => {
+        setLoadingMore(false);
+        if (resp?.success && resp.data) {
+          const data = resp.data as { videos: YouTubeVideoItem[]; continuation?: string };
+          setVideos((prev) => [...prev, ...data.videos]);
+          setSelected((prev) => {
+            const next = new Set(prev);
+            data.videos.forEach((v) => next.add(v.id));
+            return next;
+          });
+          setContinuation(data.continuation);
+          if (source) {
+            setSource({ ...source, videoCount: (source.videoCount || 0) + data.videos.length });
+          }
         }
       },
     );
@@ -132,24 +159,6 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
               className="w-full pl-10 pr-3 py-2 border border-gray-200/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-transparent placeholder:text-gray-400/70"
             />
           </div>
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          {showCount && (
-            <>
-              <label className="text-xs text-gray-500">{t('youtube.latest')}</label>
-              <input
-                type="number"
-                value={count || ''}
-                onChange={(e) => setCount(e.target.value ? parseInt(e.target.value) : undefined)}
-                placeholder={t('youtube.all')}
-                min={1}
-                max={500}
-                className="w-16 px-2 py-1 border border-gray-200/60 rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-red-500/40 placeholder:text-gray-400/70"
-              />
-              <label className="text-xs text-gray-500">{t('youtube.videos')}</label>
-            </>
-          )}
-          <div className="flex-1" />
           <button
             onClick={handleFetch}
             disabled={!url || state === 'loading'}
@@ -212,6 +221,20 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
               </label>
             ))}
           </div>
+          {/* Load More */}
+          {continuation && (
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="w-full mt-2 py-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 border border-red-200/60 rounded-lg flex items-center justify-center gap-1 transition-colors duration-150 disabled:opacity-50"
+            >
+              {loadingMore ? (
+                <><Loader2 className="w-3 h-3 animate-spin" />{t('youtube.loadingMore')}</>
+              ) : (
+                <><ChevronDown className="w-3 h-3" />{t('youtube.loadMore')}</>
+              )}
+            </button>
+          )}
         </div>
       )}
 

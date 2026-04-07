@@ -74,6 +74,7 @@ export interface YouTubeSourceInfo {
 export interface YouTubeResult {
   source: YouTubeSourceInfo;
   videos: YouTubeVideoItem[];
+  continuation?: string;
 }
 
 // Message types for communication between popup and background
@@ -91,7 +92,8 @@ export type MessageType =
   | { type: 'EXPORT_PDF'; blobUrl: string; title: string }
   | { type: 'GENERATE_PDF'; siteInfo: DocSiteInfo }
   | { type: 'FETCH_PODCAST'; url: string; count?: number }
-  | { type: 'FETCH_YOUTUBE'; url: string; count?: number }
+  | { type: 'FETCH_YOUTUBE'; url: string }
+  | { type: 'FETCH_YOUTUBE_MORE'; continuation: string }
   | { type: 'DOWNLOAD_PODCAST' }
   | { type: 'GET_FAILED_SOURCES'; tabId: number }
   | { type: 'RESCUE_SOURCES'; urls: string[] }
