@@ -497,6 +497,11 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     if (!insertButton) {
       throw new Error('Insert button not found');
     }
+    const defaultNames = ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text'];
+
+    // Snapshot source count before inserting so we can detect when the new source appears.
+    const countBefore = document.querySelectorAll('.single-source-container').length;
+
     // Wait for button to be enabled (disabled while processing input)
     for (let i = 0; i < 10; i++) {
       if (!(insertButton as HTMLButtonElement).disabled) break;
@@ -504,30 +509,41 @@ async function importTextToNotebookLM(text: string, title?: string): Promise<boo
     }
     insertButton.click();
 
-    // Wait for dialog to close / import to complete
+    // Wait for the Add Source dialog to close.
     for (let i = 0; i < 10; i++) {
       await delay(1000);
-      if (!getMainDialog()) break;
+      const dialog = getMainDialog();
+      if (!dialog || !isAddSourceDialog(dialog)) break;
     }
 
-    // Smart rename: wait for NotebookLM to process, then check if it auto-renamed.
-    // If the source still has a default name, rename it manually. (Fixes #38)
+    // Smart rename: wait for the new source to actually appear in the list,
+    // then rename if it still has a default name. (Fixes #38)
     if (title) {
-      await delay(3000);
-      const defaultNames = ['粘贴的文字', '复制的文字', 'Copied text', 'Pasted text', 'Pasted Text'];
+      // Wait for source count to increase (reliable signal that import completed)
+      for (let i = 0; i < 10; i++) {
+        await delay(1000);
+        if (document.querySelectorAll('.single-source-container').length > countBefore) break;
+      }
+      // Extra wait for NotebookLM to finish processing (auto-rename may happen)
+      await delay(2000);
+
       const allSources = document.querySelectorAll('.single-source-container');
-      if (allSources.length > 0) {
-        const lastSource = allSources[allSources.length - 1];
-        const sourceTitle = lastSource.querySelector('.source-title')?.textContent?.trim();
-        if (sourceTitle && defaultNames.includes(sourceTitle)) {
-          console.log(`[importText] Source still has default name "${sourceTitle}", renaming to "${title}"`);
-          try {
-            await renameSource(sourceTitle, title);
-          } catch (e) {
-            console.warn('[importText] Rename failed (non-fatal):', e);
-            // Ensure any leftover dialog is dismissed
-            dismissAnyDialog();
-          }
+      // Scan all sources for one with a default name (new source may be at any position)
+      let sourceTitle: string | undefined;
+      for (let i = allSources.length - 1; i >= 0; i--) {
+        const t = (allSources[i].querySelector('.source-title') ?? allSources[i].querySelector('.source-title-column'))?.textContent?.trim();
+        if (t && defaultNames.includes(t)) {
+          sourceTitle = t;
+          break;
+        }
+      }
+      if (sourceTitle) {
+        console.log(`[importText] Source still has default name "${sourceTitle}", renaming to "${title}"`);
+        try {
+          await renameSource(sourceTitle, title);
+        } catch (e) {
+          console.warn('[importText] Rename failed (non-fatal):', e);
+          dismissAnyDialog();
         }
       }
     }
@@ -858,8 +874,9 @@ async function renameSource(oldName: string, newName: string): Promise<void> {
   // Search from last to first (most recently added source is at the bottom)
   for (let i = allItems.length - 1; i >= 0; i--) {
     const item = allItems[i];
-    const titleEl = item.querySelector('.source-title-column');
-    if (titleEl?.textContent?.trim() === oldName) {
+    // Prefer .source-title (inner span) — .source-title-column may include extra nested text
+    const titleText = (item.querySelector('.source-title') ?? item.querySelector('.source-title-column'))?.textContent?.trim();
+    if (titleText === oldName) {
       targetMoreBtn = item.querySelector('.source-item-more-button') as HTMLElement;
       if (!targetMoreBtn) {
         // Fallback: find button with aria-label="更多"

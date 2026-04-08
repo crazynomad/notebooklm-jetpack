@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, Loader2, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, Loader2, CheckCircle, AlertCircle, ExternalLink, FileText } from 'lucide-react';
 import type { ImportProgress } from '@/lib/types';
 import { isValidUrl } from '@/lib/utils';
 import { t } from '@/lib/i18n';
@@ -8,7 +8,7 @@ interface Props {
   onProgress: (progress: ImportProgress | null) => void;
 }
 
-type ImportState = 'idle' | 'loading' | 'importing' | 'success' | 'error';
+type ImportState = 'idle' | 'loading' | 'importing' | 'capturing' | 'success' | 'error';
 
 export function SingleImport({ onProgress }: Props) {
   const [url, setUrl] = useState('');
@@ -17,13 +17,13 @@ export function SingleImport({ onProgress }: Props) {
   const [error, setError] = useState('');
 
   // Load current tab URL on mount
-  useState(() => {
+  useEffect(() => {
     chrome.runtime.sendMessage({ type: 'GET_CURRENT_TAB' }, (response) => {
       if (response?.success && response.data) {
         setCurrentTabUrl(response.data as string);
       }
     });
-  });
+  }, []);
 
   const handleImport = async (targetUrl: string) => {
     if (!isValidUrl(targetUrl)) {
@@ -61,6 +61,24 @@ export function SingleImport({ onProgress }: Props) {
     }
   };
 
+  const handleCaptureContent = () => {
+    setState('capturing');
+    setError('');
+
+    chrome.runtime.sendMessage({ type: 'CAPTURE_PAGE_CONTENT' }, (response) => {
+      if (response?.success) {
+        setState('success');
+        setTimeout(() => setState('idle'), 3000);
+      } else {
+        setState('error');
+        setError(response?.error || t('single.captureFailedHint'));
+      }
+    });
+  };
+
+  const isCapturableUrl = currentTabUrl?.startsWith('http');
+  const isBusy = state === 'importing' || state === 'capturing';
+
   return (
     <div className="space-y-4">
       {/* Current tab quick import */}
@@ -71,7 +89,7 @@ export function SingleImport({ onProgress }: Props) {
             <span className="flex-1 text-sm text-gray-700 truncate">{currentTabUrl}</span>
             <button
               onClick={handleImportCurrentTab}
-              disabled={state === 'importing'}
+              disabled={isBusy}
               className="px-3 py-1.5 bg-notebooklm-blue text-white text-xs rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
             >
               {state === 'importing' ? (
@@ -80,6 +98,19 @@ export function SingleImport({ onProgress }: Props) {
                 <ExternalLink className="w-3 h-3" />
               )}
               {t('import')}
+            </button>
+            <button
+              onClick={handleCaptureContent}
+              disabled={isBusy || !isCapturableUrl}
+              title={!isCapturableUrl ? t('single.captureNotSupported') : t('single.captureAuthHint')}
+              className="px-3 py-1.5 bg-gray-600 text-white text-xs rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              {state === 'capturing' ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <FileText className="w-3 h-3" />
+              )}
+              {t('single.captureContent')}
             </button>
           </div>
         </div>
@@ -101,7 +132,7 @@ export function SingleImport({ onProgress }: Props) {
           </div>
           <button
             onClick={() => handleImport(url)}
-            disabled={!url || state === 'importing'}
+            disabled={!url || isBusy}
             className="px-4 py-2 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {state === 'importing' ? (
@@ -138,6 +169,7 @@ export function SingleImport({ onProgress }: Props) {
           <li>{t('single.webArticles')}</li>
           <li>{t('single.substackWechat')}</li>
           <li>{t('single.pdfLinks')}</li>
+          <li>{t('single.captureAuthHint')}</li>
         </ul>
       </div>
     </div>

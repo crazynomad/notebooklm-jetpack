@@ -165,8 +165,7 @@ try {
 } catch { /* fake-browser in WXT build doesn't support onMessageExternal */ }
 
 // Context menu IDs
-const MENU_ID_PAGE = 'import-page';
-const MENU_ID_LINK = 'import-link';
+const MENU_ID_CAPTURE = 'capture-page-content';
 
 export default defineBackground(() => {
   console.log('NotebookLM Jetpack background service started');
@@ -178,40 +177,37 @@ export default defineBackground(() => {
       chrome.tabs.create({ url: chrome.runtime.getURL('/welcome.html') });
     }
 
-    // Menu item for importing current page
+    // Menu item for capturing page content (for authenticated pages)
     chrome.contextMenus.create({
-      id: MENU_ID_PAGE,
-      title: '导入此页面到 NotebookLM',
+      id: MENU_ID_CAPTURE,
+      title: '导入此页面内容到 NotebookLM',
       contexts: ['page'],
-    });
-
-    // Menu item for importing a link
-    chrome.contextMenus.create({
-      id: MENU_ID_LINK,
-      title: '导入此链接到 NotebookLM',
-      contexts: ['link'],
     });
   });
 
   // Handle context menu clicks
   chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-    let url: string | undefined;
-
-    if (info.menuItemId === MENU_ID_PAGE) {
-      url = tab?.url;
-    } else if (info.menuItemId === MENU_ID_LINK) {
-      url = info.linkUrl;
-    }
-
-    if (!url || !url.startsWith('http')) {
-      console.warn('Context menu import: invalid URL');
+    if (info.menuItemId === MENU_ID_CAPTURE) {
+      if (!tab?.id || !tab.url?.startsWith('http')) {
+        console.warn('Context menu capture: invalid tab');
+        return;
+      }
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => ({ html: document.body.innerHTML, title: document.title }),
+        });
+        if (!results?.[0]?.result) throw new Error('Could not capture page content');
+        const { html, title: tabTitle } = results[0].result;
+        const { markdown, title } = await convertHtmlToMarkdown(html);
+        const pageTitle = tabTitle || title;
+        const headerTitle = title || tabTitle;
+        const contentWithHeader = `[${headerTitle}](${tab.url})\n\n${markdown}`;
+        await importText(contentWithHeader, pageTitle);
+      } catch (error) {
+        console.error('Context menu capture failed:', error);
+      }
       return;
-    }
-
-    try {
-      await importUrl(url);
-    } catch (error) {
-      console.error('Context menu import failed:', error);
     }
   });
 
@@ -916,6 +912,35 @@ async function _tabBasedExtract(urls: string[], extractOnly = false, targetTabId
 
 async function handleMessage(message: MessageType, senderTabId?: number): Promise<unknown> {
   switch (message.type) {
+    case 'CAPTURE_PAGE_CONTENT': {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!activeTab?.id) throw new Error('No active tab found');
+      const tabUrl = activeTab.url || '';
+      if (!tabUrl.startsWith('http')) throw new Error('Cannot capture this page type');
+
+      let extracted: { html: string; title: string };
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: activeTab.id },
+          func: () => ({ html: document.body.innerHTML, title: document.title }),
+        });
+        if (!results?.[0]?.result) {
+          throw new Error('Could not capture this page type');
+        }
+        extracted = results[0].result;
+      } catch {
+        throw new Error('Could not capture this page type');
+      }
+
+      const { markdown, title } = await convertHtmlToMarkdown(extracted.html);
+      const pageTitle = extracted.title || title;
+      const headerTitle = title || extracted.title;
+      const contentWithHeader = `[${headerTitle}](${tabUrl})\n\n${markdown}`;
+      const success = await importText(contentWithHeader, pageTitle, senderTabId);
+      if (!success) throw new Error('Import failed. Make sure NotebookLM is open.');
+      return true;
+    }
+
     case 'IMPORT_URL':
       return await importUrl(message.url, senderTabId);
 

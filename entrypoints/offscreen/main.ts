@@ -3,6 +3,7 @@
  * Service workers can't use DOMParser/Turndown reliably, so we delegate here.
  */
 import TurndownService from 'turndown';
+import { tables } from 'turndown-plugin-gfm';
 
 function createTurndownService(): TurndownService {
   const td = new TurndownService({
@@ -68,6 +69,9 @@ function createTurndownService(): TurndownService {
     replacement: (content) => content.trim() ? `\n*${content.trim()}*\n` : '',
   });
 
+  // GFM table support (converts <table> to Markdown pipe tables)
+  td.use(tables);
+
   return td;
 }
 
@@ -81,9 +85,16 @@ const CONTENT_SELECTORS = [
   '.available-content .body.markup',
   '.available-content',
   '.body.markup',
-  // General
+  // General — specific content containers before broad layout landmarks
   '.markdown-body',
   'article [itemprop="articleBody"]',
+  '#main-content',          // Confluence, WordPress, many CMSes
+  '.wiki-content',          // Confluence wiki body
+  '.entry-content',         // WordPress posts
+  '.post-content',          // WordPress/Ghost
+  '.page-content',          // Generic CMS
+  '.article-content',       // Generic
+  '.article-body',          // Generic
   'article',
   'main',
   '[role="main"]',
@@ -119,6 +130,17 @@ const REMOVE_SELECTORS = [
   '.social-share',
   '[data-testid="navbar"]',
   '.header-anchor-widget',
+  // Confluence: sections outside the article body
+  '#labels-section',
+  '#comments-section',
+  '#space-tools-web-items',
+  '.page-metadata',
+  // Generic: like/reaction widgets and interactive toolbars
+  '[role="toolbar"]',
+  '.like-button-container',
+  '.likes-section',
+  // Stiltsoft Table Filter & Charts plugin (Confluence)
+  '[id^="tfac-"]',
 ].join(',');
 
 function htmlToMarkdown(html: string): { markdown: string; title: string } {
@@ -132,8 +154,24 @@ function htmlToMarkdown(html: string): { markdown: string; title: string } {
   }
   if (!el) el = doc.body;
 
+  // Fallback: if smart extraction yields < 200 chars, use full body
+  const smartText = el.textContent?.trim() || '';
+  if (smartText.length < 200 && el !== doc.body) {
+    el = doc.body;
+  }
+
   // Remove non-content elements
   el.querySelectorAll(REMOVE_SELECTORS).forEach(e => e.remove());
+
+  // Flatten block elements inside table cells so GFM table rows stay single-line.
+  // Confluence (and other editors) wrap cell content in <p> tags, which Turndown
+  // treats as block elements and adds newlines around — breaking pipe table format.
+  el.querySelectorAll('td, th').forEach(cell => {
+    cell.querySelectorAll('p, div, span').forEach(inner => {
+      const text = inner.textContent || '';
+      inner.replaceWith(doc.createTextNode(text.trim()));
+    });
+  });
 
   const title = doc.querySelector('h1')?.textContent?.trim() || doc.title || '';
 

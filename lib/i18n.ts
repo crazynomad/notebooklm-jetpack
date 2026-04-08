@@ -161,6 +161,11 @@ const zh = {
   'single.webArticles': '普通网页文章',
   'single.substackWechat': 'Substack / 微信公众号（智能提取正文）',
   'single.pdfLinks': 'PDF 文件链接',
+  'single.captureContent': '导入页面内容',
+  'single.capturingBtn': '捕获中',
+  'single.captureFailedHint': '页面内容捕获失败，请确保页面已完全加载',
+  'single.captureNotSupported': '无法捕获此类页面',
+  'single.captureAuthHint': '适用于需要登录的内部页面（Confluence、企业 Wiki 等）',
 
   // ── ClaudeImport ──
   'claude.extractFailed': '提取对话失败',
@@ -441,6 +446,11 @@ const en: Record<keyof typeof zh, string> = {
   'single.webArticles': 'Web articles',
   'single.substackWechat': 'Substack / WeChat articles (smart extraction)',
   'single.pdfLinks': 'PDF file links',
+  'single.captureContent': 'Import Page Content',
+  'single.capturingBtn': 'Capturing',
+  'single.captureFailedHint': 'Failed to capture page content. Make sure the page is fully loaded.',
+  'single.captureNotSupported': 'Cannot capture this page type',
+  'single.captureAuthHint': 'Use for pages requiring login (Confluence, internal wikis, etc.)',
 
   // ── ClaudeImport ──
   'claude.extractFailed': 'Failed to extract conversation',
