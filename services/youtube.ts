@@ -12,6 +12,7 @@
  */
 
 import type { YouTubeVideoItem, YouTubeSourceInfo, YouTubeResult } from '@/lib/types';
+import { innertubeBrowse, fetchYouTubeText } from './youtube-tunnel';
 
 // ── URL Parsing ──
 
@@ -121,15 +122,7 @@ export async function fetchYouTubeMore(continuation: string): Promise<{
   videos: YouTubeVideoItem[];
   continuation?: string;
 }> {
-  const resp = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ context: INNERTUBE_CLIENT, continuation }),
-    signal: AbortSignal.timeout(FETCH_TIMEOUT),
-  });
-
-  if (!resp.ok) throw new Error(`InnerTube continuation failed: ${resp.status}`);
-  const data = await resp.json();
+  const data = await innertubeBrowse({ context: INNERTUBE_CLIENT, continuation });
   return extractContinuationItems(data);
 }
 
@@ -174,15 +167,10 @@ async function fetchPlaylistVideos(playlistId: string): Promise<YouTubeResult> {
 }
 
 async function fetchPlaylistViaInnerTube(playlistId: string): Promise<YouTubeResult> {
-  const resp = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ context: INNERTUBE_CLIENT, browseId: `VL${playlistId}` }),
-    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  const data = await innertubeBrowse({
+    context: INNERTUBE_CLIENT,
+    browseId: `VL${playlistId}`,
   });
-
-  if (!resp.ok) throw new Error(`InnerTube browse failed: ${resp.status}`);
-  const data = await resp.json();
 
   const playlistTitle = extractPlaylistTitle(data) || playlistId;
   const { videos, continuation } = extractPlaylistItems(data);
@@ -327,19 +315,11 @@ async function fetchChannelViaInnerTube(
   channelId: string,
   channelIdentifier: string,
 ): Promise<YouTubeResult> {
-  const resp = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      context: INNERTUBE_CLIENT,
-      browseId: channelId,
-      params: CHANNEL_VIDEOS_TAB_PARAMS,
-    }),
-    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  const data = await innertubeBrowse({
+    context: INNERTUBE_CLIENT,
+    browseId: channelId,
+    params: CHANNEL_VIDEOS_TAB_PARAMS,
   });
-
-  if (!resp.ok) throw new Error(`InnerTube channel browse failed: ${resp.status}`);
-  const data = await resp.json();
 
   const channelTitle = extractChannelTitle(data) || channelIdentifier;
   const { videos, continuation } = extractChannelVideoItems(data);
@@ -448,21 +428,16 @@ async function resolveChannelId(identifier: string): Promise<string> {
   }
 
   // Need to resolve: @username, /c/name, /user/name
-  let pageUrl: string;
+  let path: string;
   if (identifier.startsWith('@')) {
-    pageUrl = `https://www.youtube.com/${identifier}`;
+    path = `/${identifier}`;
   } else if (identifier.startsWith('/c/') || identifier.startsWith('/user/')) {
-    pageUrl = `https://www.youtube.com${identifier}`;
+    path = identifier;
   } else {
-    pageUrl = `https://www.youtube.com/@${identifier}`;
+    path = `/@${identifier}`;
   }
 
-  const resp = await fetch(pageUrl, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT),
-    headers: { 'Accept-Language': 'en-US,en;q=0.9' },
-  });
-  if (!resp.ok) throw new Error(`Failed to resolve channel: ${resp.status}`);
-  const html = await resp.text();
+  const html = await fetchYouTubeText(path);
 
   const channelIdMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]+)"/)
     || html.match(/"externalId":"(UC[a-zA-Z0-9_-]+)"/)

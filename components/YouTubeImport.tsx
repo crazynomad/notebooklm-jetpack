@@ -6,6 +6,8 @@ import { isYouTubeUrl, parseYouTubeUrl } from '@/services/youtube';
 
 type State = 'idle' | 'loading' | 'loaded' | 'importing' | 'done' | 'error';
 
+const PAGE_SIZE = 15;
+
 const sourceIcons = {
   video: PlayCircle,
   playlist: ListVideo,
@@ -27,6 +29,10 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
   const [results, setResults] = useState<{ success: number; failed: number } | null>(null);
   const [continuation, setContinuation] = useState<string | undefined>();
   const [loadingMore, setLoadingMore] = useState(false);
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
+
+  const displayedVideos = useMemo(() => videos.slice(0, displayCount), [videos, displayCount]);
+  const canLoadMore = displayCount < videos.length || !!continuation;
 
   const urlType = useMemo(() => {
     if (!url || !isYouTubeUrl(url)) return 'unknown';
@@ -45,6 +51,7 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
     setVideos([]);
     setResults(null);
     setContinuation(undefined);
+    setDisplayCount(PAGE_SIZE);
 
     chrome.runtime.sendMessage(
       { type: 'FETCH_YOUTUBE', url },
@@ -53,8 +60,9 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
           const data = resp.data as YouTubeResult;
           setSource(data.source);
           setVideos(data.videos);
-          setSelected(new Set(data.videos.map((v) => v.id)));
+          setSelected(new Set(data.videos.slice(0, PAGE_SIZE).map((v) => v.id)));
           setContinuation(data.continuation);
+          setDisplayCount(PAGE_SIZE);
           setState('loaded');
         } else {
           setState('error');
@@ -64,8 +72,28 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
     );
   };
 
+  const revealNextPage = (allVideos: YouTubeVideoItem[]) => {
+    const nextCount = Math.min(displayCount + PAGE_SIZE, allVideos.length);
+    const newlyRevealed = allVideos.slice(displayCount, nextCount);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      newlyRevealed.forEach((v) => next.add(v.id));
+      return next;
+    });
+    setDisplayCount(nextCount);
+  };
+
   const handleLoadMore = () => {
-    if (!continuation || loadingMore) return;
+    if (loadingMore) return;
+
+    // 1. If there are buffered (already fetched) videos, reveal them first
+    if (displayCount < videos.length) {
+      revealNextPage(videos);
+      return;
+    }
+
+    // 2. Otherwise fetch the next page from continuation
+    if (!continuation) return;
     setLoadingMore(true);
 
     chrome.runtime.sendMessage(
@@ -74,16 +102,10 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
         setLoadingMore(false);
         if (resp?.success && resp.data) {
           const data = resp.data as { videos: YouTubeVideoItem[]; continuation?: string };
-          setVideos((prev) => [...prev, ...data.videos]);
-          setSelected((prev) => {
-            const next = new Set(prev);
-            data.videos.forEach((v) => next.add(v.id));
-            return next;
-          });
+          const merged = [...videos, ...data.videos];
+          setVideos(merged);
           setContinuation(data.continuation);
-          if (source) {
-            setSource({ ...source, videoCount: (source.videoCount || 0) + data.videos.length });
-          }
+          revealNextPage(merged);
         }
       },
     );
@@ -137,7 +159,7 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
     });
   };
 
-  const selectAll = () => setSelected(new Set(videos.map((v) => v.id)));
+  const selectAll = () => setSelected(new Set(displayedVideos.map((v) => v.id)));
   const selectNone = () => setSelected(new Set());
 
   return (
@@ -182,18 +204,18 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-red-900 truncate">{source.title}</p>
             <p className="text-xs text-red-600">
-              <span className="font-mono tabular-nums">{videos.length}</span> {t('youtube.videos')}
+              <span className="font-mono tabular-nums">{displayedVideos.length}</span> {t('youtube.videos')}
             </p>
           </div>
         </div>
       )}
 
       {/* Video List (playlist/channel) */}
-      {videos.length > 1 && (
+      {displayedVideos.length > 1 && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">
-              {t('youtube.selectedVideos', { selected: selected.size, total: videos.length })}
+              {t('youtube.selectedVideos', { selected: selected.size, total: displayedVideos.length })}
             </span>
             <div className="flex gap-2 text-xs">
               <button onClick={selectAll} className="text-red-500 hover:underline">{t('selectAll')}</button>
@@ -201,7 +223,7 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
             </div>
           </div>
           <div className="max-h-48 overflow-y-auto border border-border-strong rounded-lg shadow-soft">
-            {videos.map((video) => (
+            {displayedVideos.map((video) => (
               <label
                 key={video.id}
                 className="flex items-start gap-3 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors duration-150"
@@ -222,7 +244,7 @@ export function YouTubeImport({ initialUrl, onProgress }: Props) {
             ))}
           </div>
           {/* Load More */}
-          {continuation && (
+          {canLoadMore && (
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
