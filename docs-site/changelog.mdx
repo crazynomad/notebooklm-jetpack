@@ -3,6 +3,12 @@ title: '更新日志'
 description: 'NotebookLM Jetpack 版本更新记录'
 ---
 
+## v1.7.3 — 2026-04-08
+
+- 🐛 **修复 YouTube 频道只能抓 15 条**：之前 InnerTube 请求被 YouTube 边缘以 403 拦截，静默回退到 RSS（硬限 15 条）。现在通过 youtube.com 标签页隧道执行请求，绕开 origin 限制
+- ➕ **Load more 分页**：频道/播放列表支持按需加载更多视频，每页 15 条，已加载的批次直接显示无需等待
+- 🔁 频道/播放列表/Continuation/Handle 解析全部统一走 youtube.com tab 隧道，自动复用用户已有标签页，无则后台开隐藏标签页（5 分钟空闲后自动关闭）
+
 ## v1.7.2 — 2026-03-26
 
 - 🤖 **AI 对话自动提取**：在 Claude/ChatGPT/Gemini 对话页面打开扩展时，自动提取对话内容，无需手动点击
