@@ -430,31 +430,31 @@ export function DocsImport({ onProgress }: Props) {
 
       {/* Action buttons */}
       {siteInfo && siteInfo.pages.length > 0 && (
-        <StickyActionBar className="space-y-2">
-          {/* URL Import */}
+        <StickyActionBar className="flex gap-1.5">
+          {/* URL Import — primary, takes remaining width */}
           <button
             onClick={handleImport}
             disabled={selectedPages.size === 0 || state === 'importing' || pdfState === 'fetching' || pdfState === 'generating'}
-            className="w-full py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+            className="flex-1 min-w-0 py-2.5 bg-notebooklm-blue text-white text-sm rounded-lg hover:bg-notebooklm-blue/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
           >
             {state === 'importing' ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
                 {t('importing')}
               </>
             ) : (
               <>
-                <BookOpen className="w-4 h-4" />
+                <BookOpen className="w-4 h-4 flex-shrink-0" />
                 {t('docs.urlImport')} (<span className="font-mono tabular-nums">{selectedPages.size}</span>)
               </>
             )}
           </button>
 
-          {/* Export: Download PDF / Copy to Clipboard */}
+          {/* Export: Download PDF / Copy to Clipboard — secondary, on the right */}
           {pdfState === 'fetching' || pdfState === 'generating' ? (
             <button
               disabled
-              className="w-full py-2.5 bg-emerald-500 text-white text-sm rounded-lg disabled:opacity-70 flex items-center justify-center gap-2"
+              className="flex-shrink-0 py-2.5 px-3 bg-emerald-500 text-white text-sm rounded-lg disabled:opacity-70 flex items-center justify-center gap-1.5 whitespace-nowrap"
             >
               <Loader2 className="w-4 h-4 animate-spin" />
               {pdfState === 'fetching'
@@ -462,21 +462,16 @@ export function DocsImport({ onProgress }: Props) {
                 : t('pdfGeneratingSimple')}
             </button>
           ) : pdfState === 'done' || pdfState === 'copied' ? (
-            <div className="text-center">
-              <p className="text-sm text-emerald-600 flex items-center justify-center gap-1.5 py-1">
-                <CheckCircle className="w-4 h-4" />
-                {pdfState === 'copied' ? t('clipboardCopied') : t('pdfDownloaded')}
-              </p>
-              {pdfState === 'done' && (
-                <p className="text-xs text-emerald-600/70">{t('docs.pdfSaved')}</p>
-              )}
+            <div className="flex-shrink-0 flex items-center gap-1.5 px-2 text-sm text-emerald-600 whitespace-nowrap">
+              <CheckCircle className="w-4 h-4" />
+              {pdfState === 'copied' ? t('clipboardCopied') : t('pdfDownloaded')}
             </div>
           ) : (
-            <div className="flex gap-1.5">
+            <>
               <button
                 onClick={() => handleExport('pdf')}
                 disabled={selectedPages.size === 0 || state === 'importing'}
-                className="flex-1 py-2.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+                className="flex-shrink-0 py-2.5 px-3 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 whitespace-nowrap shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
               >
                 <FileDown className="w-4 h-4" />
                 {t('downloadPdf')}
@@ -484,12 +479,12 @@ export function DocsImport({ onProgress }: Props) {
               <button
                 onClick={() => handleExport('clipboard')}
                 disabled={selectedPages.size === 0 || state === 'importing'}
-                className="py-2.5 px-2.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
+                className="flex-shrink-0 py-2.5 px-2.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-500/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-btn hover:shadow-btn-hover transition-all duration-150 btn-press"
                 title={t('copyToClipboard')}
               >
                 <Copy className="w-4 h-4" />
               </button>
-            </div>
+            </>
           )}
         </StickyActionBar>
       )}
