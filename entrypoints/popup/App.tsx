@@ -9,6 +9,8 @@ import { DocsImport } from '@/components/DocsImport';
 import { PodcastImport } from '@/components/PodcastImport';
 import { ClaudeImport } from '@/components/ClaudeImport';
 import { YouTubeImport } from '@/components/YouTubeImport';
+import { XImport } from '@/components/XImport';
+import { XIcon } from '@/components/XIcon';
 import { MorePanel } from '@/components/MorePanel';
 import { BookmarkPanel } from '@/components/BookmarkPanel';
 import { HistoryPanel } from '@/components/HistoryPanel';
@@ -23,6 +25,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('bookmark');
   const [initialPodcastUrl, setInitialPodcastUrl] = useState('');
   const [initialYouTubeUrl, setInitialYouTubeUrl] = useState('');
+  const [initialXUrl, setInitialXUrl] = useState('');
   const [notebookLMTabId, setNotebookLMTabId] = useState<number | null>(null);
 
   // Auto-detect URL from current tab
@@ -36,6 +39,9 @@ export default function App() {
       } else if (/youtube\.com\/(watch|playlist|shorts|@|channel|c\/|user\/)|youtu\.be\//.test(url)) {
         setActiveTab('youtube');
         setInitialYouTubeUrl(url);
+      } else if (/^https?:\/\/(www\.)?(x\.com|twitter\.com)\/\w+\/(status|article)\/\d+/.test(url)) {
+        setActiveTab('x');
+        setInitialXUrl(url);
       } else if (/claude\.ai\/|chatgpt\.com\/|chat\.openai\.com\/|gemini\.google\.com\//.test(url)) {
         setActiveTab('claude');
       }
@@ -123,6 +129,7 @@ export default function App() {
             { value: 'podcast', icon: Headphones, label: t('app.tabPodcast') },
             { value: 'youtube', icon: Youtube, label: t('app.tabYouTube') },
             { value: 'claude', icon: MessageCircle, label: t('app.tabAI') },
+            { value: 'x', icon: XIcon, label: t('app.tabX') },
             { value: 'more', icon: MoreHorizontal, label: t('app.tabMore') },
           ].map(({ value, icon: Icon, label }) => (
             <Tabs.Trigger
@@ -158,6 +165,10 @@ export default function App() {
 
         <Tabs.Content value="claude" className="p-4 animate-fade-in">
           <ClaudeImport onProgress={setImportProgress} />
+        </Tabs.Content>
+
+        <Tabs.Content value="x" className="p-4 animate-fade-in">
+          <XImport initialUrl={initialXUrl} onProgress={setImportProgress} />
         </Tabs.Content>
 
         <Tabs.Content value="bookmark" className="p-4 animate-fade-in">

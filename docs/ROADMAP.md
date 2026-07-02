@@ -79,7 +79,7 @@ v1.0.0 — 核心功能已实现，尚未发布到 Chrome Web Store。
 - [ ] **微信公众号文章导入** — 解析微信文章页面，提取正文
 - [ ] **ChatGPT 对话导入** — 类似 Claude 的对话提取
 - [ ] **Gemini 对话导入**
-- [ ] **Twitter/X 线程导入** — 提取长推文串
+- [x] **Twitter/X 帖子导入** — ✅ 已上线（v1.7.6 起）：提取帖子/推文串（/status/）与长文 Article（/article/），后台开 tab 渲染后抓取，popup 内有独立 X 标签页
 - [ ] **PDF 上传导入** — 本地 PDF 直接导入
 - [ ] **Notion 类文章增强支持** 💎 — 处理 Notion 页面特有结构（数据库视图、callout 块、嵌套页面、Toggle 等），提取正文时过滤 UI 噪声，保留语义层次；同时覆盖 Notion 托管的公开文档站点
 - [ ] **Medium 文章精细化导入** — 处理 Medium 付费墙检测与绕过提示、代码块语法还原、Embed 卡片转文本、引用块层级保留，提取 canonical 正文；区分 Member-only 内容并给出友好提示

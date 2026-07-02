@@ -13,6 +13,12 @@ import { getHistory, clearHistory } from '@/services/history';
 import { fetchPodcast, sanitizeFilename, buildFilename } from '@/services/podcast';
 import { fetchYouTube, fetchYouTubeMore } from '@/services/youtube';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
+import { X_SELECTORS, WECHAT_SELECTORS, HUAWEI_SELECTORS } from '@/lib/selectors';
+
+// Registry bundle passed into the injected page-context extractor via
+// executeScript `args` (structured-clone; plain strings/arrays only).
+const EXTRACTOR_SELECTORS = { x: X_SELECTORS, wechat: WECHAT_SELECTORS, huawei: HUAWEI_SELECTORS } as const;
+type ExtractorSelectors = typeof EXTRACTOR_SELECTORS;
 
 // Helper: render HTML to PDF via CDP and download
 async function handleExportPdfFromHtml(html: string, title: string, explicitFilename?: string, returnData?: boolean): Promise<{ base64: string; filename: string } | void> {
@@ -740,6 +746,7 @@ async function _tabBasedExtractWithProgress(
       const extractResult = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: _tabExtractorFunction,
+        args: [EXTRACTOR_SELECTORS],
       });
 
       await chrome.tabs.remove(tab.id);
@@ -783,21 +790,27 @@ async function _tabBasedExtractWithProgress(
   return results;
 }
 
-// Shared extractor function injected into tabs (must be self-contained, no closures)
-function _tabExtractorFunction(): { success: boolean; title?: string; content?: string; error?: string } {
+// Shared extractor function injected into tabs. MUST be self-contained (no closures,
+// no outer-scope refs) because executeScript serialises it into the page world. The
+// selector registry is passed in via `args` (structured clone) — see EXTRACTOR_SELECTORS.
+function _tabExtractorFunction(sel: ExtractorSelectors): { success: boolean; title?: string; content?: string; error?: string } {
   const currentUrl = window.location.href;
+  const firstMatch = (selectors: readonly string[]): Element | null => {
+    for (const s of selectors) { const el = document.querySelector(s); if (el) return el; }
+    return null;
+  };
 
   // ── X.com / Twitter extractor ──
   if (currentUrl.includes('x.com/') || currentUrl.includes('twitter.com/')) {
-    const xArticleContent = document.querySelector('[data-testid="twitterArticleRichTextView"]');
+    const xArticleContent = document.querySelector(sel.x.articleContent);
     if (xArticleContent) {
-      const titleEl = document.querySelector('[data-testid="twitter-article-title"]');
+      const titleEl = document.querySelector(sel.x.articleTitle);
       const title = titleEl?.textContent?.trim()
         || document.title.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
       const content = (xArticleContent as HTMLElement).innerText?.trim() || '';
       if (content.length >= 100) return { success: true, title, content };
     }
-    const tweetTexts = document.querySelectorAll('article [data-testid="tweetText"]');
+    const tweetTexts = document.querySelectorAll(sel.x.tweetText);
     if (tweetTexts.length > 0) {
       const title = document.title.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
       const parts: string[] = [];
@@ -815,10 +828,7 @@ function _tabExtractorFunction(): { success: boolean; title?: string; content?: 
   if (currentUrl.includes('developer.huawei.com')) {
     const docTitle = document.querySelector('h1')?.textContent?.trim()
       || document.title.replace(/-.*$/, '').trim();
-    const docContent = document.querySelector('.markdown-body')
-      || document.querySelector('#mark .idpContent')
-      || document.querySelector('.document-content-html')
-      || document.querySelector('#document-content .layout-content');
+    const docContent = firstMatch(sel.huawei.content);
     if (docContent && (docContent as HTMLElement).innerText?.trim().length > 50) {
       return { success: true, title: docTitle, content: (docContent as HTMLElement).innerText.trim() };
     }
@@ -826,11 +836,8 @@ function _tabExtractorFunction(): { success: boolean; title?: string; content?: 
   }
 
   // ── WeChat / Generic extractor ──
-  const contentEl = document.querySelector('#js_content')
-    || document.querySelector('.rich_media_content')
-    || document.querySelector('article')
-    || document.querySelector('.rich_media_area_primary');
-  const titleEl = document.querySelector('.rich_media_title, #activity-name, h1');
+  const contentEl = firstMatch(sel.wechat.content);
+  const titleEl = firstMatch(sel.wechat.title);
   const title = titleEl?.textContent?.trim() || document.title || '';
   if (!contentEl || contentEl.textContent?.trim().length === 0) {
     return { success: false, error: '页面内容为空，可能需要在微信中验证' };
@@ -890,6 +897,7 @@ async function _tabBasedExtract(
       const extractResult = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: _tabExtractorFunction,
+        args: [EXTRACTOR_SELECTORS],
       });
 
       // Close the tab

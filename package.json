@@ -16,6 +16,7 @@
     "reload": "node scripts/reload-ext.mjs",
     "test:e2e": "node scripts/test-e2e.mjs",
     "compile": "tsc --noEmit",
+    "check:selectors": "node scripts/check-selectors.mjs",
     "postinstall": "wxt prepare",
     "lint": "eslint . --ext .ts,.tsx --quiet",
     "lint:fix": "eslint . --ext .ts,.tsx --fix"

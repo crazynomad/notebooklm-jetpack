@@ -142,6 +142,18 @@ const zh = {
   'youtube.formatShort': '短链接: youtu.be/xxx',
   'onboarding.stepYouTube': '粘贴 YouTube 视频、播放列表或频道链接，批量导入到 NotebookLM。',
 
+  // ── XImport (X / Twitter) ──
+  'app.tabX': 'X',
+  'x.link': 'X（推特）链接',
+  'x.enterLink': '请输入 X 帖子链接',
+  'x.unrecognized': '无法识别的 X 链接，请粘贴帖子（/status/）或长文（/article/）链接',
+  'x.extractFailed': '内容提取失败，可能是页面结构变化或需要登录',
+  'x.imported': '已导入',
+  'x.supported': '支持的内容',
+  'x.formatTweet': '帖子 / 推文串（/status/）',
+  'x.formatArticle': '长文 Article（/article/）',
+  'x.renderNote': 'X 是动态页面，扩展会在后台打开并等待渲染后提取，导入需几秒钟。',
+
   // ── HistoryPanel ──
   'history.title': '导入历史',
   'history.clearHistory': '清除历史',
@@ -424,6 +436,18 @@ const en: Record<keyof typeof zh, string> = {
   'youtube.formatChannel': 'Channel: youtube.com/@username',
   'youtube.formatShort': 'Short link: youtu.be/xxx',
   'onboarding.stepYouTube': 'Paste YouTube video, playlist, or channel links to batch import into NotebookLM.',
+
+  // ── XImport (X / Twitter) ──
+  'app.tabX': 'X',
+  'x.link': 'X (Twitter) Link',
+  'x.enterLink': 'Please enter an X post link',
+  'x.unrecognized': 'Unrecognized X link — paste a post (/status/) or article (/article/) URL',
+  'x.extractFailed': 'Content extraction failed — the page layout may have changed or requires login',
+  'x.imported': 'Imported',
+  'x.supported': 'Supported content',
+  'x.formatTweet': 'Post / thread (/status/)',
+  'x.formatArticle': 'Long-form Article (/article/)',
+  'x.renderNote': 'X is a dynamic page — the extension opens it in the background, waits for it to render, then extracts. Import takes a few seconds.',
 
   // ── HistoryPanel ──
   'history.title': 'Import History',
