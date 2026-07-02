@@ -254,6 +254,7 @@ const zh = {
   'onboarding.stepDocs': '输入文档站 URL，自动分析站点结构，批量导入整站文档。支持 Docusaurus、MkDocs 等 14+ 框架。',
   'onboarding.stepPodcast': '粘贴 Apple Podcasts 或小宇宙链接，选择单集直接导入到 NotebookLM。',
   'onboarding.stepAI': '一键提取 Claude、ChatGPT、Gemini 的对话内容，导入为 NotebookLM 来源。',
+  'onboarding.stepX': '粘贴 X（推特）帖子或长文链接，后台渲染后提取正文，一步导入到 NotebookLM。',
   'onboarding.replayTour': '重新引导',
   'onboarding.replayTourDesc': '再看一次新手引导',
 
@@ -549,6 +550,7 @@ const en: Record<keyof typeof zh, string> = {
   'onboarding.stepDocs': 'Enter a doc site URL to auto-analyze its structure and batch import. Supports Docusaurus, MkDocs, and 14+ frameworks.',
   'onboarding.stepPodcast': 'Paste an Apple Podcasts or Xiaoyuzhou link, pick episodes and import directly into NotebookLM.',
   'onboarding.stepAI': 'Extract conversations from Claude, ChatGPT, or Gemini and import them as NotebookLM sources.',
+  'onboarding.stepX': 'Paste an X (Twitter) post or article link — the extension renders it in the background, extracts the text, and imports in one step.',
   'onboarding.replayTour': 'Replay Tour',
   'onboarding.replayTourDesc': 'View the onboarding guide again',
 

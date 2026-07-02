@@ -110,14 +110,14 @@ NotebookLM 的网址导入对很多网站水土不服：
 - **Substack 付费文章**：免费文章 NotebookLM 能导入但夹带大量噪音（Subscribe 按钮、评论区），付费文章（Paid）则完全无法导入
 - **微信公众号**：看着"导入成功"，打开一看内容是空的验证页面（假性成功）
 - **动态渲染页面**：SPA 或需要 JS 渲染的页面，NotebookLM 只抓到空壳
-- **X.com (Twitter) 长文**：Article 格式的长推文，NotebookLM 无法解析动态加载内容
+- **X.com (Twitter) 帖子/长文**：帖子、推文串与 Article 长文都是动态加载，NotebookLM 只抓到空壳
 
 这些是 NotebookLM 用户最常遇到的问题——链接明明没错，导入就是失败或内容不对。
 
 ✅ **Jetpack 方案：智能提取 + 失败自动修复**
 - **Substack 文章**：精准提取正文区域，自动过滤 Subscribe 按钮、评论区、推荐文章等 14 种噪音元素。付费文章（Paid）提取免费可见部分
 - **微信公众号**：在浏览器中渲染完整页面后提取内容，绕过反爬机制
-- **X.com 长文**：自动识别 Twitter Article 格式，通过浏览器渲染提取完整长文内容
+- **X.com 帖子/长文**：专属标签页，粘贴帖子/推文串（/status/）或长文 Article（/article/）链接，后台浏览器渲染后提取完整内容
 - **智能失败检测**：打开 NotebookLM 页面，扩展自动扫描所有来源，标记导入失败和「假性成功」（内容为空）的来源
 - **🟠 一键批量抢救**：琥珀色横幅显示失败数量，一键重新导入全部失败来源，无需逐个重试
 - **🔵 假性成功修复**：蓝色横幅检测到「看似成功实则内容为空」的来源，一键修复全部
@@ -324,14 +324,14 @@ NotebookLM's URL import silently fails on many popular sources:
 - **Substack paid articles** — free posts import but with tons of noise (subscribe buttons, comments); paid posts fail entirely
 - **WeChat articles** — appears to import successfully, but the content is actually an empty verification page (silent failure)
 - **Dynamic/SPA pages** — NotebookLM only fetches the empty HTML shell
-- **X.com (Twitter) Articles** — long-form Twitter articles can't be parsed from static HTML
+- **X.com (Twitter) posts & articles** — posts, threads, and long-form Articles all load dynamically; only the empty shell is in the static HTML
 
 These are the most common frustrations for NotebookLM users — the link is correct, but the import fails or returns garbage.
 
 ✅ **Jetpack fixes this with smart extraction + automatic failure rescue:**
 - **Substack**: Surgical precision extraction — 14 noise filters strip subscribe buttons, comments, and recommendations. Paid articles? Free-visible portions are still extracted.
 - **WeChat**: Renders the full page in-browser before extracting, bypassing anti-scraping.
-- **X.com Articles**: Auto-detects Twitter Article format, renders in-browser to extract full long-form content.
+- **X.com posts & articles**: Dedicated tab — paste a post/thread (/status/) or Article (/article/) link; renders in a background browser tab to extract full content.
 - **Smart failure detection**: Open your NotebookLM page and the extension auto-scans ALL sources, flagging both failed imports AND "silent failures" (sources that appear successful but contain empty/broken content).
 - **🟠 One-click batch rescue**: Amber banner shows failed count → one click rescues all.
 - **🔵 Silent failure repair**: Blue banner detects silently broken sources → one click repairs all. No manual retrying.

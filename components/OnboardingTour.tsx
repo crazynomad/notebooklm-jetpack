@@ -21,6 +21,7 @@ const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="tab-podcast"]', descKey: 'onboarding.stepPodcast', placement: 'bottom' },
   { target: '[data-tour="tab-youtube"]', descKey: 'onboarding.stepYouTube', placement: 'bottom' },
   { target: '[data-tour="tab-claude"]', descKey: 'onboarding.stepAI', placement: 'bottom' },
+  { target: '[data-tour="tab-x"]', descKey: 'onboarding.stepX', placement: 'bottom' },
 ];
 
 interface OnboardingTourProps {
