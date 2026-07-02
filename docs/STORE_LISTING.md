@@ -28,7 +28,7 @@ NotebookLM 的网址导入对很多网站水土不服，Jetpack 逐一击破：
 
 • Substack — 精准提取正文，自动过滤 14 种噪音元素（Subscribe 按钮、评论区等）。免费文章去噪导入，付费文章提取可见部分
 • 微信公众号 — 绕过反爬机制，浏览器内渲染后提取完整内容，告别「假性成功」
-• X.com (Twitter) 长文 — 自动识别 Article 格式，通过浏览器渲染提取完整长文
+• X.com (Twitter) — 专属标签页，粘贴帖子/推文串（/status/）或长文 Article（/article/）链接一步导入，后台浏览器渲染后提取完整内容
 • 其他动态页面 — SPA、JS 渲染页面均可处理
 
 🛟 智能失败检测：打开笔记本页面，扩展自动扫描所有来源，发现失败或内容为空的来源后，一键批量抢救，无需逐个重试。
@@ -247,7 +247,7 @@ NotebookLM's URL import silently fails on many popular sources. Jetpack handles 
 
 • Substack — Precision extraction with 14 noise filters (subscribe buttons, comments, etc.). Free posts imported cleanly, paid articles extract visible portions
 • WeChat articles — Renders full page in-browser, bypassing anti-scraping. No more "silent failures" with empty content
-• X.com (Twitter) Articles — Auto-detects long-form article format, renders in-browser for full extraction
+• X.com (Twitter) — Dedicated tab: paste a post/thread (/status/) or long-form Article (/article/) link and import in one step; renders in a background browser tab for full extraction
 • Dynamic/SPA pages — JS-rendered pages that NotebookLM can't fetch? Handled
 
 🛟 Smart failure detection: Open your notebook page and the extension auto-scans all sources, flags failures and silently broken imports, then rescues them all in one click.

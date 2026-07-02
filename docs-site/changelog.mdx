@@ -3,6 +3,11 @@ title: '更新日志'
 description: 'NotebookLM Jetpack 版本更新记录'
 ---
 
+## v1.7.7 — 2026-07-03
+
+- ✨ **新增独立的 X（推特）导入标签页**：过去导入 X 帖子要先普通导入一次、再到 NotebookLM 页面点「修复」横幅补救，藏得很深。现在 Popup 里有专属 **X** 标签页，粘贴帖子/推文串（`/status/`）或长文 Article（`/article/`）链接即可一步导入——扩展在后台打开页面、等 SPA 渲染后提取正文再导入。停在 X 帖子页时自动识别并预填链接
+- 🛡️ **脆弱 DOM 选择器集中管理 + 每周自动巡检**：X/Twitter 的 `data-testid`、NotebookLM 的 Material 类名等最易随第三方改版而失效的选择器，统一收进 `lib/selectors.ts` 单一来源，配 HTML fixture 回归测试与每周云端巡检——选择器一旦失效更早发现、更早修
+
 ## v1.7.6 — 2026-05-28
 
 - 📝 **AI 对话分享页新增「保存为 Markdown」**：把选中的问答对以原始 Markdown 形态导出为 `.md` 文件——问答内容本就是 Turndown 产出的 Markdown，直接落盘，粗体 / 列表 / 代码块 / 标题层级完整保留
