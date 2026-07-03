@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Loader2, CheckCircle, AlertCircle, Link2, FileText } from 'lucide-react';
 import type { ImportProgress, ImportItem } from '@/lib/types';
 import { XIcon } from '@/components/XIcon';
@@ -49,14 +49,10 @@ export function XImport({ initialUrl, onProgress }: Props) {
     });
   };
 
-  // Auto-import when opened from an X tab (initialUrl provided).
-  const autoRan = useRef(false);
-  useEffect(() => {
-    if (initialUrl && isXUrl(initialUrl) && !autoRan.current) {
-      autoRan.current = true;
-      handleImport(initialUrl);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // When opened from an X tab we only PREFILL the URL (see the useState
+  // initializer above). Importing is a deliberate, side-effectful action —
+  // the user picks the target notebook and clicks Import themselves, rather
+  // than having a source silently added just by opening the popup.
 
   return (
     <div className="space-y-4">
