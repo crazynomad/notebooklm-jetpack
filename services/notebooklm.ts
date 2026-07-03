@@ -8,7 +8,7 @@ async function sendImportMessage(tabId: number, url: string): Promise<boolean> {
   return new Promise((resolve) => {
     chrome.tabs.sendMessage(tabId, { type: 'IMPORT_URL', url }, (response) => {
       if (chrome.runtime.lastError) {
-        console.error('Content script error:', chrome.runtime.lastError);
+        console.warn('[import URL] content script unreachable:', chrome.runtime.lastError.message, '(tab', tabId + ')');
         resolve(false);
       } else {
         resolve(response?.success ?? false);
@@ -30,7 +30,7 @@ async function sendImportTextMessage(
       { type: 'IMPORT_TEXT', text, title, renamePrefix },
       (response) => {
         if (chrome.runtime.lastError) {
-          console.error('Content script error:', chrome.runtime.lastError);
+          console.warn('[import text] content script unreachable:', chrome.runtime.lastError.message, '(tab', tabId + ')');
           resolve(false);
         } else {
           resolve(response?.success ?? false);
@@ -95,7 +95,25 @@ async function getNotebookLMTab(targetTabId?: number): Promise<chrome.tabs.Tab> 
 }
 
 // Inject content script into the tab
+// Ping the content script already living in the tab. Any response (no
+// lastError) means a listener is alive; we don't care whether the page is
+// "ready" here — the import handlers wait for their own elements.
+function pingContentScript(tabId: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    chrome.tabs.sendMessage(tabId, { type: 'PING' }, (response) => {
+      resolve(!chrome.runtime.lastError && response != null);
+    });
+  });
+}
+
 async function ensureContentScript(tabId: number): Promise<void> {
+  // WXT already injects notebooklm.js declaratively on notebooklm.google.com/*.
+  // Re-injecting on top of a live copy adds a SECOND onMessage listener, which
+  // can cause duplicate imports and flaky "message port closed" responses. So
+  // inject only when nobody answers a PING (e.g. a tab whose content script was
+  // orphaned by an extension reload, or a freshly created tab).
+  if (await pingContentScript(tabId)) return;
+
   try {
     await chrome.scripting.executeScript({
       target: { tabId },
