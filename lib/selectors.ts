@@ -26,6 +26,9 @@ export const X_SELECTORS = {
   articleTitle: '[data-testid="twitter-article-title"]',
   /** Individual tweet body text (thread extraction joins these). */
   tweetText: 'article [data-testid="tweetText"]',
+  /** Author block ("Display Name @handle · time"); used to title a tweet when
+   *  document.title is empty (common right after SPA navigation). */
+  tweetAuthor: 'article [data-testid="User-Name"]',
 } as const;
 
 // ── NotebookLM ────────────────────────────────────────────────────────────────

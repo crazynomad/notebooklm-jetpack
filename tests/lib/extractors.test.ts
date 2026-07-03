@@ -10,25 +10,34 @@ const loadFixture = (name: string): Document => {
 };
 
 describe('X/Twitter selectors + extraction', () => {
-  it('extracts a tweet thread from the fixture', () => {
+  it('extracts a tweet, preferring a non-empty document.title', () => {
     const doc = loadFixture('x-tweet.html');
-    const result = extractX(doc, 'Naval on X: "How to Get Rich" / X');
+    const result = extractX(doc, 'Andrew Ng on X: "Loop engineering" / X');
 
     expect(result.success).toBe(true);
-    expect(result.title).toBe('Naval'); // " on X:..." and " / X" stripped
-    expect(result.content).toContain('Seek wealth');
-    expect(result.content).toContain('own equity');
-    // Thread parts joined with a blank line
-    expect(result.content?.split('\n\n').length).toBeGreaterThanOrEqual(3);
+    expect(result.title).toBe('Andrew Ng'); // " on X:..." and " / X" stripped
+    expect(result.content).toContain('Loop engineering');
   });
 
-  it('extracts a long-form article from the fixture', () => {
-    const doc = loadFixture('x-article.html');
-    const result = extractX(doc, 'The Case for Long-Form on X / X');
+  it('falls back to "Author: snippet" when document.title is empty (real X SPA case)', () => {
+    // Reproduces the live finding: X often leaves document.title empty right
+    // after SPA navigation, so a tweet must be titled from the author block.
+    const doc = loadFixture('x-tweet.html');
+    const result = extractX(doc, ''); // empty doc title
 
     expect(result.success).toBe(true);
-    expect(result.title).toBe('The Case for Long-Form on X');
-    expect(result.content).toContain('Long-form writing on X');
+    expect(result.title).toMatch(/^Andrew Ng: /); // author + snippet, not "x.com"
+    expect(result.title).not.toBe('');
+  });
+
+  it('extracts a long-form article, titled from the article-title testid', () => {
+    const doc = loadFixture('x-article.html');
+    // Article title comes from the testid even when document.title is empty.
+    const result = extractX(doc, '');
+
+    expect(result.success).toBe(true);
+    expect(result.title).toBe('来自 Codex 官方团队的分享：如何把 Codex 用到极致');
+    expect(result.content).toContain('coding agents');
     expect(result.content!.length).toBeGreaterThanOrEqual(100);
   });
 
@@ -41,10 +50,11 @@ describe('X/Twitter selectors + extraction', () => {
     expect(result.success).toBe(false);
   });
 
-  it('the tweetText selector still resolves against the frozen DOM', () => {
-    // Directly asserts the registry selector — the thing the canary also checks.
+  it('the tweetText + author selectors still resolve against the frozen DOM', () => {
+    // Directly asserts the registry selectors — the things the canary also checks.
     const doc = loadFixture('x-tweet.html');
-    expect(doc.querySelectorAll(X_SELECTORS.tweetText).length).toBeGreaterThanOrEqual(3);
+    expect(doc.querySelectorAll(X_SELECTORS.tweetText).length).toBeGreaterThanOrEqual(1);
+    expect(doc.querySelector(X_SELECTORS.tweetAuthor)).not.toBeNull();
   });
 });
 

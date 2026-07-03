@@ -21,8 +21,24 @@ export interface ExtractResult {
  * Note: uses `textContent` (jsdom implements it; `innerText` it does not). The
  * injected copy uses `innerText` for better whitespace fidelity in a real DOM.
  */
+const cleanTitle = (raw: string) => raw.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
+
+/**
+ * Title for a tweet/thread. Prefer document.title, but it's frequently empty
+ * right after X's SPA navigates (og:title is null too), so fall back to
+ * "Author: <first tweet snippet>" built from the author block + tweet text.
+ */
+export function tweetTitle(doc: Document, docTitle: string, firstTweet: string | undefined, sel = X_SELECTORS): string {
+  const fromDoc = cleanTitle(docTitle);
+  if (fromDoc) return fromDoc;
+  const authorRaw = doc.querySelector(sel.tweetAuthor)?.textContent?.trim() || '';
+  const author = authorRaw.split('@')[0].trim(); // "Andrew Ng @AndrewYNg …" → "Andrew Ng"
+  const snippet = (firstTweet || '').slice(0, 80).trim();
+  if (author && snippet) return `${author}: ${snippet}`;
+  return author || snippet || 'X post';
+}
+
 export function extractX(doc: Document, docTitle: string, sel = X_SELECTORS): ExtractResult {
-  const cleanTitle = (raw: string) => raw.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
 
   // Long-form X Article
   const article = doc.querySelector(sel.articleContent);
@@ -42,7 +58,7 @@ export function extractX(doc: Document, docTitle: string, sel = X_SELECTORS): Ex
       if (text && text.length > 10) parts.push(text);
     });
     const content = parts.join('\n\n');
-    if (content.length >= 50) return { success: true, title: cleanTitle(docTitle), content };
+    if (content.length >= 50) return { success: true, title: tweetTitle(doc, docTitle, parts[0], sel), content };
   }
 
   return { success: false, error: 'X.com: 未找到文章或推文内容' };

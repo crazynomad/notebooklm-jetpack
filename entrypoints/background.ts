@@ -812,14 +812,24 @@ function _tabExtractorFunction(sel: ExtractorSelectors): { success: boolean; tit
     }
     const tweetTexts = document.querySelectorAll(sel.x.tweetText);
     if (tweetTexts.length > 0) {
-      const title = document.title.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
       const parts: string[] = [];
       tweetTexts.forEach(el => {
         const text = (el as HTMLElement).innerText?.trim();
         if (text && text.length > 10) parts.push(text);
       });
       const content = parts.join('\n\n');
-      if (content.length >= 50) return { success: true, title, content };
+      if (content.length >= 50) {
+        // document.title is often empty right after X's SPA navigation; fall
+        // back to "Author: <first tweet snippet>" from the author block.
+        let title = document.title.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
+        if (!title) {
+          const authorRaw = (document.querySelector(sel.x.tweetAuthor) as HTMLElement | null)?.innerText?.trim() || '';
+          const author = authorRaw.split('@')[0].trim();
+          const snippet = (parts[0] || '').slice(0, 80).trim();
+          title = author && snippet ? `${author}: ${snippet}` : (author || snippet || 'X post');
+        }
+        return { success: true, title, content };
+      }
     }
     return { success: false, error: 'X.com: 未找到文章或推文内容' };
   }

@@ -1,14 +1,18 @@
 <!--
-  Frozen snapshot of X.com long-form Article DOM structure (trimmed).
-  Regenerate from a real X /article/ page if the fixture test starts failing.
+  Frozen snapshot modeled on a real X long-form Article:
+  https://x.com/dotey/status/2057250417638035555  (verified 2026-07-03)
+  Confirmed against live DOM: [data-testid="twitterArticleRichTextView"] body +
+  [data-testid="twitter-article-title"]. document.title was empty here too, so the
+  article title comes from the title testid, not document.title.
+  Regenerate if the fixture test starts failing after an X UI change.
 -->
 <div id="react-root">
   <main role="main">
     <article>
-      <div data-testid="twitter-article-title">The Case for Long-Form on X</div>
+      <div data-testid="twitter-article-title">来自 Codex 官方团队的分享：如何把 Codex 用到极致</div>
       <div data-testid="twitterArticleRichTextView">
-        <p>Long-form writing on X changes how ideas spread. Instead of a fragmented thread,
-        authors can publish a single coherent piece with headings, images, and structure.</p>
+        <p>Most developers first use coding agents for code: inspect a repository, make a change,
+        run the tests. But the team behind Codex uses it for far more than writing code.</p>
         <p>This paragraph exists to push the extracted body comfortably past the 100-character
         minimum the extractor requires before it treats an article as successfully captured.</p>
       </div>
