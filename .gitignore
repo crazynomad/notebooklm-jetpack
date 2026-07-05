@@ -35,3 +35,6 @@ docs/screenshots/raw/
 docs/screenshots/*.png
 releases/*.zip
 .obsidian/
+
+# Local Claude Code config & skill symlinks — real skill content lives in .agents/skills/
+.claude/
