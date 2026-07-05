@@ -38,3 +38,4 @@ releases/*.zip
 
 # Local Claude Code config & skill symlinks — real skill content lives in .agents/skills/
 .claude/
+.agents/
