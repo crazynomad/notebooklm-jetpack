@@ -3,6 +3,11 @@ title: '更新日志'
 description: 'NotebookLM Jetpack 版本更新记录'
 ---
 
+## v1.8.0 — 2026-07-05
+
+- 🐛 **修复播客下载文件名变成无意义 ID**：部分单集（尤其是经 Apple Podcasts 进入、但音频实际托管在小宇宙 CDN 的）下载后文件名变成一串对象 ID，而非按单集友好命名。根因是音频服务器返回的 `Content-Disposition` 头会覆盖 `chrome.downloads.download` 里我们设定的文件名。现在改用 `chrome.downloads.onDeterminingFilename` 强制使用「播客名 / NNN - 单集标题」，优先级高于响应头。（issue #57，已线上验证）
+- ✨ **播客单集页打开即自动查询**：停在单集链接（Apple `?i=` / 小宇宙 `/episode/`）时打开 Popup 会自动执行查询、直接列出该集，省去多余的一次「查询」点击，和 YouTube 标签页体验一致；打开整档节目链接仍保留手动查询，避免一开就拉取整列。下载动作仍需你手动确认
+
 ## v1.7.9 — 2026-07-03
 
 - 🐛 **修复 X 普通推文导入标题为空**：X 是动态页面，导航后 `document.title` 常常是空的（`og:title` 也拿不到），导致普通推文/推文串导入 NotebookLM 后标题为空、兜底成 `x.com`。现在改用「作者名：首条推文片段」作为标题（长文 Article 仍走文章标题）。已用真实帖子线上验证
