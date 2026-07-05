@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Headphones, Loader2, CheckCircle, AlertCircle, Download, Music, Radio } from 'lucide-react';
 import type { PodcastInfo, PodcastEpisode } from '@/services/podcast';
 import { StickyActionBar } from '@/components/StickyActionBar';
@@ -11,6 +11,16 @@ function detectPlatform(url: string): Platform {
   if (/xiaoyuzhoufm\.com\/(episode|podcast)\//.test(url)) return 'xiaoyuzhou';
   if (/podcasts\.apple\.com\//.test(url)) return 'apple';
   return 'unknown';
+}
+
+// A *single episode* URL (vs. a whole show). Apple uses the same host for both;
+// only an episode carries an ?i=<trackId>. 小宇宙 splits by path: /episode/ is
+// one episode, /podcast/ is the whole show. We auto-fetch only these — opening a
+// whole show still needs a manual Search so we don't silently pull a 200-item
+// list the user may not want.
+function isSingleEpisodeUrl(url: string): boolean {
+  if (/podcasts\.apple\.com\//.test(url)) return /[?&]i=\d+/.test(url);
+  return /xiaoyuzhoufm\.com\/episode\//.test(url);
 }
 
 const platformStyles = {
@@ -68,6 +78,17 @@ export function PodcastImport({ initialUrl }: Props) {
       },
     );
   };
+
+  // Auto-fetch when opened from a single-episode page — mirrors the YouTube tab.
+  // Fetch is read-only (just lists the one episode + a Download button); the
+  // actual Download stays a manual click, so we never write files unprompted.
+  const autoFetched = useRef(false);
+  useEffect(() => {
+    if (initialUrl && isSingleEpisodeUrl(initialUrl) && !autoFetched.current) {
+      autoFetched.current = true;
+      handleFetch();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDownload = () => {
     const toDownload = episodes.filter((e) => selected.has(e.id));
