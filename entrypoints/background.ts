@@ -20,6 +20,14 @@ import { X_SELECTORS, WECHAT_SELECTORS, HUAWEI_SELECTORS } from '@/lib/selectors
 const EXTRACTOR_SELECTORS = { x: X_SELECTORS, wechat: WECHAT_SELECTORS, huawei: HUAWEI_SELECTORS } as const;
 type ExtractorSelectors = typeof EXTRACTOR_SELECTORS;
 
+// Podcast audio URL → intended friendly filename. Populated right before we
+// call chrome.downloads.download and consumed by the onDeterminingFilename
+// listener below. Needed because download()'s `filename` is only a *suggestion*
+// that a server Content-Disposition header can override (podcast CDNs return an
+// opaque object-id filename); onDeterminingFilename.suggest() outranks the
+// header, so it's the only reliable way to force our name. See issue #57.
+const pendingPodcastFilenames = new Map<string, string>();
+
 // Helper: render HTML to PDF via CDP and download
 async function handleExportPdfFromHtml(html: string, title: string, explicitFilename?: string, returnData?: boolean): Promise<{ base64: string; filename: string } | void> {
   // explicitFilename is already client-sanitized (md/jpg/png share it); only
@@ -186,6 +194,22 @@ const MENU_ID_LINK = 'import-link';
 export default defineBackground(() => {
   console.log('NotebookLM Jetpack background service started');
 
+  // Force our friendly filename on podcast downloads. download()'s `filename`
+  // loses to the CDN's Content-Disposition header, but suggest() here wins.
+  // Non-podcast downloads (PDF/share-card) aren't in the map → accept default.
+  chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
+    const intended =
+      pendingPodcastFilenames.get(item.url) ??
+      pendingPodcastFilenames.get(item.finalUrl);
+    if (intended) {
+      pendingPodcastFilenames.delete(item.url);
+      pendingPodcastFilenames.delete(item.finalUrl);
+      suggest({ filename: intended, conflictAction: 'uniquify' });
+    } else {
+      suggest();
+    }
+  });
+
   // Create context menus on install
   chrome.runtime.onInstalled.addListener((details) => {
     // Open welcome page on first install
@@ -276,6 +300,9 @@ export default defineBackground(() => {
           for (let i = 0; i < episodes.length; i++) {
             const ep = episodes[i];
             const filename = `${folderName}/${buildFilename(i + 1, ep.title, ep.fileExtension)}`;
+            // Register the intended name so onDeterminingFilename can override
+            // the CDN's Content-Disposition (which would save an opaque ID).
+            pendingPodcastFilenames.set(ep.audioUrl, filename);
             sendProgress({ phase: 'downloading', current: i + 1, total: episodes.length, title: ep.title });
             console.log(`[podcast] ${i + 1}/${episodes.length}: ${ep.title}`);
 
