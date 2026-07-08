@@ -10,5 +10,9 @@
   "actionTitle": {
     "message": "NotebookLM Jetpack",
     "description": "鼠标悬停在工具栏扩展图标时显示的提示文字。"
+  },
+  "commandImportPage": {
+    "message": "导入当前页面到 NotebookLM",
+    "description": "chrome://extensions/shortcuts 中显示的键盘快捷键说明。"
   }
 }
