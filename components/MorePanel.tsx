@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Rss,
   Loader2,
@@ -16,11 +16,23 @@ import {
   Star,
   PlayCircle,
   Edit3,
+  DatabaseBackup,
+  Download,
+  Upload,
 } from 'lucide-react';
 import type { ImportProgress, ImportItem, RssFeedItem } from '@/lib/types';
 import { t } from '@/lib/i18n';
 import { resetOnboarding } from '@/components/OnboardingTour';
 import { getSettings, updateSettings } from '@/lib/settings';
+import {
+  collectBackup,
+  serializeBackup,
+  backupFilename,
+  parseBackup,
+  applyBackup,
+  type ImportMode,
+  type BackupPayload,
+} from '@/services/backup';
 
 interface Props {
   onProgress: (progress: ImportProgress | null) => void;
@@ -39,6 +51,15 @@ export function MorePanel({ onProgress }: Props) {
   const [showRss, setShowRss] = useState(false);
   const [autoRename, setAutoRename] = useState(true);
 
+  // ── Data backup / restore (issue #47) ──
+  const [importMode, setImportMode] = useState<ImportMode>('merge');
+  const [backupMsg, setBackupMsg] = useState('');
+  const [backupErr, setBackupErr] = useState('');
+  // Holds a validated overwrite payload awaiting explicit confirmation — an
+  // overwrite wipes existing data, so it must never apply on the first click.
+  const [pendingOverwrite, setPendingOverwrite] = useState<BackupPayload | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     getSettings().then((s) => setAutoRename(s.autoRenamePastedSources));
   }, []);
@@ -47,6 +68,63 @@ export function MorePanel({ onProgress }: Props) {
     const next = !autoRename;
     setAutoRename(next);
     await updateSettings({ autoRenamePastedSources: next });
+  };
+
+  const handleExportData = async () => {
+    setBackupErr('');
+    setBackupMsg('');
+    setPendingOverwrite(null);
+    try {
+      const payload = await collectBackup();
+      const blob = new Blob([serializeBackup(payload)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = backupFilename(payload.exportedAt);
+      a.click();
+      // Defer revoke so the browser can finish reading the blob for the download;
+      // revoking synchronously after click() can cancel it in some browsers.
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      setBackupMsg(t('more.exportSuccess'));
+    } catch {
+      setBackupErr(t('more.exportFailed'));
+    }
+  };
+
+  const runImport = async (payload: BackupPayload, mode: ImportMode) => {
+    setPendingOverwrite(null);
+    try {
+      const count = await applyBackup(payload, mode);
+      setBackupMsg(t('more.importSuccessMsg', { count }));
+    } catch {
+      setBackupErr(t('more.importFailed'));
+    }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBackupErr('');
+    setBackupMsg('');
+    setPendingOverwrite(null);
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+    let parsed;
+    try {
+      parsed = parseBackup(await file.text());
+    } catch {
+      setBackupErr(t('more.importFailed'));
+      return;
+    }
+    if (!parsed.ok) {
+      setBackupErr(t('more.importFailed'));
+      return;
+    }
+    // Overwrite destroys existing data → require an explicit second confirm.
+    if (importMode === 'overwrite') {
+      setPendingOverwrite(parsed.payload);
+      return;
+    }
+    await runImport(parsed.payload, 'merge');
   };
 
   const resetState = () => {
@@ -309,6 +387,109 @@ export function MorePanel({ onProgress }: Props) {
             }`}
           />
         </button>
+      </div>
+
+      {/* Data backup & migration (issue #47) */}
+      <div className="p-2.5 bg-emerald-50/50 border border-emerald-100/50 rounded-xl space-y-2.5">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <DatabaseBackup className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-800">{t('more.backupTitle')}</p>
+            <p className="text-xs text-gray-500">{t('more.backupDesc')}</p>
+          </div>
+        </div>
+
+        {/* Import mode selector */}
+        <div className="flex gap-1.5" role="radiogroup" aria-label={t('more.importMergeTitle')}>
+          {(['merge', 'overwrite'] as const).map((mode) => (
+            <button
+              key={mode}
+              role="radio"
+              aria-checked={importMode === mode}
+              onClick={() => setImportMode(mode)}
+              title={mode === 'merge' ? t('more.importMergeDesc') : t('more.importOverwriteDesc')}
+              className={`flex-1 px-2 py-1.5 text-xs rounded-lg border transition-colors ${
+                importMode === mode
+                  ? mode === 'overwrite'
+                    ? 'bg-red-500 text-white border-red-500'
+                    : 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-white/70 text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {mode === 'merge' ? t('more.importMerge') : t('more.importOverwrite')}
+            </button>
+          ))}
+        </div>
+        {importMode === 'overwrite' && !pendingOverwrite && (
+          <p className="text-[11px] text-red-500 flex items-start gap-1">
+            <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+            {t('more.importConfirmOverwrite')}
+          </p>
+        )}
+
+        {/* Overwrite confirm gate — a valid file was chosen; require explicit OK. */}
+        {pendingOverwrite && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-2 space-y-2">
+            <p className="text-[11px] text-red-600 flex items-start gap-1">
+              <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+              {t('more.importConfirmOverwrite')}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => runImport(pendingOverwrite, 'overwrite')}
+                className="btn-press flex-1 px-2 py-1.5 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors"
+              >
+                {t('more.importOverwriteConfirmBtn')}
+              </button>
+              <button
+                onClick={() => setPendingOverwrite(null)}
+                className="btn-press flex-1 px-2 py-1.5 bg-white text-gray-600 text-xs rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Export / Import buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportData}
+            className="btn-press flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white text-emerald-700 text-sm rounded-lg border border-emerald-200 hover:bg-emerald-50 transition-colors shadow-btn"
+          >
+            <Download className="w-4 h-4" />
+            {t('more.exportData')}
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="btn-press flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white text-gray-700 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors shadow-btn"
+          >
+            <Upload className="w-4 h-4" />
+            {t('more.importData')}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleImportFile}
+            className="hidden"
+          />
+        </div>
+
+        {backupMsg && (
+          <div className="flex items-center gap-2 text-emerald-700 text-xs bg-emerald-50 rounded-lg p-2 border border-emerald-100/60">
+            <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            {backupMsg}
+          </div>
+        )}
+        {backupErr && (
+          <div className="flex items-center gap-2 text-red-500 text-xs bg-red-50 rounded-lg p-2 border border-red-100/60">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            {backupErr}
+          </div>
+        )}
       </div>
 
       {/* Rate on Chrome Web Store */}
