@@ -10,5 +10,9 @@
   "actionTitle": {
     "message": "NotebookLM Jetpack",
     "description": "Tooltip shown when hovering over the extension icon in the toolbar."
+  },
+  "commandImportPage": {
+    "message": "Import current page to NotebookLM",
+    "description": "Label for the keyboard shortcut shown at chrome://extensions/shortcuts."
   }
 }

@@ -28,6 +28,60 @@ type ExtractorSelectors = typeof EXTRACTOR_SELECTORS;
 // header, so it's the only reliable way to force our name. See issue #57.
 const pendingPodcastFilenames = new Map<string, string>();
 
+// Flash a transient badge on the toolbar icon. The keyboard-shortcut / context-
+// menu imports (issue #7) run with no popup open, so the badge is the only
+// feedback the user gets. Uses the action API only — no extra manifest
+// permission required.
+//
+// The generation counter guards against overlapping presses: each flash bumps
+// the generation, and the 3s auto-clear only fires if no newer badge was shown
+// in the meantime — otherwise an earlier press's timer would blank a later
+// press's badge. Note: in MV3 the service worker may be torn down before the
+// setTimeout fires, in which case the badge lingers until the next flash clears
+// it (clear-on-next-press below). chrome.alarms has a 1-minute floor, too coarse
+// for a 3s badge, so this best-effort clear is the pragmatic choice.
+let badgeGeneration = 0;
+function flashActionBadge(text: string, color: string): void {
+  const gen = ++badgeGeneration;
+  chrome.action.setBadgeBackgroundColor({ color }).catch(() => { /* action API unavailable */ });
+  chrome.action.setBadgeText({ text }).catch(() => { /* action API unavailable */ });
+  setTimeout(() => {
+    if (gen === badgeGeneration) {
+      chrome.action.setBadgeText({ text: '' }).catch(() => { /* action API unavailable */ });
+    }
+  }, 3000);
+}
+
+// Shared single-page import for the entry points that have no popup open: the
+// keyboard shortcut and the context menu. Validates the URL, serializes against
+// concurrent triggers (rapid shortcut presses would otherwise drive the single
+// NotebookLM tab's Add-source dialog concurrently and clobber each other), runs
+// the existing single-URL import path, and flashes a badge for feedback.
+// importUrl() itself never throws (it catches internally and returns a boolean),
+// so no try/catch is needed here — the try/finally only releases the in-flight
+// lock. Returns whether the import succeeded.
+let pageImportInFlight = false;
+async function importPageUrl(url: string | undefined): Promise<boolean> {
+  if (!url || !/^https?:\/\//i.test(url)) {
+    console.warn('Page import: no importable URL');
+    flashActionBadge('✕', '#d93025');
+    return false;
+  }
+  if (pageImportInFlight) {
+    console.warn('Page import: another import is already in progress, ignoring');
+    flashActionBadge('…', '#f9ab00');
+    return false;
+  }
+  pageImportInFlight = true;
+  try {
+    const success = await importUrl(url);
+    flashActionBadge(success ? '✓' : '✕', success ? '#188038' : '#d93025');
+    return success;
+  } finally {
+    pageImportInFlight = false;
+  }
+}
+
 // Helper: render HTML to PDF via CDP and download
 async function handleExportPdfFromHtml(html: string, title: string, explicitFilename?: string, returnData?: boolean): Promise<{ base64: string; filename: string } | void> {
   // explicitFilename is already client-sanitized (md/jpg/png share it); only
@@ -242,16 +296,26 @@ export default defineBackground(() => {
       url = info.linkUrl;
     }
 
-    if (!url || !url.startsWith('http')) {
-      console.warn('Context menu import: invalid URL');
-      return;
+    await importPageUrl(url);
+  });
+
+  // Handle keyboard shortcut (issue #7): one-key import of the current page.
+  // Reuses the same single-URL import path as the popup and context menu;
+  // importUrl() → getNotebookLMTab() auto-opens/focuses a NotebookLM tab when
+  // none exists, matching popup behaviour. Badge gives success/failure feedback
+  // since no popup is open.
+  chrome.commands.onCommand.addListener(async (command, tab) => {
+    if (command !== 'import-current-page') return;
+
+    // Chrome (MV3) passes the active tab where the shortcut fired. Fall back to
+    // a query for builds/paths that omit it.
+    let url = tab?.url;
+    if (!url) {
+      const [active] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      url = active?.url;
     }
 
-    try {
-      await importUrl(url);
-    } catch (error) {
-      console.error('Context menu import failed:', error);
-    }
+    await importPageUrl(url);
   });
 
   // Handle long-running operations via persistent port connections (supports progress updates)

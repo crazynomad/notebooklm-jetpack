@@ -44,6 +44,18 @@ export default defineConfig({
       default_title: '__MSG_actionTitle__',
       default_popup: 'popup.html',
     },
+    commands: {
+      // One-key import of the current page. Ctrl/Cmd+Shift+N is intentionally
+      // avoided — it's reserved by Chrome for Incognito and can't be bound.
+      // Users can rebind at chrome://extensions/shortcuts.
+      'import-current-page': {
+        suggested_key: {
+          default: 'Ctrl+Shift+Y',
+          mac: 'Command+Shift+Y',
+        },
+        description: '__MSG_commandImportPage__',
+      },
+    },
     externally_connectable: {
       matches: ['https://developer.chrome.com/*', 'http://localhost/*', 'https://*/*'],
     },
