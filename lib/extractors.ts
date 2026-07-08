@@ -38,15 +38,51 @@ export function tweetTitle(doc: Document, docTitle: string, firstTweet: string |
   return author || snippet || 'X post';
 }
 
-export function extractX(doc: Document, docTitle: string, sel = X_SELECTORS): ExtractResult {
+/**
+ * Collect X Article body images as trailing Markdown. innerText/textContent
+ * drop <img>, so images would otherwise be lost from a PDF export. Emits
+ * URL-based Markdown (`![alt](src)`) that buildDocsHtml → marked renders as
+ * <img>; images load remotely when the PDF page prints (issue #34). Only
+ * pbs.twimg.com sources are kept — that excludes emoji/avatar images served
+ * from abs*.twimg.com. Deduped, in document order. Returns '' when none.
+ *
+ * Scoped to the passed article element (not the whole document) so a page with
+ * a second article container — e.g. an embedded/quoted article — can't leak its
+ * images into a body extracted from the first one.
+ */
+export function articleImagesMarkdown(article: Element): string {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  article.querySelectorAll('img').forEach((img) => {
+    const src = img.getAttribute('src') || '';
+    if (!src.includes('pbs.twimg.com') || seen.has(src)) return;
+    seen.add(src);
+    const alt = (img.getAttribute('alt') || '').replace(/[[\]]/g, '').trim();
+    lines.push(`![${alt}](${src})`);
+  });
+  return lines.length ? '\n\n' + lines.join('\n\n') : '';
+}
+
+/**
+ * @param includeImages append article image Markdown (issue #34). Only the PDF/
+ *   clipboard export path passes true; the import-as-text path leaves it false so
+ *   raw `![](…)` syntax never lands in a NotebookLM text source (which doesn't
+ *   render Markdown). Mirrors the `includeImages` arg of _tabExtractorFunction.
+ */
+export function extractX(doc: Document, docTitle: string, sel = X_SELECTORS, includeImages = false): ExtractResult {
 
   // Long-form X Article
   const article = doc.querySelector(sel.articleContent);
   if (article) {
     const titleEl = doc.querySelector(sel.articleTitle);
     const title = titleEl?.textContent?.trim() || cleanTitle(docTitle);
-    const content = article.textContent?.trim() || '';
-    if (content.length >= 100) return { success: true, title, content };
+    const text = article.textContent?.trim() || '';
+    // Length gate is on the text body only, so appended image Markdown can't
+    // let an otherwise-empty article pass. Images are appended after the text.
+    if (text.length >= 100) {
+      const content = includeImages ? text + articleImagesMarkdown(article) : text;
+      return { success: true, title, content };
+    }
   }
 
   // Normal tweet / thread

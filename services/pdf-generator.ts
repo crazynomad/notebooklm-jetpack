@@ -148,6 +148,7 @@ h2 { font-family: "Noto Serif SC", serif; font-size: 1.4em; border-bottom: 1px s
 h3 { font-size: 1.2em; margin-top: 1.4em; color: #2a2420; }
 h4 { font-size: 1em; margin-top: 1.2em; color: #3a3430; }
 p { margin: .8em 0; }
+img { max-width: 100%; height: auto; margin: 1em 0; border-radius: 6px; }
 code { background: #eee8de; border-radius: 4px; padding: .15em .4em; font-size: 85%; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; color: #5c4a3a; }
 pre { background: #eee8de; border-radius: 6px; padding: 16px; overflow-x: auto; line-height: 1.5; }
 pre code { background: none; padding: 0; }

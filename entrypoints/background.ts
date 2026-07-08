@@ -112,6 +112,18 @@ async function handleExportPdfFromHtml(html: string, title: string, explicitFile
   // Wait for render
   await new Promise(r => setTimeout(r, 2000));
 
+  // Wait for remote images (e.g. X-article pbs.twimg.com images, issue #34) to
+  // finish loading before printing, capped so a broken image can't hang export.
+  // No-op when the page has no images (resolves immediately).
+  await cdpAwait(tabId, `new Promise((res) => {
+    const imgs = Array.from(document.images || []).filter(i => !i.complete);
+    if (!imgs.length) return res(true);
+    let left = imgs.length;
+    const done = () => { if (--left <= 0) res(true); };
+    imgs.forEach(i => { i.addEventListener('load', done, { once: true }); i.addEventListener('error', done, { once: true }); });
+    setTimeout(() => res(true), 5000);
+  })`);
+
   // Print to PDF
   console.log('[EXPORT_PDF] Printing to PDF...');
   const result = await new Promise<{ data: string }>((resolve, reject) => {
@@ -156,6 +168,19 @@ function cdpEvaluate(tabId: number, expression: string): Promise<void> {
     chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', { expression }, () => {
       if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
       else resolve();
+    });
+  });
+}
+
+// Evaluate an expression that returns a Promise and wait for it to settle
+// (awaitPromise). Best-effort: resolves even on error so a stuck page never
+// blocks the print. Used to wait for remote images to finish loading before
+// Page.printToPDF (issue #34 — X-article images load over the network).
+function cdpAwait(tabId: number, expression: string): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', { expression, awaitPromise: true }, () => {
+      void chrome.runtime.lastError; // swallow; print proceeds regardless
+      resolve();
     });
   });
 }
@@ -773,7 +798,8 @@ async function _tabBasedExtractWithProgress(
       const extractResult = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: _tabExtractorFunction,
-        args: [EXTRACTOR_SELECTORS],
+        // includeImages = extractOnly: images only on the export path (issue #34).
+        args: [EXTRACTOR_SELECTORS, extractOnly],
       });
 
       await chrome.tabs.remove(tab.id);
@@ -820,7 +846,10 @@ async function _tabBasedExtractWithProgress(
 // Shared extractor function injected into tabs. MUST be self-contained (no closures,
 // no outer-scope refs) because executeScript serialises it into the page world. The
 // selector registry is passed in via `args` (structured clone) — see EXTRACTOR_SELECTORS.
-function _tabExtractorFunction(sel: ExtractorSelectors): { success: boolean; title?: string; content?: string; error?: string } {
+// `includeImages` appends X-article images as Markdown for the export path only
+// (issue #34). The import-as-text path passes false so raw `![](…)` never lands
+// in a NotebookLM text source. Bound to extractOnly at the executeScript sites.
+function _tabExtractorFunction(sel: ExtractorSelectors, includeImages: boolean): { success: boolean; title?: string; content?: string; error?: string } {
   const currentUrl = window.location.href;
   const firstMatch = (selectors: readonly string[]): Element | null => {
     for (const s of selectors) { const el = document.querySelector(s); if (el) return el; }
@@ -834,8 +863,29 @@ function _tabExtractorFunction(sel: ExtractorSelectors): { success: boolean; tit
       const titleEl = document.querySelector(sel.x.articleTitle);
       const title = titleEl?.textContent?.trim()
         || document.title.replace(/ \/ X$/, '').replace(/ on X:.*$/, '').trim();
-      const content = (xArticleContent as HTMLElement).innerText?.trim() || '';
-      if (content.length >= 100) return { success: true, title, content };
+      const text = (xArticleContent as HTMLElement).innerText?.trim() || '';
+      if (text.length >= 100) {
+        // Mirror of articleImagesMarkdown() in lib/extractors.ts — kept in sync;
+        // the fixture test is the tripwire. innerText drops <img>, so (export
+        // path only) append article images as URL-based Markdown that
+        // buildDocsHtml → PDF renders. Scoped to the captured article element so
+        // a quoted/embedded article's images can't leak in. Only pbs.twimg.com
+        // (excludes emoji/avatar images). Deduped.
+        let content = text;
+        if (includeImages) {
+          const seenSrc = new Set<string>();
+          const imgLines: string[] = [];
+          xArticleContent.querySelectorAll('img').forEach((img) => {
+            const src = img.getAttribute('src') || '';
+            if (!src.includes('pbs.twimg.com') || seenSrc.has(src)) return;
+            seenSrc.add(src);
+            const alt = (img.getAttribute('alt') || '').replace(/[[\]]/g, '').trim();
+            imgLines.push('![' + alt + '](' + src + ')');
+          });
+          if (imgLines.length) content = text + '\n\n' + imgLines.join('\n\n');
+        }
+        return { success: true, title, content };
+      }
     }
     const tweetTexts = document.querySelectorAll(sel.x.tweetText);
     if (tweetTexts.length > 0) {
@@ -934,7 +984,8 @@ async function _tabBasedExtract(
       const extractResult = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: _tabExtractorFunction,
-        args: [EXTRACTOR_SELECTORS],
+        // includeImages = extractOnly: images only on the export path (issue #34).
+        args: [EXTRACTOR_SELECTORS, extractOnly],
       });
 
       // Close the tab

@@ -22,6 +22,10 @@
 export const X_SELECTORS = {
   /** Long-form "X Article" rich-text body. */
   articleContent: '[data-testid="twitterArticleRichTextView"]',
+  /** Content images inside a long-form article body. innerText/textContent drop
+   *  <img>, so images are extracted separately; callers filter to pbs.twimg.com
+   *  to keep article media and exclude emoji/avatars. */
+  articleImage: '[data-testid="twitterArticleRichTextView"] img',
   /** Long-form article title. */
   articleTitle: '[data-testid="twitter-article-title"]',
   /** Individual tweet body text (thread extraction joins these). */
@@ -92,6 +96,13 @@ export const MONITORED_SELECTORS: MonitoredSelector[] = [
     selector: X_SELECTORS.articleContent,
     minMatches: 1,
     notes: 'Long-form X Article body. Provide a current article URL as sample when auditing.',
+  },
+  {
+    site: 'x',
+    name: 'articleImage',
+    selector: X_SELECTORS.articleImage,
+    minMatches: 0,
+    notes: 'Content images inside an X Article body (pbs.twimg.com). minMatches 0 = an image-free article is still valid; canary only fails on selector-parse errors here.',
   },
   {
     site: 'notebooklm',
